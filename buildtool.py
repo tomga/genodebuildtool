@@ -42,5 +42,5 @@ if not check_result:
 parser = mkparser.initialize()
 parse_result = parser.parse_file('/projects/genode/genode/nbuild/linux/etc/build.conf')
 
-pprint.pprint(parse_result, width=180)
+pprint.pprint(parse_result.debug_struct(), width=180)
 
