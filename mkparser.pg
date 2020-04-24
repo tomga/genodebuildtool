@@ -1,0 +1,45 @@
+
+
+
+CmdList: Command | CmdList LINE_END Command;
+
+Command: VAR_NAME WSOPT CmdOper WSOPT RValueExpr |
+				 IfdefOper WS VAR_NAME LINE_END CmdList LINE_END "endif" |
+				 IfdefOper WS VAR_NAME LINE_END CmdList LINE_END "else" LINE_END CmdList LINE_END "endif" |
+				 WSOPT |
+				 COMMENT;
+
+CmdOper: CMD_APPEND |
+         CMD_RECURSIVE_EXPAND_ASSIGN |
+				 CMD_SIMPLE_EXPAND_ASSIGN |
+				 CMD_OPTASSIGN;
+
+IfdefOper: "ifdef" | "ifndef";
+
+WSOPT: WS | EMPTY;
+
+RValueExpr: RValuePart |
+            RValueExpr RValuePart;
+
+RValuePart: RValueText |
+            EXPR_START VAR_NAME EXPR_END;
+
+RValueText: TEXT |
+            ESCAPED |
+						LINE_CONTINUATION |
+						WS;
+
+terminals
+LINE_END: /\n/;
+TEXT: /[^#$\\\n ]+/;
+ESCAPED: /\\./;
+LINE_CONTINUATION: /\\\n/;
+WS: /[ \t]+/;
+COMMENT: /#.*/;
+VAR_NAME: /[A-Za-z][A-Za-z0-9_]*/;
+EXPR_START: /\$\(/;
+EXPR_END: /\)/;
+CMD_APPEND: "+=";
+CMD_RECURSIVE_EXPAND_ASSIGN: "=";
+CMD_SIMPLE_EXPAND_ASSIGN: ":=";
+CMD_OPTASSIGN: "?=";
