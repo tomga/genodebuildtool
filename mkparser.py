@@ -26,7 +26,7 @@ def initialize():
                     lambda _, nodes: None,
                     lambda _, nodes: mkevaluator.MkCmdComment(nodes[0]),
                     ],
-        "RValueExpr": [lambda _, nodes: mkevaluator.MkRValueExpr(nodes[0]),
+        "RValueExpr": [lambda _, nodes: mkevaluator.MkRValueExpr([nodes[0]]),
                        lambda _, nodes: nodes[0].append_part(nodes[1]),
                       ],
         "RValuePart": [lambda _, nodes: nodes[0],

@@ -1,15 +1,93 @@
 
+import copy
+
+
+
+class MkEnvVar:
+    def __init__(self, mode='recursive', value=None):
+        assert mode == 'recursive' or mode == 'simple'
+        self.mode = mode
+        self.value = value if value is not None else MkRValueExpr()
+
+    def is_simply_expanded(self):
+        return self.mode == 'simple'
+
+    def is_recursively_expanded(self):
+        return self.mode == 'recursive'
+
+    def get_value(self):
+        return self.value
+
+    def set_value(self, value):
+        self.value = value
+
+
+
+class MkEnv:
+    def __init__(self):
+        self.variables = {}
+
+    def dict(self):
+        return self.variables;
+
+    def get_create_var(self, varname):
+        if varname not in self.variables:
+            self.variables[varname] = MkEnvVar()
+        return self.variables[varname]
+
+    def get_var(self, varname):
+        return self.variables[varname]
+
+    def set_var(self, varname, varvalue):
+        self.variables[varname] = varvalue
+
+    def check_var(self, varname):
+        return varname in self.variables
+
+    def debug_struct(self, mode):
+        retval = {}
+        for var in self.variables:
+            if mode == 'raw':
+                retval[var] = self.variables[var].get_value().debug_struct()
+            elif mode == 'calculated':
+                retval[var] = MkRValueExpr(self.variables[var].get_value().calculated(self)).debug_struct()
+            elif mode == 'pretty':
+                retval[var] = MkRValueExpr(self.variables[var].get_value().calculated(self)).value(self)
+            else:
+                raise Exception("Unknown debug_struct mode: '%s'" % (str(mode)))
+        return retval
+
+
 
 class MkRValue:
     """Base class for make rvalues"""
 
+    def calculate(self, mkenv):
+        return [self]
+
+    def compactable(self):
+        return False
+
+    def compact_with(self, other):
+        raise Exception("Not compactable")
 
 class MkRValueSpace(MkRValue):
     def type(self):
         return 'S'
-        
+
+    def value(self):
+        return ' '
+
+    def compactable(self):
+        return True
+
+    def compact_with(self, other):
+        pass
+
     def debug_struct(self):
         return ' '
+
+
 
 class MkRValueText(MkRValue):
     def __init__(self, text):
@@ -17,9 +95,20 @@ class MkRValueText(MkRValue):
 
     def type(self):
         return 'T'
-        
+
+    def value(self):
+        return self.text
+
+    def compactable(self):
+        return True
+
+    def compact_with(self, other):
+        self.text += other.text
+
     def debug_struct(self):
         return self.text
+
+
 
 class MkRValueVar(MkRValue):
     def __init__(self, var):
@@ -27,20 +116,59 @@ class MkRValueVar(MkRValue):
 
     def type(self):
         return 'V'
-        
+
+    def calculate(self, mkenv):
+        if not mkenv.check_var(self.var):
+            return []
+        rval_expr = copy.deepcopy(mkenv.get_var(self.var))
+        return rval_expr.get_value().calculated(mkenv)
+
+    def value(self):
+        raise Exception("MkRValueVar should have been calculated")
+
     def debug_struct(self):
         return '$' + self.var
 
 
+
 class MkRValueExpr:
-    def __init__(self, part):
-        self.parts = [ part ]
+    def __init__(self, parts = []):
+        self.parts = parts
 
     def append_part(self, part):
         if self.parts[-1].type() != 'S' or part.type() != 'S':
             self.parts.append(part)
         return self
-    
+
+    def append_expr(self, expr):
+        if len(self.parts) != 0:
+            self.parts += [ MkRValueSpace() ]
+        self.parts += expr.parts
+
+    def calculated(self, mkenv):
+        retval = []
+        for part in self.parts:
+            retval += part.calculate(mkenv)
+        retval = self.compacted(retval)
+        return retval
+
+    def compacted(self, parts):
+        retval = []
+        for part in parts:
+            if (len(retval) > 0
+                and retval[-1].type() == part.type()
+                and part.compactable()):
+                retval[-1].compact_with(part)
+            else:
+                retval += [ part ]
+        return retval
+
+    def calculate_variables(self, mkenv):
+        self.parts = self.calculated(mkenv)
+
+    def value(self, mkenv):
+        return "".join(map(lambda x: x.value(), self.calculated(mkenv)))
+
     def debug_struct(self):
         retval = []
         for part in self.parts:
@@ -48,12 +176,12 @@ class MkRValueExpr:
         return retval
 
 
+
 class MkCommand:
     """Base class for make commands"""
 
-    def process(env):
+    def process(self, mkenv):
         pass
-
 
 
 
@@ -65,7 +193,11 @@ class MkScript:
         if cmd is not None:
             self.commands.append(cmd)
         return self
-    
+
+    def process(self, mkenv):
+        for cmd in self.commands:
+            cmd.process(mkenv)
+
     def debug_struct(self):
         retval = []
         for cmd in self.commands:
@@ -73,7 +205,7 @@ class MkScript:
             if cmd_struct is not None:
                 retval.append(cmd_struct)
         return retval
-    
+
 
 
 class MkCmdOper(MkCommand):
@@ -83,22 +215,58 @@ class MkCmdOper(MkCommand):
 
     def debug_struct(self):
         return [ self.var, self.debug_struct_oper(), self.rval_expr.debug_struct() ]
-    
+
+
+
 class MkCmdAppend(MkCmdOper):
+
+    def process(self, mkenv):
+        var_value = mkenv.get_create_var(self.var)
+        rval_value = copy.deepcopy(self.rval_expr)
+        if var_value.is_simply_expanded():
+            # using get_var does not influence calculation here
+            # because if it wasn't defined earlier it wouldn't be
+            # 'simply_expanded'
+            rval_value.calculate_variables(mkenv)
+        var_value.get_value().append_expr(rval_value)
+
+
     def debug_struct_oper(self):
         return '+='
 
+
+
 class MkCmdRecursiveExpandAssign(MkCmdOper):
+    def process(self, mkenv):
+        rval_value = copy.deepcopy(self.rval_expr)
+        mkenv.set_var(self.var, MkEnvVar('recursive', rval_value))
+
     def debug_struct_oper(self):
         return '='
 
+
+
 class MkCmdSimpleExpandAssign(MkCmdOper):
+    def process(self, mkenv):
+        rval_value = copy.deepcopy(self.rval_expr)
+        rval_value.calculate_variables(mkenv)
+        mkenv.set_var(self.var, MkEnvVar('simple', rval_value))
+
     def debug_struct_oper(self):
         return ':='
 
+
+
 class MkCmdOptAssign(MkCmdOper):
+    def process(self, mkenv):
+        if mkenv.check_var(self.var):
+            return
+        rval_value = copy.deepcopy(self.rval_expr)
+        mkenv.set_var(self.var, MkEnvVar('recursive', rval_value))
+
     def debug_struct_oper(self):
         return '?='
+
 
 
 class MkCmdCondDef(MkCommand):
@@ -107,15 +275,31 @@ class MkCmdCondDef(MkCommand):
         self.script_true = script_true
         self.script_false = script_false
 
+    def process(self, mkenv):
+        if self.check_cond(mkenv):
+            self.script_true.process(mkenv)
+        elif self.script_false is not None:
+            self.script_false.process(mkenv)
+
     def debug_struct(self):
         return ([ self.debug_struct_oper(), self.var, self.script_true.debug_struct() ]
                 + ([ self.script_false.debug_struct() ] if self.script_false is not None else []))
-    
+
+
+
 class MkCmdIfdef(MkCmdCondDef):
+    def check_cond(self, mkenv):
+        return mkenv.check_var(self.var)
+
     def debug_struct_oper(self):
         return 'ifdef'
 
+
+
 class MkCmdIfndef(MkCmdCondDef):
+    def check_cond(self, mkenv):
+        return not mkenv.check_var(self.var)
+
     def debug_struct_oper(self):
         return 'ifndef'
 
@@ -125,7 +309,9 @@ class MkCmdComment(MkCommand):
     def __init__(self, comment):
         self.comment = comment
 
+    def process(self, mkenv):
+        pass
+
     def debug_struct(self):
         # return [ self.comment ]
         return None
-    

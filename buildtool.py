@@ -4,6 +4,7 @@ import pprint
 import sqlite3
 
 import schema
+import mkevaluator
 import mkparser
 
 
@@ -43,4 +44,11 @@ parser = mkparser.initialize()
 parse_result = parser.parse_file('/projects/genode/genode/nbuild/linux/etc/build.conf')
 
 pprint.pprint(parse_result.debug_struct(), width=180)
+
+env = mkevaluator.MkEnv()
+parse_result.process(env)
+
+pprint.pprint(env.debug_struct('raw'), width=200)
+pprint.pprint(env.debug_struct('calculated'), width=200)
+pprint.pprint(env.debug_struct('pretty'), width=200)
 
