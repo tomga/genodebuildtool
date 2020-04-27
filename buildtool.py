@@ -6,6 +6,7 @@ import sqlite3
 import schema
 import mkevaluator
 import mkparser
+import mklogparser
 
 
 ###
@@ -43,12 +44,18 @@ if not check_result:
 parser = mkparser.initialize()
 parse_result = parser.parse_file('/projects/genode/genode/nbuild/linux/etc/build.conf')
 
-pprint.pprint(parse_result.debug_struct(), width=180)
+#pprint.pprint(parse_result.debug_struct(), width=180)
 
 env = mkevaluator.MkEnv()
 parse_result.process(env)
 
-pprint.pprint(env.debug_struct('raw'), width=200)
-pprint.pprint(env.debug_struct('calculated'), width=200)
-pprint.pprint(env.debug_struct('pretty'), width=200)
+#pprint.pprint(env.debug_struct('raw'), width=200)
+#pprint.pprint(env.debug_struct('calculated'), width=200)
+#pprint.pprint(env.debug_struct('pretty'), width=200)
 
+
+
+logparser = mklogparser.initialize()
+logparse_result = logparser.parse_file('/projects/genode/logs/20200427_211245_linux_linux.nlog')
+
+pprint.pprint(logparse_result, width=180)

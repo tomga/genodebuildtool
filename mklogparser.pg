@@ -1,0 +1,50 @@
+
+CmdList: Command | CmdList Command;
+
+Command: EnteringDir LibraryTitle CmdList LeavingDir |
+         EnteringDir ProgramTitle CmdList LeavingDir |
+         EnteringDir CmdList LeavingDir |
+         EnteringDir LeavingDir |
+         BuildCommandTitle SimpleCommandList |
+         SimpleCommandList;
+
+SimpleCommandList: SimpleCommand | SimpleCommandList SimpleCommand;
+
+EnteringDir: ENTERING_DIR PATH QUOT LINE_END;
+LeavingDir: LEAVING_DIR PATH QUOT LINE_END;
+
+LibraryTitle: LIBRARY_TITLE PATH LINE_END;
+ProgramTitle: PROGRAM_TITLE PATH LINE_END;
+
+BuildCommandTitle: "    " BUILD_COMMAND_TITLE WS PATH LINE_END;
+
+SimpleCommand: SimpleCommandText LINE_END;
+
+SimpleCommandText: SimpleCommandPart |
+                   SimpleCommandText SimpleCommandPart;
+
+SimpleCommandPart: TEXT |
+                   ESCAPED |
+                   LINE_CONTINUATION;
+
+SimpleCommandLineWithContinuation: TEXT LINE_CONTINUATION;               
+
+
+terminals
+
+PATH: /[.+\-a-zA-Z0-9_\/][.+\-a-zA-Z0-9_\/]*/;
+QUOT: /'/;
+ENTERING_DIR: /make(\[[0-9]+\])?: Entering directory '/;
+LEAVING_DIR: /make(\[[0-9]+\])?: Leaving directory '/;
+
+LIBRARY_TITLE: /\x1b\[00;33m  Library \x1b\[0m/;
+PROGRAM_TITLE: /\x1b\[01;33m  Program \x1b\[0m/;
+
+BUILD_COMMAND_TITLE: /ASSEMBLE|COMPILE|CONVERT|LINK|MERGE/;
+
+NONBACKSLASH: /[^\\]/;
+LINE_END: /\n/;
+LINE_CONTINUATION: /\\\n/;
+ESCAPED: /\\./;
+WS: /[ \t]+/;
+TEXT: /[^\x1b\\\n]/;
