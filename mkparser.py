@@ -41,6 +41,3 @@ def initialize():
     
     parser = parglare.Parser(grammar, ws='\r', actions=actions)
     return parser
-
-def parse_file(mkfile):
-    parser.parse_file(mkfile)
