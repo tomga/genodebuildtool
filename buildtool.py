@@ -42,12 +42,28 @@ if not check_result:
 ###
 
 parser = mkparser.initialize()
-parse_result = parser.parse_file('/projects/genode/genode/nbuild/linux/etc/build.conf')
+build_conf = parser.parse_file('/projects/genode/genode/nbuild/linux/etc/build.conf')
+specs_conf = parser.parse_file('/projects/genode/genode/nbuild/linux/etc/specs.conf')
+
+#test_mk = parser.parse_file('/projects/genode/tmp/test.mk')
+#pprint.pprint(test_mk.debug_struct(), width=180)
+#quit()
+
+base_hw_specs_conf = parser.parse_file('/projects/genode/genode/repos/base-hw/etc/specs.conf')
+pprint.pprint(base_hw_specs_conf.debug_struct(), width=180)
+#quit()
 
 #pprint.pprint(parse_result.debug_struct(), width=180)
 
 env = mkevaluator.MkEnv()
-parse_result.process(env)
+build_conf.process(env)
+pprint.pprint(env.debug_struct('pretty'), width=200)
+specs_conf.process(env)
+pprint.pprint(env.debug_struct('pretty'), width=200)
+base_hw_specs_conf.process(env)
+pprint.pprint(env.debug_struct('pretty'), width=200)
+
+quit()
 
 #pprint.pprint(env.debug_struct('raw'), width=200)
 #pprint.pprint(env.debug_struct('calculated'), width=200)

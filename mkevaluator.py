@@ -71,6 +71,8 @@ class MkRValue:
     def compact_with(self, other):
         raise Exception("Not compactable")
 
+
+
 class MkRValueSpace(MkRValue):
     def type(self):
         return 'S'
@@ -131,13 +133,46 @@ class MkRValueVar(MkRValue):
 
 
 
+class MkRValueFun2(MkRValue):
+    def __init__(self, funname, arg1, arg2):
+        self.funname = funname
+        self.arg1 = arg1
+        self.arg2 = arg2
+
+    def type(self):
+        return 'F'
+
+    def calculate(self, mkenv):
+        arg1_value = self.arg1.values_list(mkenv)
+        arg2_value = self.arg2.values_list(mkenv)
+
+        result = None
+        if self.funname == 'filter-out':
+            result = MkRValueExpr.from_values_list([ v for v in arg2_value if v not in arg1_value ])
+        else:
+            raise Exception("Unknown function: %s" % (self.funname))
+
+        return result.calculated(mkenv)
+
+    def value(self):
+        raise Exception("TODO")
+
+    def debug_struct(self):
+        return ['$' + self.funname, self.arg1.debug_struct(), self.arg2.debug_struct()]
+
+
+
 class MkRValueExpr:
-    def __init__(self, parts = []):
-        self.parts = parts
+    def __init__(self, parts = None):
+        self.parts = parts if parts is not None else []
 
     def append_part(self, part):
-        if self.parts[-1].type() != 'S' or part.type() != 'S':
-            self.parts.append(part)
+        if (len(self.parts) > 0
+            and part.compactable()
+            and self.parts[-1].type() == part.type()):
+            self.parts[-1].compact_with(part)
+            return self
+        self.parts.append(part)
         return self
 
     def append_expr(self, expr):
@@ -169,6 +204,20 @@ class MkRValueExpr:
     def value(self, mkenv):
         return "".join(map(lambda x: x.value(), self.calculated(mkenv)))
 
+    def values_list(self, mkenv):
+        return list(map(lambda x: x.value(), [e for e in self.calculated(mkenv) if e.type() != 'S']))
+
+    def from_values_list(values_list):
+        # Construct r value expression from list of text values
+        retval = MkRValueExpr()
+        first = True
+        for t in values_list:
+            if not first:
+                retval.append_part(MkRValueSpace())
+            retval.append_part(MkRValueText(t))
+            first = False
+        return retval
+
     def debug_struct(self):
         retval = []
         for part in self.parts:
@@ -187,7 +236,8 @@ class MkCommand:
 
 class MkScript:
     def __init__(self, cmd):
-        self.commands = [ cmd ]
+        self.commands = []
+        self.append_command(cmd)
 
     def append_command(self, cmd):
         if cmd is not None:
@@ -230,7 +280,6 @@ class MkCmdAppend(MkCmdOper):
             rval_value.calculate_variables(mkenv)
         var_value.get_value().append_expr(rval_value)
 
-
     def debug_struct_oper(self):
         return '+='
 
@@ -269,25 +318,39 @@ class MkCmdOptAssign(MkCmdOper):
 
 
 
-class MkCmdCondDef(MkCommand):
-    def __init__(self, var, script_true, script_false):
-        self.var = var
+class MkCmdCond(MkCommand):
+    def __init__(self, condition, script_true, script_false):
+        self.condition = condition
         self.script_true = script_true
         self.script_false = script_false
 
     def process(self, mkenv):
-        if self.check_cond(mkenv):
+        if self.condition.check_cond(mkenv):
             self.script_true.process(mkenv)
         elif self.script_false is not None:
             self.script_false.process(mkenv)
 
     def debug_struct(self):
-        return ([ self.debug_struct_oper(), self.var, self.script_true.debug_struct() ]
+        return ([ self.condition.debug_struct(), self.script_true.debug_struct() ]
                 + ([ self.script_false.debug_struct() ] if self.script_false is not None else []))
 
 
+class MkCondition:
+    """Base class for make conditions"""
 
-class MkCmdIfdef(MkCmdCondDef):
+    def check_cond(self, mkenv):
+        pass
+
+
+class MkCondDef(MkCondition):
+    def __init__(self, var):
+        self.var = var
+
+    def debug_struct(self):
+        return [ self.debug_struct_oper(), self.var ]
+
+
+class MkCondIfdef(MkCondDef):
     def check_cond(self, mkenv):
         return mkenv.check_var(self.var)
 
@@ -295,13 +358,46 @@ class MkCmdIfdef(MkCmdCondDef):
         return 'ifdef'
 
 
-
-class MkCmdIfndef(MkCmdCondDef):
+class MkCondIfndef(MkCondDef):
     def check_cond(self, mkenv):
         return not mkenv.check_var(self.var)
 
     def debug_struct_oper(self):
         return 'ifndef'
+
+
+
+class MkCondEq(MkCondition):
+    def __init__(self, left_expr, right_expr):
+        self.left_expr = left_expr
+        self.right_expr = right_expr
+
+    def check_cond(self, mkenv):
+        left = self.left_expr.calculated(mkenv)
+        right = self.right_expr.calculated(mkenv)
+        return self.check_cond_oper(left, right)
+
+
+    def debug_struct(self):
+        return [ self.debug_struct_oper(),
+                 self.left_expr.debug_struct(),
+                 self.right_expr.debug_struct() ]
+
+
+class MkCondIfeq(MkCondEq):
+    def check_cond_oper(self, left, right):
+        return left == right
+
+    def debug_struct_oper(self):
+        return 'ifeq'
+
+
+class MkCondIfneq(MkCondEq):
+    def check_cond_oper(self, left, right):
+        return not (left == right)
+
+    def debug_struct_oper(self):
+        return 'ifneq'
 
 
 
