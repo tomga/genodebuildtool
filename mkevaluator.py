@@ -75,7 +75,7 @@ class MkRValue:
 
 class MkRValueSpace(MkRValue):
     def type(self):
-        return 'S'
+        return 'SPC'
 
     def value(self):
         return ' '
@@ -96,7 +96,7 @@ class MkRValueText(MkRValue):
         self.text = text
 
     def type(self):
-        return 'T'
+        return 'TXT'
 
     def value(self):
         return self.text
@@ -117,7 +117,7 @@ class MkRValueVar(MkRValue):
         self.var = var
 
     def type(self):
-        return 'V'
+        return 'VAR'
 
     def calculate(self, mkenv):
         if not mkenv.check_var(self.var):
@@ -133,6 +133,33 @@ class MkRValueVar(MkRValue):
 
 
 
+class MkRValueFun1(MkRValue):
+    def __init__(self, funname, arg):
+        self.funname = funname
+        self.arg = arg
+
+    def type(self):
+        return 'FN1'
+
+    def calculate(self, mkenv):
+        arg_value = self.arg.values_list(mkenv)
+
+        result = None
+        if self.funname == 'shell':
+            raise Exception("TODO Implement: %s" % (self.funname))
+        else:
+            raise Exception("Unknown function: %s" % (self.funname))
+
+        return result.calculated(mkenv)
+
+    def value(self):
+        raise Exception("TODO")
+
+    def debug_struct(self):
+        return ['$' + self.funname, self.arg.debug_struct()]
+
+
+
 class MkRValueFun2(MkRValue):
     def __init__(self, funname, arg1, arg2):
         self.funname = funname
@@ -140,7 +167,7 @@ class MkRValueFun2(MkRValue):
         self.arg2 = arg2
 
     def type(self):
-        return 'F'
+        return 'FN2'
 
     def calculate(self, mkenv):
         arg1_value = self.arg1.values_list(mkenv)
@@ -159,6 +186,67 @@ class MkRValueFun2(MkRValue):
 
     def debug_struct(self):
         return ['$' + self.funname, self.arg1.debug_struct(), self.arg2.debug_struct()]
+
+
+
+class MkRValueFun3(MkRValue):
+    def __init__(self, funname, arg1, arg2, arg3):
+        self.funname = funname
+        self.arg1 = arg1
+        self.arg2 = arg2
+        self.arg3 = arg3
+
+    def type(self):
+        return 'FN3'
+
+    def calculate(self, mkenv):
+        arg1_value = self.arg1.values_list(mkenv)
+        arg2_value = self.arg2.values_list(mkenv)
+        arg3_value = self.arg3.values_list(mkenv)
+
+        result = None
+        if self.funname == '???':
+            result = "???"
+        else:
+            raise Exception("Unknown function: %s" % (self.funname))
+
+        return result.calculated(mkenv)
+
+    def value(self):
+        raise Exception("TODO")
+
+    def debug_struct(self):
+        return ['$' + self.funname, self.arg1.debug_struct(), self.arg2.debug_struct(), self.arg3.debug_struct()]
+
+
+
+class MkRValueSubst(MkRValue):
+    def __init__(self, varname, pattern, substitution):
+        self.varname = varname
+        self.pattern = pattern
+        self.substitution = substitution
+
+    def type(self):
+        return 'SUB'
+
+    def calculate(self, mkenv):
+        arg1_value = self.arg1.values_list(mkenv)
+        arg2_value = self.arg2.values_list(mkenv)
+
+        result = None
+        if self.funname == 'filter-out':
+            result = MkRValueExpr.from_values_list([ v for v in arg2_value if v not in arg1_value ])
+        else:
+            raise Exception("Unknown function: %s" % (self.funname))
+
+        return result.calculated(mkenv)
+
+    def value(self):
+        raise Exception("TODO")
+
+    def debug_struct(self):
+        return ['$' + self.varname + ':',
+                self.pattern.debug_struct(), self.substitution.debug_struct()]
 
 
 
@@ -333,6 +421,23 @@ class MkCmdCond(MkCommand):
     def debug_struct(self):
         return ([ self.condition.debug_struct(), self.script_true.debug_struct() ]
                 + ([ self.script_false.debug_struct() ] if self.script_false is not None else []))
+
+
+class MkCmdInclude(MkCommand):
+    def __init__(self, rval_expr, optional=False):
+        self.rval_expr = rval_expr
+        self.optional = optional
+
+    def process(self, mkenv):
+        rval_value = copy.deepcopy(self.rval_expr)
+        rval_value.calculate_variables(mkenv)
+        rval_value.calculate_variables(mkenv)
+        print("TODO: include%s %s" % (" (optional)" if self.optional else "", str(rval_value.parts)))
+
+
+    def debug_struct(self):
+        return ([ "-" if self.optional else "" + "include" ]
+                + [ self.rval_expr.debug_struct() ])
 
 
 class MkCondition:

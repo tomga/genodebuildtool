@@ -51,7 +51,11 @@ specs_conf = parser.parse_file('/projects/genode/genode/nbuild/linux/etc/specs.c
 
 base_hw_specs_conf = parser.parse_file('/projects/genode/genode/repos/base-hw/etc/specs.conf')
 pprint.pprint(base_hw_specs_conf.debug_struct(), width=180)
-#quit()
+
+base_global = parser.parse_file('/projects/genode/genode/repos/base/mk/global.mk')
+pprint.pprint(base_global.debug_struct(), width=180)
+
+quit()
 
 #pprint.pprint(parse_result.debug_struct(), width=180)
 

@@ -5,6 +5,7 @@ CmdList: Command | CmdList LINE_END Command;
 
 Command: VAR_NAME WSOPT CmdOper WSOPT RValueExpr |
 				 CondCmd |
+				 IncludeCmd |
 				 WSOPT |
 				 COMMENT;
 
@@ -18,11 +19,14 @@ CondCmd: Condition LINE_END CmdList LINE_END "endif" |
          Condition LINE_END CmdList LINE_END "else" WS CondCmd;
 
 Condition: IfdefOper WS VAR_NAME |
-           IfeqOper WS IFEQ_START RValueExpr "," RValueExpr EXPR_OR_IFEQ_END;
+           IfeqOper WS BRACE_OPEN RValueExpr COMMA RValueExpr BRACE_CLOSE;
 
 IfdefOper: "ifdef" | "ifndef";
 
 IfeqOper: "ifeq" | "ifneq";
+
+IncludeCmd: "include" WSOPT RValueExpr |
+						"-include" WSOPT RValueExpr;
 
 WSOPT: WS | EMPTY;
 
@@ -31,27 +35,43 @@ RValueExpr: RValuePart |
 						EMPTY;
 
 RValuePart: RValueText |
-            EXPR_START Fun2Name WS RValueExpr "," RValueExpr EXPR_OR_IFEQ_END |
-            EXPR_START VAR_NAME EXPR_OR_IFEQ_END;
+            DOLLAR VAR_NAME |
+            DOLLAR BRACE_OPEN Fun1Name WS RValueExpr BRACE_CLOSE |
+            DOLLAR BRACE_OPEN Fun2Name WS RValueExpr COMMA RValueExpr BRACE_CLOSE |
+            DOLLAR BRACE_OPEN Fun3Name WS RValueExpr COMMA RValueExpr COMMA RValueExpr BRACE_CLOSE |
+            DOLLAR BRACE_OPEN VAR_NAME BRACE_CLOSE |
+            DOLLAR BRACE_OPEN VAR_NAME ":" RValueExpr CMD_RECURSIVE_EXPAND_ASSIGN RValueExpr BRACE_CLOSE;
 
 RValueText: TEXT |
+            COMMA |
+						CMD_RECURSIVE_EXPAND_ASSIGN |
             ESCAPED |
 						LINE_CONTINUATION |
 						WS;
 
-Fun2Name: "filter-out";
+Fun1Name: "lastword" |
+					"shell";
+
+Fun2Name: "addprefix" |
+					"call" |
+					"filter-out" |
+					"findstring";
+
+Fun3Name: "foreach" |
+					"subst";
 
 terminals
 LINE_END: /\n/;
-TEXT: /[^#$\\\n ()]/;
+TEXT: /[^#,$\\\n ()]/;
 ESCAPED: /\\./;
 LINE_CONTINUATION: /\\\n/;
 WS: /[ \t]+/;
 COMMENT: /#.*/;
-VAR_NAME: /[A-Za-z][A-Za-z0-9_]*/;
-EXPR_START: /\$\(/;
-IFEQ_START: /\(/;
-EXPR_OR_IFEQ_END: /\)/;
+VAR_NAME: /[A-Za-z][A-Za-z0-9_]*|@|\*/;
+DOLLAR: /\$/;
+COMMA: /,/;
+BRACE_OPEN: /\(/;
+BRACE_CLOSE: /\)/;
 CMD_APPEND: "+=";
 CMD_RECURSIVE_EXPAND_ASSIGN: "=";
 CMD_SIMPLE_EXPAND_ASSIGN: ":=";
