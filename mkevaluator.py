@@ -113,23 +113,29 @@ class MkRValueText(MkRValue):
 
 
 class MkRValueVar(MkRValue):
-    def __init__(self, var):
-        self.var = var
+    def __init__(self, var_ident, var_expr = None):
+        self.var_ident = var_ident
+        self.var_expr = var_expr
 
     def type(self):
         return 'VAR'
 
     def calculate(self, mkenv):
-        if not mkenv.check_var(self.var):
+        if self.var_expr is not None:
+            raise "TODO: implement var_expr"
+        if not mkenv.check_var(self.var_ident):
             return []
-        rval_expr = copy.deepcopy(mkenv.get_var(self.var))
+        rval_expr = copy.deepcopy(mkenv.get_var(self.var_ident))
         return rval_expr.get_value().calculated(mkenv)
 
     def value(self):
         raise Exception("MkRValueVar should have been calculated")
 
     def debug_struct(self):
-        return '$' + self.var
+        if self.var_expr is None:
+            return '$' + self.var_ident
+        else:
+            return [ '$' + self.var_ident, self.var_expr.debug_struct() ]
 
 
 
@@ -221,8 +227,8 @@ class MkRValueFun3(MkRValue):
 
 
 class MkRValueSubst(MkRValue):
-    def __init__(self, varname, pattern, substitution):
-        self.varname = varname
+    def __init__(self, var_expr, pattern, substitution):
+        self.var_expr = var_expr
         self.pattern = pattern
         self.substitution = substitution
 
@@ -245,7 +251,7 @@ class MkRValueSubst(MkRValue):
         raise Exception("TODO")
 
     def debug_struct(self):
-        return ['$' + self.varname + ':',
+        return [self.var_expr.debug_struct(), ':',
                 self.pattern.debug_struct(), self.substitution.debug_struct()]
 
 
