@@ -1,0 +1,30 @@
+
+@startuml
+"tool/builddir/build.mk" as build_mk -> "tool/run/run" as run : Run 'log'
+run -> "repos/base/run/log.run" as log_run : tcl 'source'
+
+log_run -> run : build "core init test/log"
+
+run -> build_mk: make "core init test/log"
+
+group Append to <build>/var/libdeps
+  build_mk -> "repos/base/mk/dep_prg.mk" as dep_prg_mk : make base-linux/src/core/linux/target.mk
+  build_mk -> "repos/base/mk/dep_prg.mk" as dep_prg_mk : make os/src/init/target.mk
+  build_mk -> "repos/base/mk/dep_prg.mk" as dep_prg_mk : make base/src/test/log/target.mk
+end
+
+build_mk -> "<build>/var/libdeps" as libdeps
+
+libdeps -> "repos/base/mk/lib.mk" : var/libcache/cxx
+libdeps -> "repos/base/mk/lib.mk" : var/libcache/syscall-linux
+libdeps -> "repos/base/mk/lib.mk" : var/libcache/base-linux-common
+libdeps -> "repos/base/mk/lib.mk" : var/libcache/startup-linux
+libdeps -> "repos/base/mk/prg.mk" : core/linux
+libdeps -> "repos/base/mk/lib.mk" : var/libcache/ldso-startup
+libdeps -> "repos/base/mk/lib.mk" : var/libcache/ld
+libdeps -> "repos/base/mk/lib.mk" : var/libcache/base
+libdeps -> "repos/base/mk/prg.mk" : init
+libdeps -> "repos/base/mk/prg.mk" : test/log
+
+
+@enduml
