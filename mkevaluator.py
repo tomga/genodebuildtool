@@ -446,6 +446,25 @@ class MkCmdInclude(MkCommand):
                 + [ self.rval_expr.debug_struct() ])
 
 
+class MkCmdVpath(MkCommand):
+    def __init__(self, rval_pattern, rval_path):
+        self.rval_pattern = rval_pattern
+        self.rval_path = rval_path
+
+    def process(self, mkenv):
+        rval_pattern_value = copy.deepcopy(self.rval_pattern)
+        rval_pattern_value.calculate_variables(mkenv)
+        rval_path_value = copy.deepcopy(self.rval_path)
+        rval_path_value.calculate_variables(mkenv)
+        print("TODO: vpath%s %s" % (" (optional)" if self.optional else "", str(rval_value.parts)))
+
+
+    def debug_struct(self):
+        return ([ "include" ]
+                + [ self.rval_pattern.debug_struct() ]
+                + [ self.rval_path.debug_struct() ])
+
+
 class MkCondition:
     """Base class for make conditions"""
 

@@ -19,6 +19,7 @@ def initialize():
                                       "Invalid command oper %s" % (nodes[2])),
                     lambda _, nodes: nodes[0],
                     lambda _, nodes: nodes[0],
+                    lambda _, nodes: nodes[0],
                     lambda _, nodes: None,
                     lambda _, nodes: mkevaluator.MkCmdComment(nodes[0]),
                     ],
@@ -28,6 +29,8 @@ def initialize():
                     ],
         "IncludeCmd": [lambda _, nodes: mkevaluator.MkCmdInclude(nodes[2]),
                        lambda _, nodes: mkevaluator.MkCmdInclude(nodes[2], optional=True),
+                      ],
+        "VPathCmd": [lambda _, nodes: mkevaluator.MkCmdVpath(nodes[2], nodes[4]),
                     ],
         "Condition": [lambda _, nodes: (mkevaluator.MkCondIfdef(nodes[2]) if nodes[0] == 'ifdef' else
                                         mkevaluator.MkCondIfndef(nodes[2]) if nodes[0] == 'ifndef' else

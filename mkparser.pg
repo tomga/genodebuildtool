@@ -6,6 +6,7 @@ CmdList: Command | CmdList LINE_END Command;
 Command: VAR_IDENT WSOPT CmdOper WSOPT RValueExpr |
 				 CondCmd |
 				 IncludeCmd |
+				 VpathCmd |
 				 WSOPT |
 				 COMMENT;
 
@@ -27,6 +28,8 @@ IfeqOper: "ifeq" | "ifneq";
 
 IncludeCmd: "include" WSOPT RValueExpr |
 						"-include" WSOPT RValueExpr;
+
+VpathCmd: "vpath" WS RValueExpr WS RValueExpr;
 
 WSOPT: WS | EMPTY;
 
