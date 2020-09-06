@@ -1,6 +1,7 @@
 
 import copy
-
+import os
+import traceback
 
 
 class MkEnvVar:
@@ -23,39 +24,81 @@ class MkEnvVar:
 
 
 
+class MkCache:
+    def __init__(self, parser):
+        self.parsed_makefiles = {}
+        self.parser = parser
+
+    def get_parsed_mk(self, makefile):
+        if makefile not in self.parsed_makefiles:
+            self.parsed_makefiles[makefile] = self.parser.parse_file(makefile)
+        return self.parsed_makefiles[makefile]
+
+    def set_parsed_mk(self, makefile, parsed_makefile):
+        self.parsed_makefiles[makefile] = parsed_makefile
+
+    def check_parsed_mk(self, makefile):
+        return makefile in self.parsed_makefiles
+
+
+
 class MkEnv:
-    def __init__(self):
+    def __init__(self, mk_cache = None, parent_env = None):
         self.variables = {}
+        self.mk_cache = mk_cache
+        self.parent_env = parent_env
 
     def dict(self):
         return self.variables;
 
     def get_create_var(self, varname):
-        if varname not in self.variables:
-            self.variables[varname] = MkEnvVar()
+        if self.check_var(varname):
+            return self.get_var(varname)
+
+        self.variables[varname] = MkEnvVar()
         return self.variables[varname]
 
     def get_var(self, varname):
-        return self.variables[varname]
+        if varname in self.variables:
+            return self.variables[varname]
+        if self.parent_env is not None:
+            return self.parent_env.get_var(varname)
+        return None
 
     def set_var(self, varname, varvalue):
         self.variables[varname] = varvalue
 
     def check_var(self, varname):
-        return varname in self.variables
+        if varname in self.variables:
+            return True
+        if self.parent_env is not None:
+            return self.parent_env.check_var(varname)
+        return False
 
     def debug_struct(self, mode):
         retval = {}
         for var in self.variables:
-            if mode == 'raw':
-                retval[var] = self.variables[var].get_value().debug_struct()
-            elif mode == 'calculated':
-                retval[var] = MkRValueExpr(self.variables[var].get_value().calculated(self)).debug_struct()
-            elif mode == 'pretty':
-                retval[var] = MkRValueExpr(self.variables[var].get_value().calculated(self)).value(self)
-            else:
-                raise Exception("Unknown debug_struct mode: '%s'" % (str(mode)))
+            try:
+                if mode == 'raw':
+                    retval[var] = self.variables[var].get_value().debug_struct()
+                elif mode == 'calculated':
+                    retval[var] = MkRValueExpr(self.variables[var].get_value().calculated(self)).debug_struct()
+                elif mode == 'pretty':
+                    retval[var] = MkRValueExpr(self.variables[var].get_value().calculated(self)).value(self)
+                else:
+                    raise Exception("Unknown debug_struct mode: '%s'" % (str(mode)))
+            except Exception as e:
+                print("Error processing debug for '%s' variable (%s)" % (str(var), str(self.variables[var].get_value().debug_struct())))
+                traceback.print_exception(None, e, e.__traceback__)
+                raise e
         return retval
+
+    def get_mk_cache(self):
+        if self.mk_cache is not None:
+            return self.mk_cache
+        if self.parent_env is not None:
+            return self.parent_env.get_mk_cache()
+        return None
 
 
 
@@ -121,11 +164,13 @@ class MkRValueVar(MkRValue):
         return 'VAR'
 
     def calculate(self, mkenv):
+        var_name = self.var_ident
         if self.var_expr is not None:
-            raise "TODO: implement var_expr"
+            var_name += ''.join(self.var_expr.calculate(mkenv))
+            print("MkRValueVar::calculate[var_expr] '%s'" % (str(var_name)))
         if not mkenv.check_var(self.var_ident):
             return []
-        rval_expr = copy.deepcopy(mkenv.get_var(self.var_ident))
+        rval_expr = copy.deepcopy(mkenv.get_var(var_name))
         return rval_expr.get_value().calculated(mkenv)
 
     def value(self):
@@ -136,6 +181,33 @@ class MkRValueVar(MkRValue):
             return '$' + self.var_ident
         else:
             return [ '$' + self.var_ident, self.var_expr.debug_struct() ]
+
+
+functionsDict = {}
+
+# 2 args
+def mkfun_addprefix(mkenv, args):
+    return [ args[0][0] + v for v in args[1] ]
+functionsDict['addprefix'] = mkfun_addprefix
+
+def mkfun_filter_out(mkenv, args):
+    return [ v for v in args[1] if v not in args[0] ]
+functionsDict['filter-out'] = mkfun_filter_out
+
+# 3 args
+def mkfun_subst(mkenv, args):
+    # current version only supports patterns without spaces
+    return [ v.replace(args[0][0], args[1][0]) for v in args[2] ]
+functionsDict['subst'] = mkfun_subst
+
+# 1+ args
+def mkfun_call(mkenv, args):
+    return functionsDict[args[0][0]](mkenv, args[1:])
+functionsDict['call'] = mkfun_call
+
+def mkfun_lastword(mkenv, args):
+    return args[-1] if len(args) > 0 else []
+functionsDict['lastword'] = mkfun_lastword
 
 
 
@@ -149,12 +221,13 @@ class MkRValueFun1(MkRValue):
 
     def calculate(self, mkenv):
         arg_value = self.arg.values_list(mkenv)
+        args = [arg_value]
 
         result = None
-        if self.funname == 'shell':
-            raise Exception("TODO Implement: %s" % (self.funname))
+        if self.funname in functionsDict:
+            result = MkRValueExpr.from_values_list(functionsDict[self.funname](mkenv, args))
         else:
-            raise Exception("Unknown function: %s" % (self.funname))
+            raise Exception("Unknown function1: %s" % (self.funname))
 
         return result.calculated(mkenv)
 
@@ -178,12 +251,15 @@ class MkRValueFun2(MkRValue):
     def calculate(self, mkenv):
         arg1_value = self.arg1.values_list(mkenv)
         arg2_value = self.arg2.values_list(mkenv)
+        args = [arg1_value, arg2_value]
+
+        print("fun: %s, args: %s" % (str(self.funname), str(args)))
 
         result = None
-        if self.funname == 'filter-out':
-            result = MkRValueExpr.from_values_list([ v for v in arg2_value if v not in arg1_value ])
+        if self.funname in functionsDict:
+            result = MkRValueExpr.from_values_list(functionsDict[self.funname](mkenv, args))
         else:
-            raise Exception("Unknown function: %s" % (self.funname))
+            raise Exception("Unknown function2: %s" % (self.funname))
 
         return result.calculated(mkenv)
 
@@ -206,15 +282,31 @@ class MkRValueFun3(MkRValue):
         return 'FN3'
 
     def calculate(self, mkenv):
-        arg1_value = self.arg1.values_list(mkenv)
-        arg2_value = self.arg2.values_list(mkenv)
-        arg3_value = self.arg3.values_list(mkenv)
-
         result = None
-        if self.funname == '???':
-            result = "???"
+
+        if self.funname == 'foreach':
+            arg1_value = self.arg1.values_list(mkenv)
+            arg2_value = self.arg2.values_list(mkenv)
+            wrapenv = MkEnv(parent_env=mkenv)
+            varname = arg1_value[0]
+            print("varname: %s" % (str(varname)))
+            variable = wrapenv.get_create_var(varname)
+            result_value = []
+            for varvalue in arg2_value:
+                variable.set_value(MkRValueExpr.from_values_list([varvalue]))
+                result_value += self.arg3.values_list(wrapenv)
+            print("result: %s" % (str(result_value)))
+            result = MkRValueExpr.from_values_list(result_value)
         else:
-            raise Exception("Unknown function: %s" % (self.funname))
+            arg1_value = self.arg1.values_list(mkenv)
+            arg2_value = self.arg2.values_list(mkenv)
+            arg3_value = self.arg3.values_list(mkenv)
+            args = [arg1_value, arg2_value, arg3_value]
+
+            if self.funname in functionsDict:
+                result = MkRValueExpr.from_values_list(functionsDict[self.funname](mkenv, args))
+            else:
+                raise Exception("Unknown function3: %s" % (self.funname))
 
         return result.calculated(mkenv)
 
@@ -236,16 +328,15 @@ class MkRValueSubst(MkRValue):
         return 'SUB'
 
     def calculate(self, mkenv):
-        arg1_value = self.arg1.values_list(mkenv)
-        arg2_value = self.arg2.values_list(mkenv)
+        var_value = self.var_expr.calculate(mkenv)
 
-        result = None
-        if self.funname == 'filter-out':
-            result = MkRValueExpr.from_values_list([ v for v in arg2_value if v not in arg1_value ])
-        else:
-            raise Exception("Unknown function: %s" % (self.funname))
+        # print("MkRValueSubst::calculate: %s" % (str(var_value)))
+        # TODO: implement
+
+        result = MkRValueExpr.from_values_list([ v + "_TODO_MkRValueSubst" for v in var_value ])
 
         return result.calculated(mkenv)
+
 
     def value(self):
         raise Exception("TODO")
@@ -299,7 +390,7 @@ class MkRValueExpr:
         return "".join(map(lambda x: x.value(), self.calculated(mkenv)))
 
     def values_list(self, mkenv):
-        return list(map(lambda x: x.value(), [e for e in self.calculated(mkenv) if e.type() != 'S']))
+        return list(map(lambda x: x.value(), [e for e in self.calculated(mkenv) if e.type() != 'SPC']))
 
     def from_values_list(values_list):
         # Construct r value expression from list of text values
@@ -340,14 +431,31 @@ class MkScript:
 
     def process(self, mkenv):
         for cmd in self.commands:
-            cmd.process(mkenv)
+            try:
+                cmd.process(mkenv)
+            except AttributeError as e:
+                print("Error processing command:")
+                print("%s" % (str(cmd.debug_struct())))
+                traceback.print_exception(None, err, err.__traceback__)
+                raise e
 
     def debug_struct(self):
         retval = []
+        previous_cmd = None
         for cmd in self.commands:
-            cmd_struct = cmd.debug_struct()
-            if cmd_struct is not None:
-                retval.append(cmd_struct)
+            try:
+                cmd_struct = cmd.debug_struct()
+                if cmd_struct is not None:
+                    retval.append(cmd_struct)
+            except Exception as e:
+                if previous_cmd is None:
+                    print("Error processing debug for first command")
+                else:
+                    print("Error debugging command after:")
+                    print("%s" % (str(previous_cmd.debug_struct())))
+                traceback.print_exception(None, err, err.__traceback__)
+                raise e
+            previous_cmd = cmd
         return retval
 
 
@@ -435,11 +543,15 @@ class MkCmdInclude(MkCommand):
         self.optional = optional
 
     def process(self, mkenv):
-        rval_value = copy.deepcopy(self.rval_expr)
-        rval_value.calculate_variables(mkenv)
-        rval_value.calculate_variables(mkenv)
-        print("TODO: include%s %s" % (" (optional)" if self.optional else "", str(rval_value.parts)))
-
+        includes_list = self.rval_expr.values_list(mkenv)
+        for include in includes_list:
+            if not os.path.isfile(include):
+                if self.optional:
+                    print("MkCmdInclude: skipping not existing optionally included file '%s'" % (include))
+                    continue
+                raise Exception("MkCmdInclude: '%s' file to include does not exist" % (include))
+            include_mk = mkenv.get_mk_cache().get_parsed_mk(include)
+            include_mk.process(mkenv)
 
     def debug_struct(self):
         return ([ "-" if self.optional else "" + "include" ]

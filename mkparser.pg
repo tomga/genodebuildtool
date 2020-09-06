@@ -49,7 +49,7 @@ RValuePartExpr: DOLLAR VarName |
             		DOLLAR BRACE_OPEN VarName ":" RValueExpr CMD_RECURSIVE_EXPAND_ASSIGN RValueExpr BRACE_CLOSE;
 
 VarName: VAR_IDENT |
-         VAR_IDENT RValueExpr;
+         VAR_IDENT RValuePartExpr;
 
 RValuePartText: TEXT |
 								COMMA |
