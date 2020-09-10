@@ -3,12 +3,18 @@
 
 CmdList: Command | CmdList LINE_END Command;
 
-Command: VAR_IDENT WSOPT CmdOper WSOPT RValueExpr |
+Command: VAR_IDENT CmdAssign |
+         ExportWithWs VAR_IDENT CmdAssign? |
 				 CondCmd |
 				 IncludeCmd |
 				 VpathCmd |
+				 RValuePartExpr |
 				 WSOPT |
 				 COMMENT;
+
+CmdAssign: WSOPT CmdOper WSOPT RValueExpr;
+
+ExportWithWs: EXPORT WS;
 
 CmdOper: CMD_APPEND |
          CMD_RECURSIVE_EXPAND_ASSIGN |
@@ -42,32 +48,68 @@ RValuePart: RValuePartText |
 
 
 RValuePartExpr: DOLLAR VarName |
-            		DOLLAR BRACE_OPEN Fun1Name WS RValueExpr BRACE_CLOSE |
-            		DOLLAR BRACE_OPEN Fun2Name WS RValueExpr COMMA RValueExpr BRACE_CLOSE |
-            		DOLLAR BRACE_OPEN Fun3Name WS RValueExpr COMMA RValueExpr COMMA RValueExpr BRACE_CLOSE |
+            		DOLLAR BRACE_OPEN Fun1Name WS ParamExpr BRACE_CLOSE |
+            		DOLLAR BRACE_OPEN Fun2Name WS ParamExpr COMMA ParamExpr BRACE_CLOSE |
+            		DOLLAR BRACE_OPEN Fun3Name WS ParamExpr COMMA ParamExpr COMMA ParamExpr BRACE_CLOSE |
+            		DOLLAR BRACE_OPEN FunAnyName WS ParamList BRACE_CLOSE |
             		DOLLAR BRACE_OPEN VarName BRACE_CLOSE |
+            		DOLLAR BRACE_OPEN VAR_INDEX BRACE_CLOSE |
             		DOLLAR BRACE_OPEN VarName ":" RValueExpr CMD_RECURSIVE_EXPAND_ASSIGN RValueExpr BRACE_CLOSE;
+
+ParamList: ParamExpr |
+           ParamList COMMA ParamExpr;
+
+ParamExpr: ParamPart |
+           ParamExpr ParamPart |
+					 EMPTY;
+
+ParamPart: ParamPartText |
+					 ParamPartExpr;
+
+
+ParamPartExpr: DOLLAR VarName |
+           		 DOLLAR BRACE_OPEN Fun1Name WS ParamExpr BRACE_CLOSE |
+            	 DOLLAR BRACE_OPEN Fun2Name WS ParamExpr COMMA ParamExpr BRACE_CLOSE |
+            	 DOLLAR BRACE_OPEN Fun3Name WS ParamExpr COMMA ParamExpr COMMA ParamExpr BRACE_CLOSE |
+            	 DOLLAR BRACE_OPEN FunAnyName WS ParamList BRACE_CLOSE |
+            	 DOLLAR BRACE_OPEN VarName BRACE_CLOSE |
+            	 DOLLAR BRACE_OPEN VAR_INDEX BRACE_CLOSE |
+            	 DOLLAR BRACE_OPEN VarName ":" ParamExpr CMD_RECURSIVE_EXPAND_ASSIGN ParamExpr BRACE_CLOSE;
 
 VarName: VAR_IDENT |
          VAR_IDENT RValuePartExpr;
 
 RValuePartText: TEXT |
-								COMMA |
+                COMMA |
 								CMD_RECURSIVE_EXPAND_ASSIGN |
             		ESCAPED |
 								LINE_CONTINUATION |
 								WS;
 
-Fun1Name: "lastword" |
-					"shell";
+ParamPartText: TEXT |
+							 CMD_RECURSIVE_EXPAND_ASSIGN |
+            	 ESCAPED |
+							 LINE_CONTINUATION |
+							 WS;
+
+Fun1Name: "firstword" |
+					"lastword" |
+					"realpath" |
+					"sort" |
+					"wildcard";
 
 Fun2Name: "addprefix" |
 					"call" |
+					"filter" |
 					"filter-out" |
 					"findstring";
 
 Fun3Name: "foreach" |
+					"if" |
 					"subst";
+
+FunAnyName: "error" |
+            "shell";
 
 terminals
 LINE_END: /\n/;
@@ -77,6 +119,7 @@ LINE_CONTINUATION: /\\\n/;
 WS: /[ \t]+/;
 COMMENT: /#.*/;
 VAR_IDENT: /[A-Za-z][A-Za-z0-9_]*|@|\*/;
+VAR_INDEX: /[0-9]/;
 DOLLAR: /\$/;
 COMMA: /,/;
 BRACE_OPEN: /\(/;
@@ -85,3 +128,4 @@ CMD_APPEND: "+=";
 CMD_RECURSIVE_EXPAND_ASSIGN: "=";
 CMD_SIMPLE_EXPAND_ASSIGN: ":=";
 CMD_OPTASSIGN: "?=";
+EXPORT: "export";

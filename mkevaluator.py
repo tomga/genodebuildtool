@@ -318,6 +318,33 @@ class MkRValueFun3(MkRValue):
 
 
 
+class MkRValueFunAny(MkRValue):
+    def __init__(self, funname, args):
+        self.funname = funname
+        self.args = args
+
+    def type(self):
+        return 'FN?'
+
+    def calculate(self, mkenv):
+        args = [arg.values_list(mkenv) for arg in self.args]
+
+        result = None
+        if self.funname in functionsDict:
+            result = MkRValueExpr.from_values_list(functionsDict[self.funname](mkenv, args))
+        else:
+            raise Exception("Unknown function1: %s" % (self.funname))
+
+        return result.calculated(mkenv)
+
+    def value(self):
+        raise Exception("TODO")
+
+    def debug_struct(self):
+        return ['$' + self.funname] + [arg.debug_struct() for arg in self.args]
+
+
+
 class MkRValueSubst(MkRValue):
     def __init__(self, var_expr, pattern, substitution):
         self.var_expr = var_expr
@@ -461,12 +488,14 @@ class MkScript:
 
 
 class MkCmdOper(MkCommand):
-    def __init__(self, var, rval_expr):
+    def __init__(self, var, rval_expr, export):
         self.var = var
         self.rval_expr = rval_expr
+        self.export = export
 
     def debug_struct(self):
-        return [ self.var, self.debug_struct_oper(), self.rval_expr.debug_struct() ]
+        return ((['export'] if self.export else [])
+                + [ self.var, self.debug_struct_oper(), self.rval_expr.debug_struct() ])
 
 
 
@@ -518,6 +547,17 @@ class MkCmdOptAssign(MkCmdOper):
     def debug_struct_oper(self):
         return '?='
 
+
+
+class MkCmdExport(MkCommand):
+    def __init__(self, var):
+        self.var = var
+
+    def process(self, mkenv):
+        pass
+
+    def debug_struct(self):
+        return [ 'export', self.var ]
 
 
 class MkCmdCond(MkCommand):

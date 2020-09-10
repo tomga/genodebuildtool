@@ -45,14 +45,20 @@ if not check_result:
 
 parser = mkparser.initialize()
 mkcache = mkevaluator.MkCache(parser)
-build_conf = mkcache.get_parsed_mk('/projects/genode/genode/nbuild/linux/etc/build.conf')
-
-specs_conf = mkcache.get_parsed_mk('/projects/genode/genode/nbuild/linux/etc/specs.conf')
 
 ##test_mk = mkcache.get_parsed_mk('/projects/genode/tmp/test.mk')
 ##pprint.pprint(test_mk.debug_struct(), width=180)
 ##quit()
-#
+
+build_mk = mkcache.get_parsed_mk('/projects/genode/genode/tool/builddir/build.mk')
+quit()
+
+
+
+build_conf = mkcache.get_parsed_mk('/projects/genode/genode/nbuild/linux/etc/build.conf')
+
+specs_conf = mkcache.get_parsed_mk('/projects/genode/genode/nbuild/linux/etc/specs.conf')
+
 #base_hw_specs_conf = mkcache.get_parsed_mk('/projects/genode/genode/repos/base-hw/etc/specs.conf')
 #pprint.pprint(base_hw_specs_conf.debug_struct(), width=180)
 
@@ -83,6 +89,7 @@ specs_conf.process(env)
 #pprint.pprint(env.debug_struct('pretty'), width=200)
 
 base_global.process(env)
+env.get_create_var('CC_OPT_DEP').set_value(mkevaluator.MkRValueExpr.from_values_list([]))
 pprint.pprint(env.debug_struct('pretty'), width=200)
 
 quit()
