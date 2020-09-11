@@ -3,16 +3,20 @@
 
 CmdList: Command | CmdList LINE_END Command;
 
-Command: VAR_IDENT CmdAssign |
-         ExportWithWs VAR_IDENT CmdAssign? |
+Command: VarIdentWithOptWs CmdAssign |
+         ExportWithWs VarIdentWithOptWs CmdAssign? |
 				 CondCmd |
 				 IncludeCmd |
-				 VpathCmd |
-				 RValueExpr |
+				 VPathCmd |
+				 RValueExpr RuleStructureSuffix? |
+				 RULE_COMMAND |
 				 WSOPT |
 				 COMMENT;
 
-CmdAssign: WSOPT CmdOper WSOPT OptRValueExpr;
+
+RuleStructureSuffix: ColonSeparator RValueExpr?;
+
+CmdAssign: CmdOper WSOPT OptRValueExpr;
 
 ExportWithWs: EXPORT WS;
 
@@ -35,7 +39,7 @@ IfeqOper: "ifeq" | "ifneq";
 IncludeCmd: "include" WSOPT OptRValueExpr |
 						"-include" WSOPT OptRValueExpr;
 
-VpathCmd: "vpath" WS RValueExpr WS RValueExpr;
+VPathCmd: "vpath" WS VPATH_PATTERN WS RValueExpr;
 
 WSOPT: WS | EMPTY;
 
@@ -57,7 +61,9 @@ RValuePartExpr: DOLLAR VarName |
             		DOLLAR BRACE_OPEN FunAnyName WS ParamList BRACE_CLOSE |
             		DOLLAR BRACE_OPEN VarName BRACE_CLOSE |
             		DOLLAR BRACE_OPEN VAR_INDEX BRACE_CLOSE |
-            		DOLLAR BRACE_OPEN VarName ":" RValueExpr CMD_RECURSIVE_EXPAND_ASSIGN RValueExpr BRACE_CLOSE;
+            		DOLLAR BRACE_OPEN VAR_SPECIAL BRACE_CLOSE |
+            	  DOLLAR BRACE_OPEN VarName CMD_SIMPLE_EXPAND_ASSIGN RValueExpr BRACE_CLOSE |
+            		DOLLAR BRACE_OPEN VarName COLON RValueExpr CMD_RECURSIVE_EXPAND_ASSIGN RValueExpr BRACE_CLOSE;
 
 ParamList: ParamExpr |
            ParamList CommaSeparator ParamExpr;
@@ -78,31 +84,43 @@ ParamPartExpr: DOLLAR VarName |
             	 DOLLAR BRACE_OPEN FunAnyName WS ParamList BRACE_CLOSE |
             	 DOLLAR BRACE_OPEN VarName BRACE_CLOSE |
             	 DOLLAR BRACE_OPEN VAR_INDEX BRACE_CLOSE |
-            	 DOLLAR BRACE_OPEN VarName ":" ParamExpr CMD_RECURSIVE_EXPAND_ASSIGN ParamExpr BRACE_CLOSE;
+            	 DOLLAR BRACE_OPEN VAR_SPECIAL BRACE_CLOSE |
+            	 DOLLAR BRACE_OPEN VarName CMD_SIMPLE_EXPAND_ASSIGN ParamExpr BRACE_CLOSE |
+            	 DOLLAR BRACE_OPEN VarName COLON ParamExpr CMD_RECURSIVE_EXPAND_ASSIGN ParamExpr BRACE_CLOSE;
 
-VarName: VAR_IDENT |
-         VAR_IDENT RValuePartExpr;
+VarName: VarIdent |
+         VarIdent RValuePartExpr;
 
-RValuePartText: TEXT |
+RValuePartText: TEXT_CHAR |
+								VarIdentWithOptWs |
+							  VAR_IDENT_SECOND_ALLOWED |
                 COMMA |
 								CMD_RECURSIVE_EXPAND_ASSIGN |
             		ESCAPED |
 								LINE_CONTINUATION;
 
-ParamPartText: TEXT |
+ParamPartText: TEXT_CHAR |
+							 VarIdentWithOptWs |
+							 VAR_IDENT_SECOND_ALLOWED |
 							 CMD_RECURSIVE_EXPAND_ASSIGN |
             	 ESCAPED |
 							 LINE_CONTINUATION;
 
 CommaSeparator: COMMA WS?;
 
-Fun1Name: "firstword" |
+ColonSeparator: COLON WS?;
+
+Fun1Name: "basename" |
+					"dir" |
+					"firstword" |
 					"lastword" |
 					"realpath" |
 					"sort" |
+					"strip" |
 					"wildcard";
 
 Fun2Name: "addprefix" |
+					"addsuffix" |
 					"call" |
 					"filter" |
 					"filter-out" |
@@ -110,22 +128,37 @@ Fun2Name: "addprefix" |
 
 Fun3Name: "foreach" |
 					"if" |
+					"patsubst" |
 					"subst";
 
 FunAnyName: "error" |
             "shell";
 
+VarIdentWithOptWs: VarIdent WSOPT;
+
+VarIdent: VarIdentStd |
+          VAR_SPECIAL;
+
+VarIdentStd: VAR_IDENT_START |
+             VarIdent VAR_IDENT_START |
+             VarIdent VAR_IDENT_SECOND_ALLOWED;
+
 terminals
 LINE_END: /\n/;
-TEXT: /[^#,$\\\n ()]/;
+TEXT_CHAR: /[^#,:$\\\n\t ()A-Za-z0-9_@*]/;
+VAR_IDENT_START: /[A-Za-z_]/;
+VAR_IDENT_SECOND_ALLOWED: /[0-9]/;
+VAR_INDEX: /[0-9]/;
+VAR_SPECIAL: /[@*]/;
 ESCAPED: /\\./;
 LINE_CONTINUATION: /\\\n/;
-WS: /[ \t]+/;
+WS: /[ ]+/;
+TAB: /[\t]/;
 COMMENT: /#.*/;
-VAR_IDENT: /[A-Za-z][A-Za-z0-9_]*|@|\*/;
-VAR_INDEX: /[0-9]/;
+RULE_COMMAND: /\t.*/;
 DOLLAR: /\$/;
 COMMA: /,/;
+COLON: /[:]/;
 BRACE_OPEN: /\(/;
 BRACE_CLOSE: /\)/;
 CMD_APPEND: "+=";
@@ -133,3 +166,4 @@ CMD_RECURSIVE_EXPAND_ASSIGN: "=";
 CMD_SIMPLE_EXPAND_ASSIGN: ":=";
 CMD_OPTASSIGN: "?=";
 EXPORT: "export";
+VPATH_PATTERN: /[a-zA-Z_0-9.%\/][a-zA-Z_0-9.%\/]*/;

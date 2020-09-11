@@ -12,24 +12,33 @@ def initialize():
         "CmdList": [lambda _, nodes: mkevaluator.MkScript(nodes[0]),
                     lambda _, nodes: nodes[0].append_command(nodes[2]),
                     ],
-        "Command": [lambda _, nodes: (mkevaluator.MkCmdAppend(nodes[0], nodes[1][3], export=False) if nodes[1][1] == '+=' else
-                                      mkevaluator.MkCmdRecursiveExpandAssign(nodes[0], nodes[1][3], export=False) if nodes[1][1] == '=' else
-                                      mkevaluator.MkCmdSimpleExpandAssign(nodes[0], nodes[1][3], export=False) if nodes[1][1] == ':=' else
-                                      mkevaluator.MkCmdOptAssign(nodes[0], nodes[1][3], export=False) if nodes[1][1] == '?=' else
+        "Command": [lambda _, nodes: (mkevaluator.MkCmdAppend(nodes[0][0], nodes[1][3], export=False) if nodes[1][1] == '+=' else
+                                      mkevaluator.MkCmdRecursiveExpandAssign(nodes[0][0], nodes[1][3], export=False) if nodes[1][1] == '=' else
+                                      mkevaluator.MkCmdSimpleExpandAssign(nodes[0][0], nodes[1][3], export=False) if nodes[1][1] == ':=' else
+                                      mkevaluator.MkCmdOptAssign(nodes[0][0], nodes[1][3], export=False) if nodes[1][1] == '?=' else
                                       "Invalid command oper %s" % (nodes[1][1])),
-                    lambda _, nodes: (mkevaluator.MkCmdExport(nodes[1]) if nodes[2] is None else
-                                      mkevaluator.MkCmdAppend(nodes[1], nodes[2][3], export=True) if nodes[2][1] == '+=' else
-                                      mkevaluator.MkCmdRecursiveExpandAssign(nodes[1], nodes[2][3], export=True) if nodes[2][1] == '=' else
-                                      mkevaluator.MkCmdSimpleExpandAssign(nodes[1], nodes[2][3], export=True) if nodes[2][1] == ':=' else
-                                      mkevaluator.MkCmdOptAssign(nodes[1], nodes[2][3], export=True) if nodes[2][1] == '?=' else
+                    lambda _, nodes: (mkevaluator.MkCmdExport(nodes[1][0]) if nodes[2] is None else
+                                      mkevaluator.MkCmdAppend(nodes[1][0], nodes[2][3], export=True) if nodes[2][1] == '+=' else
+                                      mkevaluator.MkCmdRecursiveExpandAssign(nodes[1][0], nodes[2][3], export=True) if nodes[2][1] == '=' else
+                                      mkevaluator.MkCmdSimpleExpandAssign(nodes[1][0], nodes[2][3], export=True) if nodes[2][1] == ':=' else
+                                      mkevaluator.MkCmdOptAssign(nodes[1][0], nodes[2][3], export=True) if nodes[2][1] == '?=' else
                                       "Invalid command oper %s" % (nodes[2][1])),
                     lambda _, nodes: nodes[0],
                     lambda _, nodes: nodes[0],
                     lambda _, nodes: nodes[0],
-                    lambda _, nodes: None, ## TODO RvaluePartExpr
+                    lambda _, nodes: (mkevaluator.MkCmdExpr(nodes[0]) if nodes[1] is None else
+                                      mkevaluator.MkCmdRuleHeader(nodes[0], nodes[1][1])),
+                    lambda _, nodes: mkevaluator.MkCmdRuleCommand(nodes[0]),
                     lambda _, nodes: None,
                     lambda _, nodes: mkevaluator.MkCmdComment(nodes[0]),
                     ],
+        "CmdAssign": [lambda _, nodes: [None, nodes[0], nodes[1], nodes[2]],
+                     ],
+        "RuleList": [lambda _, nodes: [nodes[0]],
+                     lambda _, nodes: nodes[0] + [nodes[1]],
+                     ],
+        "RuleCommand": [lambda _, nodes: nodes[1],
+                        ],
         "CondCmd": [lambda _, nodes: mkevaluator.MkCmdCond(nodes[0], nodes[2], None),
                     lambda _, nodes: mkevaluator.MkCmdCond(nodes[0], nodes[2], nodes[6]),
                     lambda _, nodes: mkevaluator.MkCmdCond(nodes[0], nodes[2], [ nodes[6] ]),
@@ -39,6 +48,9 @@ def initialize():
                       ],
         "VPathCmd": [lambda _, nodes: mkevaluator.MkCmdVpath(nodes[2], nodes[4]),
                     ],
+        "WSOPT": [lambda _, nodes: nodes[0],
+                  lambda _, nodes: "",
+                  ],
         "Condition": [lambda _, nodes: (mkevaluator.MkCondIfdef(nodes[2]) if nodes[0] == 'ifdef' else
                                         mkevaluator.MkCondIfndef(nodes[2]) if nodes[0] == 'ifndef' else
                                         "Invalid conditional oper %s" % (nodes[0])),
@@ -63,6 +75,8 @@ def initialize():
                            lambda _, nodes: mkevaluator.MkRValueFunAny(nodes[2], nodes[4]),
                            lambda _, nodes: nodes[2],
                            lambda _, nodes: mkevaluator.MkRValueVar(nodes[2]),
+                           lambda _, nodes: mkevaluator.MkRValueVar(nodes[2]),
+                           lambda _, nodes: mkevaluator.MkRValueSubst(nodes[2], mkevaluator.MkRValueExpr([]), nodes[4]),
                            lambda _, nodes: mkevaluator.MkRValueSubst(nodes[2], nodes[4], nodes[6]),
                           ],
         "ParamExpr": [lambda _, nodes: mkevaluator.MkRValueExpr([nodes[0]]),
@@ -80,6 +94,8 @@ def initialize():
                           lambda _, nodes: mkevaluator.MkRValueFunAny(nodes[2], nodes[4]),
                           lambda _, nodes: nodes[2],
                           lambda _, nodes: mkevaluator.MkRValueVar(nodes[2]),
+                          lambda _, nodes: mkevaluator.MkRValueVar(nodes[2]),
+                          lambda _, nodes: mkevaluator.MkRValueSubst(nodes[2], mkevaluator.MkRValueExpr([]), nodes[4]),
                           lambda _, nodes: mkevaluator.MkRValueSubst(nodes[2], nodes[4], nodes[6]),
                          ],
         "ParamList": [lambda _, nodes: [nodes[0]],
@@ -89,17 +105,30 @@ def initialize():
                     lambda _, nodes: mkevaluator.MkRValueVar(nodes[0], nodes[1]),
                    ],
         "RValuePartText": [lambda _, nodes: mkevaluator.MkRValueText(nodes[0]),
+                           lambda _, nodes: mkevaluator.MkRValueText(nodes[0][0] + (nodes[0][1] if nodes[0][1] is not None else "")),
+                           lambda _, nodes: mkevaluator.MkRValueText(nodes[0]),
                            lambda _, nodes: mkevaluator.MkRValueText(nodes[0]),
                            lambda _, nodes: mkevaluator.MkRValueText(nodes[0]),
                            lambda _, nodes: mkevaluator.MkRValueText(nodes[0]),
                            lambda _, nodes: mkevaluator.MkRValueSpace(),
                           ],
         "ParamPartText": [lambda _, nodes: mkevaluator.MkRValueText(nodes[0]),
+                          lambda _, nodes: mkevaluator.MkRValueText(nodes[0][0] + (nodes[0][1] if nodes[0][1] is not None else "")),
+                          lambda _, nodes: mkevaluator.MkRValueText(nodes[0]),
                           lambda _, nodes: mkevaluator.MkRValueText(nodes[0]),
                           lambda _, nodes: mkevaluator.MkRValueText(nodes[0]),
                           lambda _, nodes: mkevaluator.MkRValueSpace(),
                           ],
+        "VarIdentStd": [lambda _, nodes: nodes[0],
+                        lambda _, nodes: nodes[0] + nodes[1],
+                        lambda _, nodes: nodes[0] + nodes[1],
+                        ],
+        "Text": [lambda _, nodes: nodes[0],
+                 lambda _, nodes: nodes[0],
+                 lambda _, nodes: nodes[0] + nodes[1],
+                 lambda _, nodes: nodes[0] + nodes[1],
+                 ],
         }
     
-    parser = parglare.Parser(grammar, ws='\r', actions=actions)
+    parser = parglare.Parser(grammar, ws='\r', actions=actions, debug=False)
     return parser

@@ -471,6 +471,7 @@ class MkScript:
         previous_cmd = None
         for cmd in self.commands:
             try:
+                print(str(cmd))
                 cmd_struct = cmd.debug_struct()
                 if cmd_struct is not None:
                     retval.append(cmd_struct)
@@ -480,7 +481,7 @@ class MkScript:
                 else:
                     print("Error debugging command after:")
                     print("%s" % (str(previous_cmd.debug_struct())))
-                traceback.print_exception(None, err, err.__traceback__)
+                traceback.print_exception(None, e, e.__traceback__)
                 raise e
             previous_cmd = cmd
         return retval
@@ -604,8 +605,6 @@ class MkCmdVpath(MkCommand):
         self.rval_path = rval_path
 
     def process(self, mkenv):
-        rval_pattern_value = copy.deepcopy(self.rval_pattern)
-        rval_pattern_value.calculate_variables(mkenv)
         rval_path_value = copy.deepcopy(self.rval_path)
         rval_path_value.calculate_variables(mkenv)
         print("TODO: vpath%s %s" % (" (optional)" if self.optional else "", str(rval_value.parts)))
@@ -613,7 +612,7 @@ class MkCmdVpath(MkCommand):
 
     def debug_struct(self):
         return ([ "include" ]
-                + [ self.rval_pattern.debug_struct() ]
+                + [ str(self.rval_pattern) ]
                 + [ self.rval_path.debug_struct() ])
 
 
@@ -693,3 +692,39 @@ class MkCmdComment(MkCommand):
     def debug_struct(self):
         # return [ self.comment ]
         return None
+
+
+class MkCmdExpr(MkCommand):
+    def __init__(self, expr):
+        self.expr = expr
+
+    def process(self, mkenv):
+        pass
+
+    def debug_struct(self):
+        return [ self.expr.debug_struct() ]
+
+    
+class MkCmdRuleHeader(MkCommand):
+    def __init__(self, targets, sources):
+        self.targets = targets
+        self.sources = sources
+        #print("MkCmdRuleHeader: %s %s %s" % (str(targets), str(sources)))
+
+    def process(self, mkenv):
+        pass
+
+    def debug_struct(self):
+        return [ self.targets.debug_struct(),
+                 self.sources.debug_struct() ]
+
+class MkCmdRuleCommand(MkCommand):
+    def __init__(self, command_str):
+        self.command_str = command_str
+        #print("MkCmdRuleCommand: %s" % (str(command_str)))
+
+    def process(self, mkenv):
+        pass
+
+    def debug_struct(self):
+        return [ self.command_str ]
