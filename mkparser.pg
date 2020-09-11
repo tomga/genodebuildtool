@@ -26,7 +26,7 @@ CondCmd: Condition LINE_END CmdList LINE_END "endif" |
          Condition LINE_END CmdList LINE_END "else" WS CondCmd;
 
 Condition: IfdefOper WS VarName |
-           IfeqOper WS BRACE_OPEN RValueExpr COMMA RValueExpr BRACE_CLOSE;
+           IfeqOper WS BRACE_OPEN ParamExpr CommaSeparator ParamExpr BRACE_CLOSE;
 
 IfdefOper: "ifdef" | "ifndef";
 
@@ -41,6 +41,7 @@ WSOPT: WS | EMPTY;
 
 RValueExpr: RValuePart |
             RValueExpr RValuePart |
+            RValueExpr WS |
 						EMPTY;
 
 RValuePart: RValuePartText |
@@ -49,18 +50,19 @@ RValuePart: RValuePartText |
 
 RValuePartExpr: DOLLAR VarName |
             		DOLLAR BRACE_OPEN Fun1Name WS ParamExpr BRACE_CLOSE |
-            		DOLLAR BRACE_OPEN Fun2Name WS ParamExpr COMMA ParamExpr BRACE_CLOSE |
-            		DOLLAR BRACE_OPEN Fun3Name WS ParamExpr COMMA ParamExpr COMMA ParamExpr BRACE_CLOSE |
+            		DOLLAR BRACE_OPEN Fun2Name WS ParamExpr CommaSeparator ParamExpr BRACE_CLOSE |
+            		DOLLAR BRACE_OPEN Fun3Name WS ParamExpr CommaSeparator ParamExpr CommaSeparator ParamExpr BRACE_CLOSE |
             		DOLLAR BRACE_OPEN FunAnyName WS ParamList BRACE_CLOSE |
             		DOLLAR BRACE_OPEN VarName BRACE_CLOSE |
             		DOLLAR BRACE_OPEN VAR_INDEX BRACE_CLOSE |
             		DOLLAR BRACE_OPEN VarName ":" RValueExpr CMD_RECURSIVE_EXPAND_ASSIGN RValueExpr BRACE_CLOSE;
 
 ParamList: ParamExpr |
-           ParamList COMMA ParamExpr;
+           ParamList CommaSeparator ParamExpr;
 
 ParamExpr: ParamPart |
            ParamExpr ParamPart |
+           ParamExpr WS |
 					 EMPTY;
 
 ParamPart: ParamPartText |
@@ -69,8 +71,8 @@ ParamPart: ParamPartText |
 
 ParamPartExpr: DOLLAR VarName |
            		 DOLLAR BRACE_OPEN Fun1Name WS ParamExpr BRACE_CLOSE |
-            	 DOLLAR BRACE_OPEN Fun2Name WS ParamExpr COMMA ParamExpr BRACE_CLOSE |
-            	 DOLLAR BRACE_OPEN Fun3Name WS ParamExpr COMMA ParamExpr COMMA ParamExpr BRACE_CLOSE |
+            	 DOLLAR BRACE_OPEN Fun2Name WS ParamExpr CommaSeparator ParamExpr BRACE_CLOSE |
+            	 DOLLAR BRACE_OPEN Fun3Name WS ParamExpr CommaSeparator ParamExpr CommaSeparator ParamExpr BRACE_CLOSE |
             	 DOLLAR BRACE_OPEN FunAnyName WS ParamList BRACE_CLOSE |
             	 DOLLAR BRACE_OPEN VarName BRACE_CLOSE |
             	 DOLLAR BRACE_OPEN VAR_INDEX BRACE_CLOSE |
@@ -83,14 +85,14 @@ RValuePartText: TEXT |
                 COMMA |
 								CMD_RECURSIVE_EXPAND_ASSIGN |
             		ESCAPED |
-								LINE_CONTINUATION |
-								WS;
+								LINE_CONTINUATION;
 
 ParamPartText: TEXT |
 							 CMD_RECURSIVE_EXPAND_ASSIGN |
             	 ESCAPED |
-							 LINE_CONTINUATION |
-							 WS;
+							 LINE_CONTINUATION;
+
+CommaSeparator: COMMA WS?;
 
 Fun1Name: "firstword" |
 					"lastword" |
