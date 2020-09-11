@@ -50,10 +50,6 @@ mkcache = mkevaluator.MkCache(parser)
 ##pprint.pprint(test_mk.debug_struct(), width=180)
 ##quit()
 
-build_mk = mkcache.get_parsed_mk('/projects/genode/genode/tool/builddir/build.mk')
-quit()
-
-
 
 build_conf = mkcache.get_parsed_mk('/projects/genode/genode/nbuild/linux/etc/build.conf')
 
@@ -92,7 +88,11 @@ base_global.process(env)
 env.get_create_var('CC_OPT_DEP').set_value(mkevaluator.MkRValueExpr.from_values_list([]))
 pprint.pprint(env.debug_struct('pretty'), width=200)
 
+
+build_mk = mkcache.get_parsed_mk('/projects/genode/genode/tool/builddir/build.mk')
+
 quit()
+
 
 #pprint.pprint(env.debug_struct('raw'), width=200)
 #pprint.pprint(env.debug_struct('calculated'), width=200)

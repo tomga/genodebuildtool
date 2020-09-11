@@ -8,11 +8,11 @@ Command: VAR_IDENT CmdAssign |
 				 CondCmd |
 				 IncludeCmd |
 				 VpathCmd |
-				 RValuePartExpr |
+				 RValueExpr |
 				 WSOPT |
 				 COMMENT;
 
-CmdAssign: WSOPT CmdOper WSOPT RValueExpr;
+CmdAssign: WSOPT CmdOper WSOPT OptRValueExpr;
 
 ExportWithWs: EXPORT WS;
 
@@ -32,17 +32,19 @@ IfdefOper: "ifdef" | "ifndef";
 
 IfeqOper: "ifeq" | "ifneq";
 
-IncludeCmd: "include" WSOPT RValueExpr |
-						"-include" WSOPT RValueExpr;
+IncludeCmd: "include" WSOPT OptRValueExpr |
+						"-include" WSOPT OptRValueExpr;
 
 VpathCmd: "vpath" WS RValueExpr WS RValueExpr;
 
 WSOPT: WS | EMPTY;
 
+OptRValueExpr: RValueExpr |
+							 EMPTY;
+
 RValueExpr: RValuePart |
             RValueExpr RValuePart |
-            RValueExpr WS |
-						EMPTY;
+            RValueExpr WS;
 
 RValuePart: RValuePartText |
 						RValuePartExpr;

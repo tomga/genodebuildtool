@@ -46,10 +46,12 @@ def initialize():
                                         mkevaluator.MkCondIfneq(nodes[3], nodes[5]) if nodes[0] == 'ifneq' else
                                         "Invalid conditional oper %s" % (nodes[0])),
                       ],
+        "OptRValueExpr": [lambda _, nodes: nodes[0],
+                          lambda _, nodes: mkevaluator.MkRValueExpr([]),
+                          ],
         "RValueExpr": [lambda _, nodes: mkevaluator.MkRValueExpr([nodes[0]]),
                        lambda _, nodes: nodes[0].append_part(nodes[1]),
                        lambda _, nodes: nodes[0].append_part(mkevaluator.MkRValueSpace()),
-                       lambda _, nodes: mkevaluator.MkRValueExpr([]),
                       ],
         "RValuePart": [lambda _, nodes: nodes[0],
                        lambda _, nodes: nodes[0],
