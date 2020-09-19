@@ -12,6 +12,10 @@ import mklogparser
 import genode_tools as tools
 
 
+import genode_util_mk_functions
+genode_util_mk_functions.register_mk_functions(mkevaluator.functionsDict)
+
+
 def sconscript(env):
 
     build_dir = env['BUILD']
@@ -28,25 +32,30 @@ def process_builddir(build_dir, env):
     Mimics behavior of tool/builddir/build.mk
     """
 
-    build_conf = mkcache.get_parsed_mk('%s/etc/build.conf' % (build_dir))
 
     build_env = mkevaluator.MkEnv(mkcache)
+
+
+    ### handle build.conf
+    build_conf = mkcache.get_parsed_mk('%s/etc/build.conf' % (build_dir))
     build_conf.process(build_env)
     #pprint.pprint(build_env.debug_struct('pretty'), width=200)
 
+
     repositories = build_env.var_values('REPOSITORIES')
 
-    # handle */etc/specs.conf files
+
+    ### handle */etc/specs.conf files
     repositories_specs_conf_files = tools.find_files('%s/etc/specs.conf', repositories)
     specs_conf_files = repositories_specs_conf_files + ['%s/etc/specs.conf' % (build_dir)]
-    print("specs files: %s" % (str(specs_conf_files)))
+    print("processing specs files: %s" % (str(specs_conf_files)))
     for specs_conf_file in specs_conf_files:
         specs_conf = mkcache.get_parsed_mk(specs_conf_file)
         specs_conf.process(build_env)
-    pprint.pprint(build_env.debug_struct('pretty'), width=200)
+    #pprint.pprint(build_env.debug_struct('pretty'), width=200)
 
 
-    # handle mk/spec/$(SPEC).mk files
+    ### handle mk/spec/$(SPEC).mk files
     #
     # NOTE: it is suspicious that only first found mk/spec/$(SPEC).mk
     #       file is included - there is no easily visible rule to know
@@ -64,11 +73,28 @@ def process_builddir(build_dir, env):
     base_specs_mk_files = tools.find_files(base_dir + '/mk/spec/%s.mk', specs)
     specs_mk_files = list(set(specs_mk_files + base_specs_mk_files))
 
-    print("<spec>.mk files: %s" % (str(specs_mk_files)))
+    print("processing <spec>.mk files: %s" % (str(specs_mk_files)))
     for specs_mk_file in specs_mk_files:
         specs_mk = mkcache.get_parsed_mk(specs_mk_file)
         specs_mk.process(build_env)
+    #pprint.pprint(build_env.debug_struct('pretty'), width=200)
+
+
+    ### handle global.mk
+    base_global_mk = mkcache.get_parsed_mk('%s/mk/global.mk' % (base_dir))
+    base_global_mk.process(build_env)
+    #pprint.pprint(build_env.debug_struct('pretty'), width=200)
+
+
+    ### handle LIBGCC_INC_DIR
+    #
+    # NOTE: probably it should be moved before processing global.mk as
+    #       it is appended there to ALL_INC_DIR; in recursive make
+    #       case it gets included there
+    build_env.var_set('LIBGCC_INC_DIR',
+                      '/usr/local/genode/tool/19.05/bin/../lib/gcc/x86_64-pc-elf/8.3.0/include')
     pprint.pprint(build_env.debug_struct('pretty'), width=200)
+
 
 
     localEnv = env.Clone()
