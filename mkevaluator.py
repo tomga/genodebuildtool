@@ -163,12 +163,16 @@ class MkRValueVar(MkRValue):
     def type(self):
         return 'VAR'
 
-    def calculate(self, mkenv):
+    def get_var_name(self, mkenv):
         var_name = self.var_ident
         if self.var_expr is not None:
             var_name += ''.join(self.var_expr.calculate(mkenv))
             print("MkRValueVar::calculate[var_expr] '%s'" % (str(var_name)))
-        if not mkenv.check_var(self.var_ident):
+        return var_name
+
+    def calculate(self, mkenv):
+        var_name = self.get_var_name(mkenv)
+        if not mkenv.check_var(var_name):
             return []
         rval_expr = copy.deepcopy(mkenv.get_var(var_name))
         return rval_expr.get_value().calculated(mkenv)
@@ -633,7 +637,8 @@ class MkCondDef(MkCondition):
 
 class MkCondIfdef(MkCondDef):
     def check_cond(self, mkenv):
-        return mkenv.check_var(self.var)
+        var_name = self.var.get_var_name(mkenv)
+        return mkenv.check_var(var_name)
 
     def debug_struct_oper(self):
         return 'ifdef'
@@ -641,7 +646,8 @@ class MkCondIfdef(MkCondDef):
 
 class MkCondIfndef(MkCondDef):
     def check_cond(self, mkenv):
-        return not mkenv.check_var(self.var)
+        var_name = self.var.get_var_name(mkenv)
+        return not mkenv.check_var(var_name)
 
     def debug_struct_oper(self):
         return 'ifndef'
