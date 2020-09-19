@@ -467,7 +467,7 @@ class MkScript:
             except AttributeError as e:
                 print("Error processing command:")
                 print("%s" % (str(cmd.debug_struct())))
-                traceback.print_exception(None, err, err.__traceback__)
+                traceback.print_exception(None, e, e.__traceback__)
                 raise e
 
     def debug_struct(self):
