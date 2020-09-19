@@ -427,7 +427,10 @@ class MkRValueExpr:
         return "".join(map(lambda x: x.value(), self.calculated(mkenv)))
 
     def values_list(self, mkenv):
-        return list(map(lambda x: x.value(), [e for e in self.calculated(mkenv) if e.type() != 'SPC']))
+        values = []
+        for a in list(map(lambda x: x.value().split(), [e for e in self.calculated(mkenv) if e.type() != 'SPC'])):
+            values += a
+        return values
 
     def from_values_list(values_list):
         # Construct r value expression from list of text values
