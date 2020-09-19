@@ -1,0 +1,9 @@
+
+import sys
+
+BUILDTOOL_PATH='/projects/genode/buildtool'
+sys.path.insert(0, BUILDTOOL_PATH)
+
+from genode_sconstruct import sconstruct
+
+sconstruct()
