@@ -100,6 +100,12 @@ class MkEnv:
             return self.parent_env.get_mk_cache()
         return None
 
+    def var_values(self, var_name):
+        return self.get_var(var_name).get_value().values_list(self)
+
+    def var_value(self, var_name):
+        return self.get_var(var_name).get_value().value(self)
+
 
 
 class MkRValue:
