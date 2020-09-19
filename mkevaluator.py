@@ -200,6 +200,11 @@ def mkfun_addprefix(mkenv, args):
     return [ args[0][0] + v for v in args[1] ]
 functionsDict['addprefix'] = mkfun_addprefix
 
+def mkfun_filter(mkenv, args):
+    assert '%' not in ''.join(args[0]), "TODO: implement real makefile patterns"
+    return [ v for v in args[1] if v in args[0] ]
+functionsDict['filter'] = mkfun_filter
+
 def mkfun_filter_out(mkenv, args):
     return [ v for v in args[1] if v not in args[0] ]
 functionsDict['filter-out'] = mkfun_filter_out
