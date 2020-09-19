@@ -206,12 +206,14 @@ def mkfun_filter(mkenv, args):
 functionsDict['filter'] = mkfun_filter
 
 def mkfun_filter_out(mkenv, args):
+    assert '%' not in ''.join(args[0]), "TODO: implement real makefile patterns"
     return [ v for v in args[1] if v not in args[0] ]
 functionsDict['filter-out'] = mkfun_filter_out
 
 # 3 args
 def mkfun_subst(mkenv, args):
-    # current version only supports patterns without spaces
+    assert len(args[0]) == 1, "TODO: support pattern with spaces"
+    assert len(args[1]) == 1, "TODO: support replacement with spaces"
     return [ v.replace(args[0][0], args[1][0]) for v in args[2] ]
 functionsDict['subst'] = mkfun_subst
 
