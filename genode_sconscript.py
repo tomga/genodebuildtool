@@ -90,9 +90,13 @@ def process_builddir(build_dir, env):
     #
     # NOTE: probably it should be moved before processing global.mk as
     #       it is appended there to ALL_INC_DIR; in recursive make
-    #       case it gets included there
-    build_env.var_set('LIBGCC_INC_DIR',
-                      '/usr/local/genode/tool/19.05/bin/../lib/gcc/x86_64-pc-elf/8.3.0/include')
+    #       case it gets included there later
+    temp_mk = parser.parse("""
+export LIBGCC_INC_DIR = $(shell dirname `$(CUSTOM_CXX_LIB) -print-libgcc-file-name`)/include
+    """)
+    temp_mk.process(build_env)
+    #build_env.var_set('LIBGCC_INC_DIR',
+    #                  '/usr/local/genode/tool/19.05/bin/../lib/gcc/x86_64-pc-elf/8.3.0/include')
     pprint.pprint(build_env.debug_struct('pretty'), width=200)
 
 
