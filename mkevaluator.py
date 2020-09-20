@@ -1,6 +1,7 @@
 
 import copy
 import os
+import subprocess
 import traceback
 
 
@@ -197,6 +198,16 @@ class MkRValueVar(MkRValue):
 
 
 functionsDict = {}
+
+# 1 args
+def mkfun_shell(mkenv, args):
+    results = subprocess.run(' '.join(args[0]),
+                             stdout=subprocess.PIPE,
+                             shell=True, universal_newlines=True, check=True)
+    output = results.stdout
+    print("SHELL: %s" % (output))
+    return output.split()
+functionsDict['shell'] = mkfun_shell
 
 # 2 args
 def mkfun_addprefix(mkenv, args):
