@@ -438,7 +438,7 @@ class MkRValueExpr:
                 and part.compactable()):
                 retval[-1].compact_with(part)
             else:
-                retval += [ part ]
+                retval += [ copy.deepcopy(part) ]
         return retval
 
     def calculate_variables(self, mkenv):
