@@ -177,7 +177,6 @@ class MkRValueVar(MkRValue):
         var_name = self.var_ident
         if self.var_expr is not None:
             var_name += ''.join(self.var_expr.calculate(mkenv))
-            print("MkRValueVar::calculate[var_expr] '%s'" % (str(var_name)))
         return var_name
 
     def calculate(self, mkenv):
@@ -284,8 +283,6 @@ class MkRValueFun2(MkRValue):
         arg2_value = self.arg2.values_list(mkenv)
         args = [arg1_value, arg2_value]
 
-        print("fun: %s, args: %s" % (str(self.funname), str(args)))
-
         result = None
         if self.funname in functionsDict:
             result = MkRValueExpr.from_values_list(functionsDict[self.funname](mkenv, args))
@@ -320,13 +317,11 @@ class MkRValueFun3(MkRValue):
             arg2_value = self.arg2.values_list(mkenv)
             wrapenv = MkEnv(parent_env=mkenv)
             varname = arg1_value[0]
-            print("varname: %s" % (str(varname)))
             variable = wrapenv.get_create_var(varname)
             result_value = []
             for varvalue in arg2_value:
                 variable.set_value(MkRValueExpr.from_values_list([varvalue]))
                 result_value += self.arg3.values_list(wrapenv)
-            print("result: %s" % (str(result_value)))
             result = MkRValueExpr.from_values_list(result_value)
         else:
             arg1_value = self.arg1.values_list(mkenv)
@@ -364,7 +359,7 @@ class MkRValueFunAny(MkRValue):
         if self.funname in functionsDict:
             result = MkRValueExpr.from_values_list(functionsDict[self.funname](mkenv, args))
         else:
-            raise Exception("Unknown function1: %s" % (self.funname))
+            raise Exception("Unknown function?: %s" % (self.funname))
 
         return result.calculated(mkenv)
 
@@ -641,7 +636,7 @@ class MkCmdVpath(MkCommand):
     def process(self, mkenv):
         rval_path_value = copy.deepcopy(self.rval_path)
         rval_path_value.calculate_variables(mkenv)
-        print("TODO: vpath%s %s" % (" (optional)" if self.optional else "", str(rval_value.parts)))
+        print("TODO: vpath %s %s" % (str(self.rval_pattern), str(rval_path_value.parts)))
 
 
     def debug_struct(self):
