@@ -3,6 +3,9 @@ import argparse
 import parglare
 import pprint
 import sqlite3
+import sys
+from pprint import PrettyPrinter
+
 
 import schema
 import mkevaluator
@@ -11,6 +14,23 @@ import mklogparser
 
 import genode_util_mk_functions
 genode_util_mk_functions.register_mk_functions(mkevaluator.functionsDict)
+
+
+
+class Python2PrettyPrinter(pprint.PrettyPrinter):
+    class _fake_short_str(str):
+        def __len__(self):
+            return 1 if super().__len__() else 0
+
+    def format(self, object, context, maxlevels, level):
+        res = super().format(object, context, maxlevels, level)
+        if isinstance(object, str):
+            return (self._fake_short_str(res[0]), ) + res[1:]
+        return res
+
+    from io import StringIO
+    assert StringIO().write(_fake_short_str('_' * 1000)) == 1000
+
 
 ###
 # parse options
@@ -40,10 +60,11 @@ if not check_result:
     print('Check schema result: %s' % ('OK' if check_result else 'EMPTY'))
 
 
+
 ###
 # parse configuration
 ###
-def do_test():
+def test_mkparser():
     parser = mkparser.initialize()
     mkcache = mkevaluator.MkCache(parser)
 
@@ -65,7 +86,7 @@ def do_test():
     #pprint.pprint(base_global.debug_struct(), width=180)
 
 
-    #!!!rules parsing not available
+    # cxx.mk
     libcxx = mkcache.get_parsed_mk('/projects/genode/genode/repos/base/lib/mk/cxx.mk')
     pprint.pprint(libcxx.debug_struct(), width=180)
 
@@ -98,43 +119,17 @@ def do_test():
     build_mk = mkcache.get_parsed_mk('/projects/genode/genode/tool/builddir/build.mk')
 
 
+def test_logparser():
+    logparser = mklogparser.initialize()
+    logparse_result = logparser.parse_file('/projects/genode/logs/20200427_211245_linux_linux.nlog')
+    Python2PrettyPrinter().pprint(logparse_result)
+
 try:
-    do_test()
+    #test_mkparser()
+    test_logparser()
 except parglare.ParseError as parseError:
     print(str(parseError))
     print(str(parseError.symbols_before))
     print(str(parseError.symbols_before[0]))
-quit()
 
 
-#pprint.pprint(env.debug_struct('raw'), width=200)
-#pprint.pprint(env.debug_struct('calculated'), width=200)
-#pprint.pprint(env.debug_struct('pretty'), width=200)
-
-
-
-logparser = mklogparser.initialize()
-logparse_result = logparser.parse_file('/projects/genode/logs/20200427_211245_linux_linux.nlog')
-
-
-import sys
-from pprint import PrettyPrinter
-
-class Python2PrettyPrinter(pprint.PrettyPrinter):
-    class _fake_short_str(str):
-        def __len__(self):
-            return 1 if super().__len__() else 0
-
-    def format(self, object, context, maxlevels, level):
-        res = super().format(object, context, maxlevels, level)
-        if isinstance(object, str):
-            return (self._fake_short_str(res[0]), ) + res[1:]
-        return res
-
-    from io import StringIO
-    assert StringIO().write(_fake_short_str('_' * 1000)) == 1000
-
-
-Python2PrettyPrinter().pprint(logparse_result)
-
-#pprint.pprint(logparse_result, width=2000)
