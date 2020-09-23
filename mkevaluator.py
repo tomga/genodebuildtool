@@ -199,19 +199,36 @@ class MkRValueVar(MkRValue):
 functionsDict = {}
 
 # 1 args
+def mkfun_basename(mkenv, args):
+    assert len(args) == 1, "TODO: support sorting with comma"
+    return [os.path.basename(x) for x in args[0]]
+functionsDict['basename'] = mkfun_basename
+
 def mkfun_shell(mkenv, args):
+    assert len(args) == 1, "TODO: support shell commands with comma"
     results = subprocess.run(' '.join(args[0]),
                              stdout=subprocess.PIPE,
                              shell=True, universal_newlines=True, check=True)
     output = results.stdout
-    print("SHELL: %s" % (output))
+    #print("SHELL: %s" % (output))
     return output.split()
 functionsDict['shell'] = mkfun_shell
 
+def mkfun_sort(mkenv, args):
+    assert len(args) == 1, "TODO: support sorting with comma"
+    return list(sorted(args[0]))
+functionsDict['sort'] = mkfun_sort
+
 # 2 args
 def mkfun_addprefix(mkenv, args):
+    assert len(args[0]) == 1, "addprefix: only one prefix allowed"
     return [ args[0][0] + v for v in args[1] ]
 functionsDict['addprefix'] = mkfun_addprefix
+
+def mkfun_addsuffix(mkenv, args):
+    assert len(args[0]) == 1, "addsuffix: only one suffix allowed"
+    return [ v + args[0][0] for v in args[1] ]
+functionsDict['addsuffix'] = mkfun_addsuffix
 
 def mkfun_filter(mkenv, args):
     assert '%' not in ''.join(args[0]), "TODO: implement real makefile patterns"
