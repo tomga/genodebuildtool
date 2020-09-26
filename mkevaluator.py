@@ -537,7 +537,7 @@ class MkScript:
         for cmd in self.commands:
             try:
                 cmd.process(mkenv)
-            except AttributeError as e:
+            except Exception as e:
                 print("Error processing command:")
                 print("%s" % (str(cmd.debug_struct())))
                 traceback.print_exception(None, e, e.__traceback__)
