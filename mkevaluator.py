@@ -1,6 +1,7 @@
 
 import copy
 import os
+import re
 import subprocess
 import traceback
 
@@ -124,6 +125,11 @@ class MkRValue:
     def compact_with(self, other):
         raise Exception("Not compactable")
 
+    def values_list(self, mkenv):
+        values = []
+        for a in list(map(lambda x: x.value().split(), [e for e in self.calculate(mkenv) if e.type() != 'SPC'])):
+            values += a
+        return values
 
 
 class MkRValueSpace(MkRValue):
@@ -241,6 +247,19 @@ def mkfun_filter_out(mkenv, args):
 functionsDict['filter-out'] = mkfun_filter_out
 
 # 3 args
+def mkfun_patsubst(mkenv, args):
+    assert len(args[0]) == 1, "TODO: support pattern with spaces"
+    assert len(args[1]) == 1, "TODO: support replacement with spaces"
+    assert len([x for x in args[0][0] if x == '%']) <= 1, "TODO: Support paterns that contain more than one % char"
+    assert len([x for x in args[1][0] if x == '%']) <= 1, "TODO: Support replacements that contain more than one % char"
+    assert len([x for x in args[0][0] if x == '%']) == len([x for x in args[1][0] if x == '%']), "Either both patten and replacement % char or both don't"
+    if len([x for x in args[0][0] if x == '%']) == 1:
+        pattern = re.compile(args[0][0].replace('%', '(.*)'))
+        return [ pattern.sub(args[1][0].replace('%', r'\1'), v) for v in args[2] ]
+    else:
+        return [ args[1][0] if v == args[0][0] else v for v in args[2] ]
+functionsDict['patsubst'] = mkfun_patsubst
+
 def mkfun_subst(mkenv, args):
     assert len(args[0]) == 1, "TODO: support pattern with spaces"
     assert len(args[1]) == 1, "TODO: support replacement with spaces"
@@ -398,13 +417,25 @@ class MkRValueSubst(MkRValue):
         return 'SUB'
 
     def calculate(self, mkenv):
-        var_value = self.var_expr.calculate(mkenv)
+        var_expr_value = self.var_expr.values_list(mkenv)
+        pattern_value = self.pattern.values_list(mkenv)
+        substitution_value = self.substitution.values_list(mkenv)
+        args = [pattern_value, substitution_value, var_expr_value]
 
-        # print("MkRValueSubst::calculate: %s" % (str(var_value)))
-        # TODO: implement
+        assert len(pattern_value) == 1, "TODO: support pattern with spaces"
+        assert len(substitution_value) == 1, "TODO: support replacement with spaces"
+        assert len([x for x in pattern_value[0] if x == '%']) <= 1, "TODO: Support paterns that contain more than one % char"
+        assert len([x for x in substitution_value[0] if x == '%']) <= 1, "TODO: Support replacements that contain more than one % char"
+        assert len([x for x in pattern_value[0] if x == '%']) == len([x for x in substitution_value[0] if x == '%']), "Either both patten and replacement % char or both don't"
 
-        result = MkRValueExpr.from_values_list([ v + "_TODO_MkRValueSubst" for v in var_value ])
+        if len([x for x in pattern_value[0] if x == '%']) == 0:
+            pattern_value[0] = '%' + pattern_value[0]
+            substitution_value[0] = '%' + substitution_value[0]
 
+        pattern = re.compile(pattern_value[0].replace('%', '(.*)'))
+        subst_result = [ pattern.sub(substitution_value[0].replace('%', r'\1'), v) for v in var_expr_value ]
+
+        result = MkRValueExpr.from_values_list(subst_result)
         return result.calculated(mkenv)
 
 
