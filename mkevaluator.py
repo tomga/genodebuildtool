@@ -103,10 +103,16 @@ class MkEnv:
         return None
 
     def var_values(self, var_name):
-        return self.get_var(var_name).get_value().values_list(self)
+        var = self.get_var(var_name)
+        if var is None:
+            return []
+        return var.get_value().values_list(self)
 
     def var_value(self, var_name):
-        return self.get_var(var_name).get_value().value(self)
+        var = self.get_var(var_name)
+        if var is None:
+            return ''
+        return var.get_value().value(self)
 
     def var_set(self, var_name, var_value):
         self.get_create_var(var_name).set_value(MkRValueExpr.from_values_list(var_value.split()))
