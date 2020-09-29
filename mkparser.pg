@@ -114,6 +114,7 @@ Fun1Name: "basename" |
 					"dir" |
 					"firstword" |
 					"lastword" |
+					"notdir" |
 					"realpath" |
 					"sort" |
 					"strip" |
