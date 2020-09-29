@@ -43,7 +43,10 @@ def process_builddir(build_dir, env):
 
 
     repositories = build_env.var_values('REPOSITORIES')
+    env['REPOSITORIES'] = repositories
 
+    base_dir = build_env.var_value('BASE_DIR')
+    env['BASE_DIR'] = base_dir
 
     ### handle */etc/specs.conf files
     repositories_specs_conf_files = tools.find_files('%s/etc/specs.conf', repositories)
@@ -62,7 +65,6 @@ def process_builddir(build_dir, env):
     #       which is selected but currently just mimic behaviour from
     #       build.mk
     specs = build_env.var_values('SPECS')
-    base_dir = build_env.var_value('BASE_DIR')
     print("SPECS: %s" % (specs))
     specs_mk_files = []
     for spec in specs:
@@ -101,7 +103,103 @@ export LIBGCC_INC_DIR = $(shell dirname `$(CUSTOM_CXX_LIB) -print-libgcc-file-na
 
 
 
+    process_lib('cxx', env, build_env)
+
+
+def process_lib(lib_name, env, build_env):
+    """Process library build rules.
+
+    Build rules are read from <lib>.mk file like in standard Genode
+    build (repos/<repo>/lib/mk/<lib>.mk) but there are possibilities
+    to overwrite default with providing build rules in
+    <buildtool>/genode/repos/<repo>/lib/mk/<lib>.py file where <repo>
+    must be the same as for found <lib>.mk file.
+    """
+
+    #import rpdb2
+    #rpdb2.start_embedded_debugger('password')
+
+    ### TODO calculate SYMBOLS
+    # first required for ld
+    # LIB_MK_DIRS  = $(foreach REP,$(REPOSITORIES),$(addprefix $(REP)/lib/mk/spec/,     $(SPECS)) $(REP)/lib/mk)
+    # SYMBOLS_DIRS = $(foreach REP,$(REPOSITORIES),$(addprefix $(REP)/lib/symbols/spec/,$(SPECS)) $(REP)/lib/symbols)
+
+
+    ### handle base-libs.mk
+    base_libs_mk_file = '%s/mk/base-libs.mk' % (env['BASE_DIR'])
+    base_libs_mk = mkcache.get_parsed_mk(base_libs_mk_file)
+    base_libs_mk.process(build_env)
+
+
+    ### skipping util.inc as it is implemented in python
+
+
+    ### skipping $(SPEC_FILES) as they are already includes
+    #
+    # NOTE: passing this option is not documented
+
+
+    ### handle include <lib>.mk
+    build_env.var_set('called_from_lib_mk', 'yes')
+
+    lib_mk_file = tools.find_first(env['REPOSITORIES'], 'lib/mk/%s.mk' % (lib_name))
+    if lib_mk_file is None:
+        print("Build rules file not found for library '%s'" % (lib_name))
+        quit()
+
+    print("Parsing build rules for library '%s' from '%s'" % (lib_name, lib_mk_file))
+    lib_mk = mkcache.get_parsed_mk(lib_mk_file)
+    #pprint.pprint(lib_mk.debug_struct(), width=180)
+    lib_mk.process(build_env)
+    #pprint.pprint(build_env.debug_struct('pretty'), width=200)
+
+
+    ### handle include import-<lib>.mk files
+    dep_libs = build_env.var_values('LIBS')
+    print("LIBS: %s" % (str(dep_libs)))
+    for dep_lib in dep_libs:
+        dep_lib_import_mk_file = tools.find_first(repositories, 'lib/import/import-%s.mk' % (dep_lib))
+        if dep_lib_import_mk_file is not None:
+            print("processing import-%s file: %s" % (dep_lib, dep_lib_import_mk_file))
+            dep_lib_import_mk = mkcache.get_parsed_mk(dep_lib_import_mk_file)
+            dep_lib_import_mk.process(build_env)
+
+
+    ### handle include global.mk
+    global_mk_file = '%s/mk/global.mk' % (env['BASE_DIR'])
+    global_mk = mkcache.get_parsed_mk(global_mk_file)
+    global_mk.process(build_env)
+    #pprint.pprint(build_env.debug_struct('pretty'), width=200)
+
+
+    ### handle shared library settings
+    symbols_file = build_env.var_value('SYMBOLS')
+    if len(symbols_file) > 0:
+        build_env.var_set('SHARED_LIB', 'yes')
+        build_env.var_set('ABI-SO', '%s.abi.so' % (lib_name))
+
+        ### TODO - symbols link file
+        # $(LIB).symbols:
+        #    $(VERBOSE)ln -sf $(SYMBOLS) $@
+        ### handle <lib>.symbols.s
+
+        ##LIBGCC = $(shell $(CC) $(CC_MARCH) -print-libgcc-file-name)
+
+    #pprint.pprint(build_env.debug_struct('pretty'), width=200)
+
+
+    ### handle include generic.mk functionality
+
+
+
+
+    return
+
+    # $(VERBOSE)$(CXX) $(CXX_DEF) $(CC_CXX_OPT) $(INCLUDES) -c $< -o $@
+
     localEnv = env.Clone()
+
+    localEnv['CXX'] = '/usr/local/genode/tool/19.05/bin/genode-x86-g++'
 
     localEnv.AppendUnique(CPPPATH=['#repos/base/src/include'])
     localEnv.AppendUnique(CPPPATH=['#repos/base/include'])
@@ -109,9 +207,7 @@ export LIBGCC_INC_DIR = $(shell dirname `$(CUSTOM_CXX_LIB) -print-libgcc-file-na
     localEnv.AppendUnique(CPPPATH=['#repos/base/include/spec/x86_64'])
     localEnv.AppendUnique(CPPPATH=['#repos/base/include/spec/x86'])
     
-    localEnv['CXX'] = '/usr/local/genode/tool/19.05/bin/genode-x86-g++'
     localEnv.Append(CXXFLAGS='-ffunction-sections -fno-strict-aliasing')
     localEnv.Append(CXXFLAGS='-ffunction-sections -fno-strict-aliasing')
     
     obj = localEnv.SharedObject(source = '#repos/base/src/lib/cxx/emutls.cc', target = 'emutls.o')
-
