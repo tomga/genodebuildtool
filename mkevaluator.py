@@ -439,7 +439,8 @@ class MkRValueSubst(MkRValue):
             substitution_value[0] = '%' + substitution_value[0]
 
         pattern = re.compile(pattern_value[0].replace('%', '(.*)'))
-        subst_result = [ pattern.sub(substitution_value[0].replace('%', r'\1'), v) for v in var_expr_value ]
+        substitution = substitution_value[0].replace('%', r'\1')
+        subst_result = [ pattern.sub(substitution, v) for v in var_expr_value ]
 
         result = MkRValueExpr.from_values_list(subst_result)
         return result.calculated(mkenv)
