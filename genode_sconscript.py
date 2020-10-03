@@ -140,7 +140,7 @@ def process_lib(lib_name, env, build_env):
     ### skipping util.inc as it is implemented in python
 
 
-    ### skipping $(SPEC_FILES) as they are already includes
+    ### skipping $(SPEC_FILES) as they are already included
     #
     # NOTE: passing this option is not documented
 
