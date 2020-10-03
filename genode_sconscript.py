@@ -1,5 +1,6 @@
 
 import glob
+import subprocess
 
 # debug support
 import pprint
@@ -110,6 +111,7 @@ export LIBGCC_INC_DIR = $(shell dirname `$(CUSTOM_CXX_LIB) -print-libgcc-file-na
 
 
     process_lib('cxx', env, build_env)
+    #process_lib('ld', env, build_env)
 
 
 def process_lib(lib_name, env, build_env):
@@ -189,9 +191,22 @@ def process_lib(lib_name, env, build_env):
         #    $(VERBOSE)ln -sf $(SYMBOLS) $@
         ### handle <lib>.symbols.s
 
-        ##LIBGCC = $(shell $(CC) $(CC_MARCH) -print-libgcc-file-name)
 
-    #pprint.pprint(build_env.debug_struct('pretty'), width=200)
+    ### handle libgcc
+    # TODO cache results or maybe set unconditionally
+    if build_env.check_var('SHARED_LIB'):
+        ##LIBGCC = $(shell $(CC) $(CC_MARCH) -print-libgcc-file-name)
+        cmd = "%s %s -print-libgcc-file-name" % (build_env.var_value('CC'),
+                                                 build_env.var_value('CC_MARCH'))
+        results = subprocess.run(cmd,
+                                 stdout=subprocess.PIPE,
+                                 shell=True, universal_newlines=True, check=True)
+        output = results.stdout
+        build_env.var_set('LIBGCC', output)
+
+
+
+    pprint.pprint(build_env.debug_struct('pretty'), width=200)
 
 
     ### handle include generic.mk functionality
