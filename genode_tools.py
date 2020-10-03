@@ -12,6 +12,6 @@ def find_first(paths, relative_path):
     for p in paths:
         checked_file = os.path.join(p, relative_path)
         if os.path.isfile(checked_file):
-            return checked_file
-    return None
+            return checked_file, p
+    return None, None
 

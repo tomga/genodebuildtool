@@ -1,5 +1,7 @@
 
 import glob
+import os
+import re
 import subprocess
 
 # debug support
@@ -75,7 +77,7 @@ def process_builddir(build_dir, env):
     print("SPECS: %s" % (specs))
     specs_mk_files = []
     for spec in specs:
-        specs_mk_file = tools.find_first(repositories, 'mk/spec/%s.mk' % (spec))
+        specs_mk_file, specs_mk_repo = tools.find_first(repositories, 'mk/spec/%s.mk' % (spec))
         if specs_mk_file is not None:
             specs_mk_files += [specs_mk_file]
 
@@ -100,12 +102,12 @@ def process_builddir(build_dir, env):
     # NOTE: probably it should be moved before processing global.mk as
     #       it is appended there to ALL_INC_DIR; in recursive make
     #       case it gets included there later
-    temp_mk = parser.parse("""
-export LIBGCC_INC_DIR = $(shell dirname `$(CUSTOM_CXX_LIB) -print-libgcc-file-name`)/include
-    """)
-    temp_mk.process(build_env)
-    #build_env.var_set('LIBGCC_INC_DIR',
-    #                  '/usr/local/genode/tool/19.05/bin/../lib/gcc/x86_64-pc-elf/8.3.0/include')
+    ##export LIBGCC_INC_DIR = $(shell dirname `$(CUSTOM_CXX_LIB) -print-libgcc-file-name`)/include
+    cmd = "%s -print-libgcc-file-name" % (build_env.var_value('CUSTOM_CXX_LIB')),
+    results = subprocess.run(cmd, stdout=subprocess.PIPE,
+                             shell=True, universal_newlines=True, check=True)
+    output = results.stdout
+    build_env.var_set('LIBGCC_INC_DIR', '%s/include' % (os.path.dirname(output)))
     pprint.pprint(build_env.debug_struct('pretty'), width=200)
 
 
@@ -150,12 +152,13 @@ def process_lib(lib_name, env, build_env):
     ### handle include <lib>.mk
     build_env.var_set('called_from_lib_mk', 'yes')
 
-    lib_mk_file = tools.find_first(env['REPOSITORIES'], 'lib/mk/%s.mk' % (lib_name))
+    lib_mk_file, lib_mk_repo = tools.find_first(env['REPOSITORIES'], 'lib/mk/%s.mk' % (lib_name))
     if lib_mk_file is None:
         print("Build rules file not found for library '%s'" % (lib_name))
         quit()
 
     print("Parsing build rules for library '%s' from '%s'" % (lib_name, lib_mk_file))
+    build_env.var_set('REP_DIR', lib_mk_repo)
     lib_mk = mkcache.get_parsed_mk(lib_mk_file)
     #pprint.pprint(lib_mk.debug_struct(), width=180)
     lib_mk.process(build_env)
@@ -166,7 +169,7 @@ def process_lib(lib_name, env, build_env):
     dep_libs = build_env.var_values('LIBS')
     print("LIBS: %s" % (str(dep_libs)))
     for dep_lib in dep_libs:
-        dep_lib_import_mk_file = tools.find_first(repositories, 'lib/import/import-%s.mk' % (dep_lib))
+        dep_lib_import_mk_file, dep_lib_import_mk_repo = tools.find_first(repositories, 'lib/import/import-%s.mk' % (dep_lib))
         if dep_lib_import_mk_file is not None:
             print("processing import-%s file: %s" % (dep_lib, dep_lib_import_mk_file))
             dep_lib_import_mk = mkcache.get_parsed_mk(dep_lib_import_mk_file)
@@ -198,8 +201,7 @@ def process_lib(lib_name, env, build_env):
         ##LIBGCC = $(shell $(CC) $(CC_MARCH) -print-libgcc-file-name)
         cmd = "%s %s -print-libgcc-file-name" % (build_env.var_value('CC'),
                                                  build_env.var_value('CC_MARCH'))
-        results = subprocess.run(cmd,
-                                 stdout=subprocess.PIPE,
+        results = subprocess.run(cmd, stdout=subprocess.PIPE,
                                  shell=True, universal_newlines=True, check=True)
         output = results.stdout
         build_env.var_set('LIBGCC', output)
@@ -211,12 +213,45 @@ def process_lib(lib_name, env, build_env):
 
     ### handle include generic.mk functionality
 
+    genode_dir = build_env.var_value('GENODE_DIR')
 
+    genode_localization_pattern = re.compile('^%s/' % (genode_dir))
+    def localize_path(path):
+        return genode_localization_pattern.sub('#', path)
+
+    lib_cache_dir = localize_path(build_env.var_value('LIB_CACHE_DIR'))
+    def target_path(target):
+        return '#%s/%s/%s' % (lib_cache_dir, lib_name, target)
+
+
+    localEnv = env.Clone()
+
+    ### handle cxx compilation
+    # $(VERBOSE)$(CXX) $(CXX_DEF) $(CC_CXX_OPT) $(INCLUDES) -c $< -o $@
+
+    cxx_def = build_env.var_values('CXX_DEF')
+    localEnv.AppendUnique(CXXFLAGS=cxx_def)
+    print('CXXFLAGS: %s' % (localEnv['CXXFLAGS']))
+
+    cc_opt_dep = build_env.var_value('CC_OPT_DEP')
+    cc_cxx_opt = build_env.var_value('CC_CXX_OPT')
+    cc_cxx_opt = cc_cxx_opt.replace(cc_opt_dep, '')
+    localEnv.AppendUnique(CXXFLAGS=cc_cxx_opt.split())
+    print('CXXFLAGS: %s' % (localEnv['CXXFLAGS']))
+
+    all_inc_dir = build_env.var_values('ALL_INC_DIR')
+    all_inc_dir = [ localize_path(path) for path in all_inc_dir ]
+    localEnv.AppendUnique(CPPPATH=all_inc_dir)
+    print('CPPPATH: %s' % (localEnv['CPPPATH']))
+
+
+    localEnv['CXX'] = '/usr/local/genode/tool/19.05/bin/genode-x86-g++'
+    obj = localEnv.SharedObject(source = '#repos/base/src/lib/cxx/emutls.cc',
+                                target = target_path('emutls.o'))
 
 
     return
 
-    # $(VERBOSE)$(CXX) $(CXX_DEF) $(CC_CXX_OPT) $(INCLUDES) -c $< -o $@
 
     localEnv = env.Clone()
 
