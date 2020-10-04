@@ -47,6 +47,7 @@ class MkCache:
 class MkEnv:
     def __init__(self, mk_cache = None, parent_env = None):
         self.variables = {}
+        self.vpaths = [] # list of tupples <pattern_re, path>
         self.mk_cache = mk_cache
         self.parent_env = parent_env
 
@@ -117,6 +118,19 @@ class MkEnv:
     def var_set(self, var_name, var_value):
         self.get_create_var(var_name).set_value(MkRValueExpr.from_values_list(var_value.split()))
 
+    def append_vpath(self, pattern, path):
+        pattern = pattern.replace('.', r'\.')
+        pattern = pattern.replace('%', r'.*')
+        re_pattern = "^%s$" % (pattern)
+        #print("append_vpath: '%s' %s" % (re_pattern, path))
+        self.vpaths.append((re.compile(re_pattern), path))
+
+    def find_vpaths(self, filename):
+        retval = []
+        for pattern, path in self.vpaths:
+            if re.search(pattern, filename) is not None:
+                retval.append(path)
+        return retval
 
 
 class MkRValue:
@@ -690,8 +704,9 @@ class MkCmdVpath(MkCommand):
 
     def process(self, mkenv):
         rval_path_value = copy.deepcopy(self.rval_path)
-        rval_path_value.calculate_variables(mkenv)
-        print("TODO: vpath %s %s" % (str(self.rval_pattern), str(rval_path_value.parts)))
+        rval_path_value = rval_path_value.value(mkenv)
+        #print("MkCmdVpath: vpath %s %s" % (str(self.rval_pattern), rval_path_value))
+        mkenv.append_vpath(self.rval_pattern, rval_path_value)
 
 
     def debug_struct(self):
