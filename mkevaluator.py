@@ -227,7 +227,7 @@ functionsDict = {}
 # 1 args
 def mkfun_basename(mkenv, args):
     assert len(args) == 1, "TODO: support sorting with comma"
-    return [os.path.basename(x) for x in args[0]]
+    return [os.path.splitext(x)[0] for x in args[0]]
 functionsDict['basename'] = mkfun_basename
 
 def mkfun_shell(mkenv, args):
