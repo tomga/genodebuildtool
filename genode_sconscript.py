@@ -217,7 +217,7 @@ def process_lib(lib_name, env, build_env):
 
 
 
-    pprint.pprint(build_env.debug_struct('pretty'), width=200)
+    #pprint.pprint(build_env.debug_struct('pretty'), width=200)
 
 
     ### handle include generic.mk functionality
@@ -238,6 +238,8 @@ def process_lib(lib_name, env, build_env):
     ### handle cxx compilation
     # $(VERBOSE)$(CXX) $(CXX_DEF) $(CC_CXX_OPT) $(INCLUDES) -c $< -o $@
 
+    localEnv['CXX'] = build_env.var_value('CXX')
+
     cxx_def = build_env.var_values('CXX_DEF')
     localEnv.AppendUnique(CXXFLAGS=cxx_def)
     print('CXXFLAGS: %s' % (localEnv['CXXFLAGS']))
@@ -249,15 +251,23 @@ def process_lib(lib_name, env, build_env):
     print('CXXFLAGS: %s' % (localEnv['CXXFLAGS']))
 
     all_inc_dir = build_env.var_values('ALL_INC_DIR')
+    all_inc_dir = [ path for path in all_inc_dir if os.path.isdir(path) ]
     all_inc_dir = [ localize_path(path) for path in all_inc_dir ]
     localEnv.AppendUnique(CPPPATH=all_inc_dir)
     print('CPPPATH: %s' % (localEnv['CPPPATH']))
 
 
-    localEnv['CXX'] = '/usr/local/genode/tool/19.05/bin/genode-x86-g++'
-    obj = localEnv.SharedObject(source = '#repos/base/src/lib/cxx/emutls.cc',
-                                target = target_path('emutls.o'))
-
+    cxx_src = build_env.var_values('CXX_SRC')
+    cxx_objs = []
+    for cxx_src_file in cxx_src:
+        file_paths = build_env.find_vpaths(cxx_src_file)
+        if len(file_paths) != 1:
+            print("expected exactly one vpath for %s but received %s" % (cxx_src_file, str(file_paths)))
+        src_file = os.path.join(file_paths[0], cxx_src_file)
+        tgt_file = '%s.o' % (os.path.splitext(cxx_src_file)[0])
+        print("src_file: %s, tgt_file: %s" % (src_file, tgt_file))
+        obj = localEnv.SharedObject(source = localize_path(src_file),
+                                    target = target_path(tgt_file))
 
     return
 
