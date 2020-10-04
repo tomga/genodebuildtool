@@ -740,8 +740,8 @@ class MkCondEq(MkCondition):
         self.right_expr = right_expr
 
     def check_cond(self, mkenv):
-        left = self.left_expr.calculated(mkenv)
-        right = self.right_expr.calculated(mkenv)
+        left = self.left_expr.value(mkenv)
+        right = self.right_expr.value(mkenv)
         return self.check_cond_oper(left, right)
 
 
