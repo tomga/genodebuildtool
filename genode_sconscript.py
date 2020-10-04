@@ -92,9 +92,18 @@ def process_builddir(build_dir, env):
 
 
     ### handle global.mk
+    #
+    # NOTE: it seems it is included only for CUSTOM_CXX_LIB and
+    #       including it here is too early for evaluating some
+    #       variables like e.g. CC_OPT_NOSTDINC as their value depend
+    #       on values included in library specifi files so currently
+    #       evaluating to temporary env and later it can be considered
+    #       to do something more specific
+    temp_build_env = mkevaluator.MkEnv(mkcache, parent_env=build_env)
     base_global_mk = mkcache.get_parsed_mk('%s/mk/global.mk' % (base_dir))
-    base_global_mk.process(build_env)
-    #pprint.pprint(build_env.debug_struct('pretty'), width=200)
+    base_global_mk.process(temp_build_env)
+    #pprint.pprint(temp_build_env.debug_struct('pretty'), width=200)
+    ## temp_build_env.var_set('CUSTOM_CXX_LIB', '/usr/local/genode/tool/19.05/bin/genode-x86-g++')
 
 
     ### handle LIBGCC_INC_DIR
@@ -103,12 +112,12 @@ def process_builddir(build_dir, env):
     #       it is appended there to ALL_INC_DIR; in recursive make
     #       case it gets included there later
     ##export LIBGCC_INC_DIR = $(shell dirname `$(CUSTOM_CXX_LIB) -print-libgcc-file-name`)/include
-    cmd = "%s -print-libgcc-file-name" % (build_env.var_value('CUSTOM_CXX_LIB')),
+    cmd = "%s -print-libgcc-file-name" % (temp_build_env.var_value('CUSTOM_CXX_LIB')),
     results = subprocess.run(cmd, stdout=subprocess.PIPE,
                              shell=True, universal_newlines=True, check=True)
     output = results.stdout
     build_env.var_set('LIBGCC_INC_DIR', '%s/include' % (os.path.dirname(output)))
-    pprint.pprint(build_env.debug_struct('pretty'), width=200)
+    #pprint.pprint(build_env.debug_struct('pretty'), width=200)
 
 
 
