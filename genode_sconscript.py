@@ -217,7 +217,7 @@ def process_lib(lib_name, env, build_env):
 
 
 
-    #pprint.pprint(build_env.debug_struct('pretty'), width=200)
+    pprint.pprint(build_env.debug_struct('pretty'), width=200)
 
 
     ### handle include generic.mk functionality
@@ -235,6 +235,45 @@ def process_lib(lib_name, env, build_env):
 
     localEnv = env.Clone()
 
+
+    ### common code
+
+    all_inc_dir = build_env.var_values('ALL_INC_DIR')
+    all_inc_dir = [ path for path in all_inc_dir if os.path.isdir(path) ]
+    all_inc_dir = [ localize_path(path) for path in all_inc_dir ]
+
+    localEnv.AppendUnique(CPPPATH=all_inc_dir)
+    print('CPPPATH: %s' % (localEnv['CPPPATH']))
+
+    cc_opt_dep = build_env.var_value('CC_OPT_DEP')
+
+    ### handle c compilation
+    # $(VERBOSE)$(CC) $(CC_DEF) $(CC_C_OPT) $(INCLUDES) -c $< -o $@
+
+    localEnv['CC'] = build_env.var_value('CC')
+
+    cc_def = build_env.var_values('CC_DEF')
+    localEnv.AppendUnique(CFLAGS=cc_def)
+    print('CFLAGS: %s' % (localEnv['CFLAGS']))
+
+    cc_c_opt = build_env.var_value('CC_C_OPT')
+    cc_c_opt = cc_c_opt.replace(cc_opt_dep, '')
+    localEnv.AppendUnique(CFLAGS=cc_c_opt.split())
+    print('CFLAGS: %s' % (localEnv['CFLAGS']))
+
+    c_src = build_env.var_values('SRC_C')
+    c_objs = []
+    for c_src_file in c_src:
+        file_paths = build_env.find_vpaths(c_src_file)
+        if len(file_paths) != 1:
+            print("expected exactly one vpath for %s but received %s" % (c_src_file, str(file_paths)))
+        src_file = os.path.join(file_paths[0], c_src_file)
+        tgt_file = '%s.o' % (os.path.splitext(c_src_file)[0])
+        print("c src_file: %s, tgt_file: %s" % (src_file, tgt_file))
+        obj = localEnv.SharedObject(source = localize_path(src_file),
+                                    target = target_path(tgt_file))
+
+
     ### handle cxx compilation
     # $(VERBOSE)$(CXX) $(CXX_DEF) $(CC_CXX_OPT) $(INCLUDES) -c $< -o $@
 
@@ -244,18 +283,10 @@ def process_lib(lib_name, env, build_env):
     localEnv.AppendUnique(CXXFLAGS=cxx_def)
     print('CXXFLAGS: %s' % (localEnv['CXXFLAGS']))
 
-    cc_opt_dep = build_env.var_value('CC_OPT_DEP')
     cc_cxx_opt = build_env.var_value('CC_CXX_OPT')
     cc_cxx_opt = cc_cxx_opt.replace(cc_opt_dep, '')
     localEnv.AppendUnique(CXXFLAGS=cc_cxx_opt.split())
     print('CXXFLAGS: %s' % (localEnv['CXXFLAGS']))
-
-    all_inc_dir = build_env.var_values('ALL_INC_DIR')
-    all_inc_dir = [ path for path in all_inc_dir if os.path.isdir(path) ]
-    all_inc_dir = [ localize_path(path) for path in all_inc_dir ]
-    localEnv.AppendUnique(CPPPATH=all_inc_dir)
-    print('CPPPATH: %s' % (localEnv['CPPPATH']))
-
 
     cxx_src = build_env.var_values('CXX_SRC')
     cxx_objs = []
@@ -265,7 +296,7 @@ def process_lib(lib_name, env, build_env):
             print("expected exactly one vpath for %s but received %s" % (cxx_src_file, str(file_paths)))
         src_file = os.path.join(file_paths[0], cxx_src_file)
         tgt_file = '%s.o' % (os.path.splitext(cxx_src_file)[0])
-        print("src_file: %s, tgt_file: %s" % (src_file, tgt_file))
+        print("cxx src_file: %s, tgt_file: %s" % (src_file, tgt_file))
         obj = localEnv.SharedObject(source = localize_path(src_file),
                                     target = target_path(tgt_file))
 
