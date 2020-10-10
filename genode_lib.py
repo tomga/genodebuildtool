@@ -74,10 +74,15 @@ class GenodeLib:
 
 
 class GenodeMkLib(GenodeLib):
-    def __init__(self, lib_name, env, build_env):
+    def __init__(self, lib_name, env,
+                 lib_mk_file, lib_mk_repo,
+                 build_env):
         super().__init__(lib_name, env)
+        self.lib_mk_file = lib_mk_file
+        self.lib_mk_repo = lib_mk_repo
         self.build_env = mkevaluator.MkEnv(mk_cache=build_env.mk_cache,
                                            parent_env=build_env)
+        self.build_env.var_set('REP_DIR', self.lib_mk_repo)
 
 
     def process(self):
@@ -108,14 +113,8 @@ class GenodeMkLib(GenodeLib):
         ### handle include <lib>.mk
         self.build_env.var_set('called_from_lib_mk', 'yes')
 
-        lib_mk_file, lib_mk_repo = tools.find_first(self.env['REPOSITORIES'], 'lib/mk/%s.mk' % (self.lib_name))
-        if lib_mk_file is None:
-            print("Build rules file not found for library '%s'" % (self.lib_name))
-            quit()
-
-        print("Parsing build rules for library '%s' from '%s'" % (self.lib_name, lib_mk_file))
-        self.build_env.var_set('REP_DIR', lib_mk_repo)
-        lib_mk = mkcache.get_parsed_mk(lib_mk_file)
+        print("Parsing build rules for library '%s' from '%s'" % (self.lib_name, self.lib_mk_file))
+        lib_mk = mkcache.get_parsed_mk(self.lib_mk_file)
         #pprint.pprint(lib_mk.debug_struct(), width=180)
         lib_mk.process(self.build_env)
         #pprint.pprint(self.build_env.debug_struct('pretty'), width=200)

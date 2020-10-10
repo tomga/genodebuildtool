@@ -145,5 +145,12 @@ def process_lib(lib_name, env, build_env):
     must be the same as for found <lib>.mk file.
     """
 
-    lib = genode_lib.GenodeMkLib(lib_name, env, build_env)
+    lib_mk_file, lib_mk_repo = tools.find_first(env['REPOSITORIES'], 'lib/mk/%s.mk' % (lib_name))
+    if lib_mk_file is None:
+        print("Build rules file not found for library '%s'" % (lib_name))
+        quit()
+
+    lib = genode_lib.GenodeMkLib(lib_name, env,
+                                 lib_mk_file, lib_mk_repo,
+                                 build_env)
     lib.process()
