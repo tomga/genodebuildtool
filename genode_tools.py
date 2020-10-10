@@ -1,4 +1,5 @@
 
+import hashlib
 import os
 
 def check_files(files):
@@ -15,3 +16,9 @@ def find_first(paths, relative_path):
             return checked_file, p
     return None, None
 
+def file_path(relative_repo_path, repo_path):
+    return os.path.join(repo_path, relative_repo_path)
+
+def file_md5(file_path):
+    with open(file_path, 'rb') as f:
+        return hashlib.md5(f.read()).hexdigest()

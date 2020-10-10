@@ -7,7 +7,8 @@ import subprocess
 # debug support
 import pprint
 
-# buildtoool packages
+# buildtool packages
+import buildtool_tools
 import mkevaluator
 import mkparser
 import mklogparser
@@ -53,6 +54,10 @@ def process_builddir(build_dir, env):
 
     genode_dir = build_env.var_value('GENODE_DIR')
     env['GENODE_DIR'] = genode_dir
+
+    genode_localization_pattern = re.compile('^%s/' % (env['GENODE_DIR']))
+    env['fn_localize_path'] = lambda path: genode_localization_pattern.sub('', path)
+    env['fn_sconsify_path'] = lambda path: genode_localization_pattern.sub('#', path)
 
     repositories = build_env.var_values('REPOSITORIES')
     env['REPOSITORIES'] = repositories
@@ -146,11 +151,76 @@ def process_lib(lib_name, env, build_env):
     """
 
     lib_mk_file, lib_mk_repo = tools.find_first(env['REPOSITORIES'], 'lib/mk/%s.mk' % (lib_name))
-    if lib_mk_file is None:
+    lib_sc_file, lib_sc_repo = tools.find_first(env['REPOSITORIES'], 'lib/mk/%s.sc' % (lib_name))
+    if (lib_mk_file is None and lib_sc_file is None):
         print("Build rules file not found for library '%s'" % (lib_name))
         quit()
 
-    lib = genode_lib.GenodeMkLib(lib_name, env,
-                                 lib_mk_file, lib_mk_repo,
-                                 build_env)
-    lib.process()
+    if (lib_mk_file is not None and lib_sc_file is not None):
+        print("Multiple build rules files found for library '%s' ('%s' and '%s')"
+              % (lib_name,
+                 tools.file_path(lib_mk_file, lib_mk_repo),
+                 tools.file_path(lib_sc_file, lib_sc_repo)))
+        quit()
+
+    if lib_sc_file is not None:
+        print("TODO: support needed")
+        quit()
+    else:
+        overlay_file_path = check_for_lib_mk_overlay(lib_name, env, lib_mk_file, lib_mk_repo)
+        if overlay_file_path is None:
+            lib = genode_lib.GenodeMkLib(lib_name, env,
+                                         lib_mk_file, lib_mk_repo,
+                                         build_env)
+            lib.process()
+        else:
+            process_lib_overlay_fun = buildtool_tools.get_process_lib_overlay_fun(overlay_file_path)
+            process_lib_overlay_fun(lib_name, env, lib_mk_file, lib_mk_repo, build_env)
+            #from genode.repos.base.lib.mk.cxx0 import process_lib_overlay
+            #process_lib_overlay(lib_name, env, lib_mk_file, lib_mk_repo, build_env)
+
+            #process_lib_overlay(lib_name, env, lib_mk_file, lib_mk_repo, build_env)
+
+
+def check_for_lib_mk_overlay(lib_name, env, lib_mk_file, lib_mk_repo):
+    """Looks for library"""
+
+    full_mk_file_path = tools.file_path(lib_mk_file, lib_mk_repo)
+    mk_file_path = env['fn_localize_path'](full_mk_file_path)
+
+    mk_pattern = re.compile(r'\.mk$')
+    overlay_info_file_path = os.path.join(env['OVERLAYS_DIR'], mk_pattern.sub('.ovr', mk_file_path))
+    #print("Checking overlays info file %s" % (overlay_info_file_path))
+    if not os.path.isfile(overlay_info_file_path):
+        # no overlays info file - fallback to default mk processing
+        return
+
+    print("Found overlays info file %s" % (overlay_info_file_path))
+
+    mk_file_md5 = tools.file_md5(mk_file_path)
+    print("library mk '%s' hash: '%s'" % (mk_file_path, mk_file_md5))
+
+    overlay_file_name = None
+    with open(overlay_info_file_path, "r") as f:
+        for line in f:
+            if line.startswith(mk_file_md5):
+                ovr_data = line.split()
+                if len(ovr_data) < 2:
+                    print("ERROR: invalid overlay entry in '%s':" % (overlay_info_file_path))
+                    print("     : %s" % (line))
+                    quit()
+                overlay_file_name = ovr_data[1]
+    if overlay_file_name is None:
+        print("ERROR: overlay not found in '%s' for hash '%s':" % (overlay_info_file_path, mk_file_md5))
+        quit()
+
+    overlay_file_path = os.path.join(os.path.dirname(overlay_info_file_path), overlay_file_name)
+
+    #print("Checking overlay file %s" % (overlay_file_path))
+    if not os.path.isfile(overlay_file_path):
+        print("ERROR: missing overlay file '%s' mentioned metioned  in '%s':" % (overlay_file_path, overlay_info_file_path))
+        quit()
+
+    print("Found overlay file '%s' for mk '%s'" % (overlay_file_path, mk_file_path))
+    return overlay_file_path
+

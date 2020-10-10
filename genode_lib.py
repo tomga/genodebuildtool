@@ -18,15 +18,12 @@ class GenodeLib:
         self.lib_name = lib_name
         self.env = env.Clone()
 
-        # for use in localize_path
-        self.genode_localization_pattern = re.compile('^%s/' % (self.env['GENODE_DIR']))
-
         # for use in target_path
-        self.relative_lib_cache_dir = self.localize_path(self.env['LIB_CACHE_DIR'])
+        self.relative_lib_cache_dir = self.sconsify_path(self.env['LIB_CACHE_DIR'])
 
 
-    def localize_path(self, path):
-        return self.genode_localization_pattern.sub('#', path)
+    def sconsify_path(self, path):
+        return self.env['fn_sconsify_path'](path)
 
 
     def target_path(self, target):
@@ -43,6 +40,11 @@ class GenodeLib:
         raise Exception("prepare_cc_env should be overridden")
 
 
+    def prepare_ld_env(self):
+        # setup LD*
+        raise Exception("prepare_ld_env should be overridden")
+
+
     def build_c_objects(self):
         src_files = self.get_c_sources()
         return self.compile_c_sources(src_files)
@@ -51,6 +53,11 @@ class GenodeLib:
     def build_cc_objects(self):
         src_files = self.get_cc_sources()
         return self.compile_cc_sources(src_files)
+
+
+    def build_o_objects(self):
+        # requires custom builder
+        return []
 
 
     def compile_c_sources(self, src_files):
@@ -174,28 +181,27 @@ class GenodeMkLib(GenodeLib):
 
         all_inc_dir = self.build_env.var_values('ALL_INC_DIR')
         all_inc_dir = [ path for path in all_inc_dir if os.path.isdir(path) ]
-        all_inc_dir = [ self.localize_path(path) for path in all_inc_dir ]
+        all_inc_dir = [ self.sconsify_path(path) for path in all_inc_dir ]
 
         self.env.AppendUnique(CPPPATH=all_inc_dir)
         print('CPPPATH: %s' % (self.env['CPPPATH']))
 
+        self.prepare_c_env()
+        self.prepare_cc_env()
+        self.prepare_ld_env()
+
         ### handle c compilation
         # $(VERBOSE)$(CC) $(CC_DEF) $(CC_C_OPT) $(INCLUDES) -c $< -o $@
 
-        self.prepare_c_env()
         c_objs = self.build_c_objects()
 
 
         ### handle cxx compilation
         # $(VERBOSE)$(CXX) $(CXX_DEF) $(CC_CXX_OPT) $(INCLUDES) -c $< -o $@
 
-        self.prepare_cc_env()
         cc_objs = self.build_cc_objects()
 
-        # cxx specific
-        cxx_src = self.build_env.var_values('CXX_SRC')
-        cxx_src_files = self.get_sources(cxx_src)
-        cxx_internal_objs = self.compile_cc_sources(cxx_src_files)
+        o_objs = self.build_o_objects()
 
 
 
@@ -206,7 +212,7 @@ class GenodeMkLib(GenodeLib):
             if len(file_paths) != 1:
                 print("expected exactly one vpath for %s but received %s" % (src_file, str(file_paths)))
             src_file = os.path.join(file_paths[0], src_file)
-            src_file = self.localize_path(src_file)
+            src_file = self.sconsify_path(src_file)
             src_files.append(src_file)
         return src_files
 
@@ -237,6 +243,13 @@ class GenodeMkLib(GenodeLib):
         cc_cxx_opt = cc_cxx_opt.replace(cc_opt_dep_to_remove, '')
         self.env.AppendUnique(CXXFLAGS=cc_cxx_opt.split())
         #print('CXXFLAGS: %s' % (self.env['CXXFLAGS']))
+
+
+    def prepare_ld_env(self):
+        self.env['LD'] = self.build_env.var_value('LD')
+        self.env['NM'] = self.build_env.var_value('NM')
+        self.env['OBJCOPY'] = self.build_env.var_value('OBJCOPY')
+        self.env['RANLIB'] = self.build_env.var_value('RANLIB')
 
 
     def get_c_sources(self):
