@@ -80,6 +80,8 @@ class MkEnv:
 
     def debug_struct(self, mode):
         retval = {}
+        if self.parent_env is not None:
+            retval['___parent___'] = self.parent_env.debug_struct(mode)
         for var in self.variables:
             try:
                 if mode == 'raw':
