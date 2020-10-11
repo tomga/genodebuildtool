@@ -129,7 +129,6 @@ class GenodeMkLib(GenodeLib):
 
         ### handle include import-<lib>.mk files
         dep_libs = self.build_env.var_values('LIBS')
-        print("LIBS: %s" % (str(dep_libs)))
         for dep_lib in dep_libs:
             dep_lib_import_mk_file, dep_lib_import_mk_repo = tools.find_first(repositories, 'lib/import/import-%s.mk' % (dep_lib))
             if dep_lib_import_mk_file is not None:
@@ -146,10 +145,12 @@ class GenodeMkLib(GenodeLib):
 
 
         ### handle shared library settings
+
         symbols_file = self.build_env.var_value('SYMBOLS')
-        if len(symbols_file) > 0:
+        shared_lib = len(symbols_file) > 0
+
+        if shared_lib:
             self.build_env.var_set('SHARED_LIB', 'yes')
-            self.build_env.var_set('ABI-SO', '%s.abi.so' % (self.lib_name))
 
             ### TODO - symbols link file
             # $(LIB).symbols:
@@ -159,7 +160,7 @@ class GenodeMkLib(GenodeLib):
 
         ### handle libgcc
         # TODO cache results or maybe set unconditionally
-        if self.build_env.check_var('SHARED_LIB'):
+        if shared_lib:
             ##LIBGCC = $(shell $(CC) $(CC_MARCH) -print-libgcc-file-name)
             cmd = "%s %s -print-libgcc-file-name" % (self.build_env.var_value('CC'),
                                                      self.build_env.var_value('CC_MARCH'))
@@ -190,19 +191,60 @@ class GenodeMkLib(GenodeLib):
         self.prepare_cc_env()
         self.prepare_ld_env()
 
+        objects = []
+
         ### handle c compilation
         # $(VERBOSE)$(CC) $(CC_DEF) $(CC_C_OPT) $(INCLUDES) -c $< -o $@
 
         c_objs = self.build_c_objects()
+        objects += c_objs
 
 
         ### handle cxx compilation
         # $(VERBOSE)$(CXX) $(CXX_DEF) $(CC_CXX_OPT) $(INCLUDES) -c $< -o $@
 
         cc_objs = self.build_cc_objects()
+        objects += cc_objs
 
         o_objs = self.build_o_objects()
+        objects += o_objs
 
+        lib_so = None
+        abi_so = None
+        install_so = None
+        debug_so = None
+        lib_checked = None
+        lib_a = None
+
+        if shared_lib:
+            abi_so = '%s.abi.so' % (self.lib_name)
+            if len(objects) + len(dep_libs) == 0:
+                lib_so = "%s.lib.so" % (self.lib_name)
+                install_so = "%s/%s" % (self.build_env.var_value('INSTALL_DIR'), lib_so)
+                debug_so = "%s/%s" % (self.build_env.var_value('DEBUG_DIR'), lib_so)
+        else:
+            lib_a = "%s.lib.a" % (self.lib_name)
+
+        if lib_so is not None and abi_so is not None:
+            lib_checked = "%s.lib.checked" % (self.lib_name)
+
+        print('LIB: %s %s' % (self.lib_name, 'shared' if shared_lib else 'static'))
+
+        if shared_lib:
+            # ARCHIVES += ldso_so_support.lib.a
+            pass
+
+        # TODO: LIB_IS_DYNAMIC_LINKER
+
+        # TODO: STATIC_LIBS
+
+        # NOTICE: LIB_SO_DEPS seems to be an artifact of the past
+
+        # TODO: ENTRY_POINT ?= 0x0
+
+        if lib_a is not None:
+            self.env.StaticLibrary(target=self.target_path(lib_a),
+                                   source=objects)
 
 
     def get_sources(self, files):
@@ -250,6 +292,12 @@ class GenodeMkLib(GenodeLib):
         self.env['NM'] = self.build_env.var_value('NM')
         self.env['OBJCOPY'] = self.build_env.var_value('OBJCOPY')
         self.env['RANLIB'] = self.build_env.var_value('RANLIB')
+        self.env['AR'] = self.build_env.var_value('AR')
+        # NOTICE: reproducible builds require D - so it would be -rcsD
+        self.env['ARFLAGS'] = '-rcs'
+        # NOTICE: is rm needed? - is there no flag?
+        self.env['ARCOM'] = 'rm -f $TARGET\n$AR $ARFLAGS $TARGET $SOURCES'
+        # FIXME: scons calls ranlib unconditionally
 
 
     def get_c_sources(self):
