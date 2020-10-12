@@ -2,8 +2,11 @@
 import hashlib
 import os
 
+def is_file(file_path):
+    return  os.path.isfile(file_path)
+
 def check_files(files):
-    return [ file_path for file_path in files if os.path.isfile(file_path) ]    
+    return [ file_path for file_path in files if os.path.isfile(file_path) ]
 
 def find_files(pattern, arg_list):
     files_to_check = [ pattern % (arg) for arg in arg_list ]
@@ -18,6 +21,9 @@ def find_first(paths, relative_path):
 
 def file_path(relative_repo_path, repo_path):
     return os.path.join(repo_path, relative_repo_path)
+
+def is_repo_file(relative_repo_path, repo_path):
+    return is_file(file_path(relative_repo_path, repo_path))
 
 def file_md5(file_path):
     with open(file_path, 'rb') as f:

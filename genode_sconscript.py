@@ -101,6 +101,10 @@ def process_builddir(build_dir, env):
         specs_mk.process(build_env)
     #pprint.pprint(build_env.debug_struct('pretty'), width=200)
 
+    specs = build_env.var_values('SPECS')
+    print("SPECS: %s" % (specs))
+    env['SPECS'] = specs
+
 
     ### handle global.mk
     #
@@ -132,12 +136,9 @@ def process_builddir(build_dir, env):
 
 
 
-    cxx_lib('cxx', env, build_env)
+    process_lib('cxx', env, build_env)
+    process_lib('syscall-linux', env, build_env)
     #process_lib('ld', env, build_env)
-
-
-def cxx_lib(lib_name, env, build_env):
-    return process_lib(lib_name, env, build_env)
 
 
 def process_lib(lib_name, env, build_env):
@@ -150,8 +151,47 @@ def process_lib(lib_name, env, build_env):
     must be the same as for found <lib>.mk file.
     """
 
-    lib_mk_file, lib_mk_repo = tools.find_first(env['REPOSITORIES'], 'lib/mk/%s.mk' % (lib_name))
-    lib_sc_file, lib_sc_repo = tools.find_first(env['REPOSITORIES'], 'lib/mk/%s.sc' % (lib_name))
+    repositories = env['REPOSITORIES']
+    specs = env['SPECS']
+
+    ## find <lib>.mk file with repo
+    lib_mk_file = None
+    lib_mk_repo = None
+    for repository in repositories:
+        for spec in specs:
+            test_mk_file = 'lib/mk/spec/%s/%s.mk' % (spec, lib_name)
+            if tools.is_repo_file(test_mk_file, repository):
+                lib_mk_file = tools.file_path(test_mk_file, repository)
+                lib_mk_repo = repository
+                break
+        if lib_mk_file is not None:
+            break
+
+        test_mk_file = 'lib/mk/%s.mk' % (lib_name)
+        if tools.is_repo_file(test_mk_file, repository):
+            lib_mk_file = tools.file_path(test_mk_file, repository)
+            lib_mk_repo = repository
+            break
+
+    ## find <lib>.sc file with repo
+    lib_sc_file = None
+    lib_sc_repo = None
+    for repository in repositories:
+        for spec in specs:
+            test_sc_file = 'lib/mk/spec/%s/%s.sc' % (spec, lib_name)
+            if tools.is_repo_file(test_sc_file, repository):
+                lib_sc_file = tools.file_path(test_sc_file, repository)
+                lib_sc_repo = repository
+                break
+        if lib_sc_file is not None:
+            break
+
+        test_sc_file = 'lib/mk/%s.sc' % (lib_name)
+        if tools.is_repo_file(test_sc_file, repository):
+            lib_sc_file = tools.file_path(test_sc_file, repository)
+            lib_sc_repo = repository
+            break
+
     if (lib_mk_file is None and lib_sc_file is None):
         print("Build rules file not found for library '%s'" % (lib_name))
         quit()
@@ -164,9 +204,11 @@ def process_lib(lib_name, env, build_env):
         quit()
 
     if lib_sc_file is not None:
+        print("lib_sc_file: %s" % (lib_sc_file))
         print("TODO: support needed")
         quit()
     else:
+        print("lib_mk_file: %s" % (lib_mk_file))
         overlay_file_path = check_for_lib_mk_overlay(lib_name, env, lib_mk_file, lib_mk_repo)
         if overlay_file_path is None:
             lib = genode_lib.GenodeMkLib(lib_name, env,
