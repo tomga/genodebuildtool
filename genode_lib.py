@@ -40,6 +40,11 @@ class GenodeLib:
         raise Exception("prepare_cc_env should be overridden")
 
 
+    def prepare_s_env(self):
+        # setup AS, ASFLAGS
+        raise Exception("prepare_s_env should be overridden")
+
+
     def prepare_ld_env(self):
         # setup LD*
         raise Exception("prepare_ld_env should be overridden")
@@ -55,6 +60,11 @@ class GenodeLib:
         return self.compile_cc_sources(src_files)
 
 
+    def build_s_objects(self):
+        src_files = self.get_s_sources()
+        return self.compile_s_sources(src_files)
+
+
     def build_o_objects(self):
         # requires custom builder
         return []
@@ -65,6 +75,10 @@ class GenodeLib:
 
 
     def compile_cc_sources(self, src_files):
+        return self.generic_compile(src_files)
+
+
+    def compile_s_sources(self, src_files):
         return self.generic_compile(src_files)
 
 
@@ -97,8 +111,6 @@ class GenodeMkLib(GenodeLib):
         #rpdb2.start_embedded_debugger('password')
 
         ### TODO calculate SYMBOLS
-        # first required for ld
-        # LIB_MK_DIRS  = $(foreach REP,$(REPOSITORIES),$(addprefix $(REP)/lib/mk/spec/,     $(SPECS)) $(REP)/lib/mk)
         # SYMBOLS_DIRS = $(foreach REP,$(REPOSITORIES),$(addprefix $(REP)/lib/symbols/spec/,$(SPECS)) $(REP)/lib/symbols)
 
         mkcache = self.build_env.get_mk_cache()
@@ -189,6 +201,7 @@ class GenodeMkLib(GenodeLib):
 
         self.prepare_c_env()
         self.prepare_cc_env()
+        self.prepare_s_env()
         self.prepare_ld_env()
 
         objects = []
@@ -205,6 +218,9 @@ class GenodeMkLib(GenodeLib):
 
         cc_objs = self.build_cc_objects()
         objects += cc_objs
+
+        s_objs = self.build_s_objects()
+        objects += s_objs
 
         o_objs = self.build_o_objects()
         objects += o_objs
@@ -287,6 +303,20 @@ class GenodeMkLib(GenodeLib):
         #print('CXXFLAGS: %s' % (self.env['CXXFLAGS']))
 
 
+    def prepare_s_env(self):
+        self.env['AS'] = self.build_env.var_value('AS')
+
+        #cxx_def = self.build_env.var_values('CXX_DEF')
+        #self.env.AppendUnique(CXXFLAGS=cxx_def)
+        ##print('CXXFLAGS: %s' % (self.env['CXXFLAGS']))
+        #
+        #cc_opt_dep_to_remove = self.build_env.var_value('CC_OPT_DEP')
+        #cc_cxx_opt = self.build_env.var_value('CC_CXX_OPT')
+        #cc_cxx_opt = cc_cxx_opt.replace(cc_opt_dep_to_remove, '')
+        #self.env.AppendUnique(CXXFLAGS=cc_cxx_opt.split())
+        ##print('CXXFLAGS: %s' % (self.env['CXXFLAGS']))
+
+
     def prepare_ld_env(self):
         self.env['LD'] = self.build_env.var_value('LD')
         self.env['NM'] = self.build_env.var_value('NM')
@@ -309,4 +339,10 @@ class GenodeMkLib(GenodeLib):
     def get_cc_sources(self):
         src_cc = self.build_env.var_values('SRC_CC')
         src_files = self.get_sources(src_cc)
+        return src_files
+
+
+    def get_s_sources(self):
+        src_s = self.build_env.var_values('SRC_S')
+        src_files = self.get_sources(src_s)
         return src_files
