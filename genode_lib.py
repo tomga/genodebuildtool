@@ -259,8 +259,8 @@ class GenodeMkLib(GenodeLib):
         # TODO: ENTRY_POINT ?= 0x0
 
         if lib_a is not None:
-            self.env.StaticLibrary(target=self.target_path(lib_a),
-                                   source=objects)
+            return self.env.StaticLibrary(target=self.target_path(lib_a),
+                                          source=objects)
 
 
     def get_sources(self, files):
@@ -325,9 +325,12 @@ class GenodeMkLib(GenodeLib):
         self.env['AR'] = self.build_env.var_value('AR')
         # NOTICE: reproducible builds require D - so it would be -rcsD
         self.env['ARFLAGS'] = '-rcs'
-        # NOTICE: is rm needed? - is there no flag?
-        self.env['ARCOM'] = 'rm -f $TARGET\n$AR $ARFLAGS $TARGET $SOURCES'
-        # FIXME: scons calls ranlib unconditionally
+        # NOTICE: rm is not needed because scons unlinks target before
+        #         build (at least for static libraries)
+        # self.env['ARCOM'] = 'rm -f $TARGET\n$AR $ARFLAGS $TARGET $SOURCES'
+        # NOTICE: following disables executing ranlib by scons
+        self.env['RANLIBCOM'] = ""
+        self.env['RANLIBCOMSTR'] = ""
 
 
     def get_c_sources(self):

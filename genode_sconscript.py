@@ -55,9 +55,40 @@ def process_builddir(build_dir, env):
     genode_dir = build_env.var_value('GENODE_DIR')
     env['GENODE_DIR'] = genode_dir
 
+    env['VERBOSE_OUTPUT'] = False
+    #env['VERBOSE_OUTPUT'] = True
+
     genode_localization_pattern = re.compile('^%s/' % (env['GENODE_DIR']))
     env['fn_localize_path'] = lambda path: genode_localization_pattern.sub('', path)
     env['fn_sconsify_path'] = lambda path: genode_localization_pattern.sub('#', path)
+    genode_prettify_pattern = re.compile('^.*/var/libcache/')
+    env['fn_prettify_path'] = lambda path: genode_prettify_pattern.sub('', str(path))
+
+    def format_message_simple(tgt, src, cmd_pres, cmd_var, e):
+        return "%s %s" % (cmd_pres, genode_prettify_pattern.sub('', str(tgt)))
+
+    #processed_messages = set([])
+    #def format_message_verbose(tgt, src, cmd_pres, cmd_var, e):
+    #    tgt_str = str(tgt)
+    #    if tgt_str in processed_messages:
+    #        return " " # ugly hack to avoid duplicated messages
+    #    processed_messages.add(tgt_str)
+    #    return "%s %s%s" % (cmd_pres,
+    #                        genode_prettify_pattern.sub('', tgt_str),
+    #                        "\n%s" % (e.subst(e[cmd_var], raw=0,
+    #                                          target=tgt, source=src)))
+
+    def format_message_verbose(tgt, src, cmd_pres, cmd_var, e):
+        return "%s %s\n%s" % (cmd_pres,
+                              genode_prettify_pattern.sub('', str(tgt)),
+                              e.subst(e[cmd_var], raw=0, target=tgt, source=src))
+    env['fn_msg'] = format_message_simple if not env['VERBOSE_OUTPUT'] else format_message_verbose
+    env['SHCXXCOMSTR']  = '${fn_msg(TARGET, SOURCES, " COMPILE ", "SHCXXCOM",  __env__)}'
+    env['SHCCCOMSTR']   = '${fn_msg(TARGET, SOURCES, " COMPILE ", "SHCCCOM",   __env__)}'
+    env['ASPPCOMSTR']   = '${fn_msg(TARGET, SOURCES, " ASSEMBLE", "ASPPCOM",   __env__)}'
+    env['ARCOMSTR']     = '${fn_msg(TARGET, SOURCES, " LINK    ", "ARCOM",     __env__)}'
+    env['MERGECOMSTR']  = '${fn_msg(TARGET, SOURCES, " MERGE   ", "MERGECOM",  __env__)}'
+    env['OBJCPYCOMSTR'] = '${fn_msg(TARGET, SOURCES, " CONVERT ", "OBJCPYCOM", __env__)}'
 
     repositories = build_env.var_values('REPOSITORIES')
     env['REPOSITORIES'] = repositories
@@ -134,11 +165,14 @@ def process_builddir(build_dir, env):
     build_env.var_set('LIBGCC_INC_DIR', '%s/include' % (os.path.dirname(output)))
     #pprint.pprint(build_env.debug_struct('pretty'), width=200)
 
-
-
-    process_lib('cxx', env, build_env)
-    process_lib('syscall-linux', env, build_env)
+    libs = []
+    libs.append(process_lib('cxx', env, build_env))
+    libs.append(process_lib('syscall-linux', env, build_env))
     #process_lib('ld', env, build_env)
+
+    env.Default(libs)
+
+    print(env.Dump())
 
 
 def process_lib(lib_name, env, build_env):
@@ -214,10 +248,10 @@ def process_lib(lib_name, env, build_env):
             lib = genode_lib.GenodeMkLib(lib_name, env,
                                          lib_mk_file, lib_mk_repo,
                                          build_env)
-            lib.process()
+            return lib.process()
         else:
             process_lib_overlay_fun = buildtool_tools.get_process_lib_overlay_fun(overlay_file_path)
-            process_lib_overlay_fun(lib_name, env, lib_mk_file, lib_mk_repo, build_env)
+            return process_lib_overlay_fun(lib_name, env, lib_mk_file, lib_mk_repo, build_env)
             #from genode.repos.base.lib.mk.cxx0 import process_lib_overlay
             #process_lib_overlay(lib_name, env, lib_mk_file, lib_mk_repo, build_env)
 

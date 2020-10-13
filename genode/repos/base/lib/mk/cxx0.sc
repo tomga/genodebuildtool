@@ -1,6 +1,6 @@
 
 import genode_lib
-
+import SCons.Action
 
 class GenodeCxxMkLib(genode_lib.GenodeMkLib):
     def build_o_objects(self):
@@ -24,17 +24,18 @@ class GenodeCxxMkLib(genode_lib.GenodeMkLib):
         self.env['VERBOSE'] = ''
         self.env['RM'] = 'rm -f'
 
+        self.env['MERGECOM'] = "${LD} ${LD_MARCH} ${KEEP_SYMBOLS_OPTS} -r ${SOURCES} ${LIBCXX_GCC} -o ${TARGET}"
+        src_o_tmp = self.env.Command(
+            target=str(target_file) + '.tmp',
+            source=cxx_internal_objs,
+            action=SCons.Action.Action("$MERGECOM", "$MERGECOMSTR")
+        )
+
+        self.env['OBJCPYCOM'] = "${OBJCOPY} ${LOCAL_SYMBOLS} ${REDEF_SYMBOLS} ${SOURCES} ${TARGET}"
         src_o = self.env.Command(
             target=target_file,
-            source=cxx_internal_objs,
-            action=["${MSG_MERGE}${TARGET}",
-                    "${VERBOSE}${LD} ${LD_MARCH} ${KEEP_SYMBOLS_OPTS} -r ${SOURCES} ${LIBCXX_GCC} -o ${TARGET}.tmp",
-                    "${MSG_CONVERT}${TARGET}",
-                    "${VERBOSE}${OBJCOPY} ${LOCAL_SYMBOLS} ${REDEF_SYMBOLS} ${TARGET}.tmp ${TARGET}",
-                    "${VERBOSE}${RM} ${TARGET}.tmp"],
-            #action=["${LD} ${LD_MARCH} ${KEEP_SYMBOLS_OPTS} -r ${SOURCES} ${LIBCXX_GCC} -o ${TARGET}.tmp",
-            #        "${OBJCOPY} ${LOCAL_SYMBOLS} ${REDEF_SYMBOLS} ${TARGET}.tmp",
-            #        "${RM} ${TARGET}.tmp"],
+            source=str(target_file) + '.tmp',
+            action=SCons.Action.Action("$OBJCPYCOM", "$OBJCPYCOMSTR")
         )
 
         print("src_o: %s" % (str(src_o)))
@@ -44,5 +45,5 @@ class GenodeCxxMkLib(genode_lib.GenodeMkLib):
 def process_lib_overlay(lib_name, env, lib_mk_file, lib_mk_repo, build_env):
     print("process_lib_overlay start")
     lib = GenodeCxxMkLib(lib_name, env, lib_mk_file, lib_mk_repo, build_env)
-    lib.process()
+    return lib.process()
     print("process_lib_overlay end")
