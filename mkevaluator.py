@@ -228,9 +228,12 @@ functionsDict = {}
 
 # 1 args
 def mkfun_basename(mkenv, args):
-    assert len(args) == 1, "TODO: support sorting with comma"
     return [os.path.splitext(x)[0] for x in args[0]]
 functionsDict['basename'] = mkfun_basename
+
+def mkfun_dir(mkenv, args):
+    return [os.path.dirname(x) for x in args[0]]
+functionsDict['dir'] = mkfun_dir
 
 def mkfun_shell(mkenv, args):
     assert len(args) == 1, "TODO: support shell commands with comma"
