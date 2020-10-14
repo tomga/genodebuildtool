@@ -267,9 +267,10 @@ class GenodeMkLib(GenodeLib):
         src_files = []
         for src_file in files:
             file_paths = self.build_env.find_vpaths(src_file)
-            if len(file_paths) != 1:
-                print("expected exactly one vpath for %s but received %s" % (src_file, str(file_paths)))
-            src_file = os.path.join(file_paths[0], src_file)
+            existing_file_paths = [ f for f in file_paths if os.path.isfile(os.path.join(f, src_file)) ]
+            if len(existing_file_paths) != 1:
+                print("expected exactly one vpath for %s but exist %s from %s found" % (src_file, str(existing_file_paths), str(file_paths)))
+            src_file = os.path.join(existing_file_paths[0], src_file)
             src_file = self.sconsify_path(src_file)
             src_files.append(src_file)
         return src_files
