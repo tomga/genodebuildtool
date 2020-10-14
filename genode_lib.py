@@ -323,6 +323,7 @@ class GenodeMkLib(GenodeLib):
         self.env['OBJCOPY'] = self.build_env.var_value('OBJCOPY')
         self.env['RANLIB'] = self.build_env.var_value('RANLIB')
         self.env['AR'] = self.build_env.var_value('AR')
+        self.env['LIBPREFIX'] = ''
         # NOTICE: reproducible builds require D - so it would be -rcsD
         self.env['ARFLAGS'] = '-rcs'
         # NOTICE: rm is not needed because scons unlinks target before
