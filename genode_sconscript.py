@@ -168,6 +168,7 @@ def process_builddir(build_dir, env):
     libs = []
     libs.append(process_lib('cxx', env, build_env))
     libs.append(process_lib('syscall-linux', env, build_env))
+    libs.append(process_lib('base-linux-common', env, build_env))
     #process_lib('ld', env, build_env)
 
     env.Default(libs)
