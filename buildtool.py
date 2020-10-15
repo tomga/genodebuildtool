@@ -1,63 +1,158 @@
 
 import argparse
+import datetime
+import os
 import parglare
 import pprint
 import sqlite3
+import subprocess
 import sys
-from pprint import PrettyPrinter
-
 
 import schema
 import mkevaluator
 import mkparser
 import mklogparser
 
+import buildtool_utils
+
 import genode_util_mk_functions
 genode_util_mk_functions.register_mk_functions(mkevaluator.functionsDict)
 
 
 
-class Python2PrettyPrinter(pprint.PrettyPrinter):
-    class _fake_short_str(str):
-        def __len__(self):
-            return 1 if super().__len__() else 0
+def arguments_parse():
+    """Parse buildtool options.
+    """
 
-    def format(self, object, context, maxlevels, level):
-        res = super().format(object, context, maxlevels, level)
-        if isinstance(object, str):
-            return (self._fake_short_str(res[0]), ) + res[1:]
-        return res
-
-    from io import StringIO
-    assert StringIO().write(_fake_short_str('_' * 1000)) == 1000
-
-
-###
-# parse options
-###
-
-argparser = argparse.ArgumentParser("buildtool")
-argparser.add_argument('targets', metavar='TARGETS', nargs='+',
-                       help='build targets')
-opts = argparser.parse_args()
-pprint.pprint(opts)
+    argparser = argparse.ArgumentParser('buildtool')
+    argparser.add_argument('-b', '--build', action='append',
+                           help='build directory')
+    argparser.add_argument('-l', '--lib', nargs='+', default=[],
+                           help='target libraries')
+    argparser.add_argument('-p', '--prog', nargs='+', default=[],
+                           help='target executables')
+    argparser.add_argument('-r', '--run', nargs='+', default=[],
+                           help='target run scripts')
+    argparser.add_argument('--kernel',
+                           help='target run kernel')
+    argparser.add_argument('--board',
+                           help='target run kernel')
+    argparser.add_argument('--database', default='buildtool.db',
+                           help='database location')
+    argparser.add_argument('--logs', default='../logs',
+                           help='target run kernel')
+    return argparser.parse_args()
 
 
-###
-# verify/prepare database
-###
+def arguments_print(opts):
+    print("Arguments")
+    for opt in vars(opts):
+        print("   %s: %s" % (str(opt), str(getattr(opts, opt))))
 
-build_db = sqlite3.connect('buildtool.db')
 
-check_result = schema.db_check_schema(build_db, schema.CURRENT_SCHEMA_VERSION)
-print('Check schema result: %s' % ('OK' if check_result else 'EMPTY'))
-    
-if not check_result:
-    print("Preparing schema")
-    schema.db_prepare_schema(build_db, schema.CURRENT_SCHEMA_VERSION)
+
+def database_connect(opts):
+    """Returns verified connnection to build database.
+    """
+
+    build_db = sqlite3.connect(opts.database)
 
     check_result = schema.db_check_schema(build_db, schema.CURRENT_SCHEMA_VERSION)
     print('Check schema result: %s' % ('OK' if check_result else 'EMPTY'))
+    
+    if not check_result:
+        print("Preparing schema")
+        schema.db_prepare_schema(build_db, schema.CURRENT_SCHEMA_VERSION)
+
+        check_result = schema.db_check_schema(build_db, schema.CURRENT_SCHEMA_VERSION)
+        print('Check schema result: %s' % ('OK' if check_result else 'EMPTY'))
+
+    return build_db
+
+
+
+def is_mk_build(build_name):
+    build_dir = 'build/%s' % (build_name)
+    mk_file = '%s/Makefile' % (build_dir)
+    return (os.path.isdir(build_dir)
+            and os.path.exists(mk_file)
+            and not os.path.isdir(mk_file))
+
+
+def is_sc_build(build_name):
+    build_dir = 'build/%s' % (build_name)
+    sc_file = '%s/SCons' % (build_dir)
+    return (os.path.isdir(build_dir)
+            and os.path.exists(sc_file)
+            and not os.path.isdir(sc_file))
+
+
+def do_mk_build(build_name, opts, stamp_dt, log_file):
+
+    if len(opts.lib) > 1:
+        print("ERROR: only single library allowed with make build but asked for '%s'" % (str(opts.lib)))
+        quit()
+
+    kernel = 'KERNEL=%s' % (opts.kernel) if opts.kernel is not None else ''
+    board = 'BOARD=%s' % (opts.board) if opts.board is not None else ''
+
+    command = ' '.join(['LANG=C',
+                        'make VERBOSE= VERBOSE_MK= VERBOSE_DIR=',
+                        '-C build/%s' % (build_name),
+                        '%s' % (kernel),
+                        '%s' % (board),
+                        'LIB=%s' % opts.lib[0] if len(opts.lib) > 0 else '',
+                        '2>&1 | tee %s/%s' % (opts.logs, log_file)])
+    output = buildtool_utils.command_execute(command)
+
+
+    
+def do_sc_build(build_name, opts, stamp_dt, log_file):
+
+    if len(opts.lib) > 1:
+        print("ERROR: only single library allowed with make build but asked for '%s'" % (str(opts.lib)))
+        quit()
+
+    kernel = 'KERNEL=%s' % (opts.kernel) if opts.kernel is not None else ''
+    board = 'BOARD=%s' % (opts.board) if opts.board is not None else ''
+
+    command = ' '.join(['scons',
+                        'BUILD=build/%s' % (build_name),
+                        'VERBOSE_OUTPUT=yes',
+                        '%s' % (kernel),
+                        '%s' % (board),
+                        'LIB=%s' % opts.lib[0] if len(opts.lib) > 0 else '',
+                        '2>&1 | tee %s/%s' % (opts.logs, log_file)])
+    output = buildtool_utils.command_execute(command)
+
+
+    
+
+def do_builds(opts):
+
+    # check logs directory
+    if not os.path.isdir(opts.logs):
+        print("ERROR: logs directory '%s' does not exist" % (opts.logs))
+        quit()
+
+    stamp_dt = datetime.datetime.now()
+    tstamp = f"{stamp_dt:%Y%m%d_%H%M%S}"
+
+    for build in opts.build:
+
+        log_file = '%s_%s_%s.%s' % (tstamp,
+                                    opts.kernel if opts.kernel is not None else '',
+                                    opts.board if opts.board is not None else '',
+                                    build)
+
+        if is_mk_build(build):
+            print('Make type build: %s' % (build))
+            do_mk_build(build, opts, stamp_dt, log_file)
+        elif is_sc_build(build):
+            print('SCons type build: %s' % (build))
+            do_sc_build(build, opts, stamp_dt, log_file)
+        else:
+            print('Unknown build type: %s' % (build))
 
 
 
@@ -71,6 +166,11 @@ def test_mkparser():
     # test.mk
     test_mk = mkcache.get_parsed_mk('/projects/genode/tmp/test.mk')
     pprint.pprint(test_mk.debug_struct(), width=180)
+
+    env = mkevaluator.MkEnv(mkcache)
+    test_mk.process(env)
+    pprint.pprint(env.debug_struct('pretty'), width=200)
+    quit()
 
     # build.conf
     build_conf = mkcache.get_parsed_mk('/projects/genode/genode/nbuild/linux/etc/build.conf')
@@ -121,12 +221,23 @@ def test_mkparser():
 
 def test_logparser():
     logparser = mklogparser.initialize()
-    logparse_result = logparser.parse_file('/projects/genode/logs/20200427_211245_linux_linux.nlog')
-    Python2PrettyPrinter().pprint(logparse_result)
+    logparse_result = logparser.parse_file('/projects/genode/logs/20201005_195213_linux_linux.tlog')
+    buildtool_utils.Python2PrettyPrinter().pprint(logparse_result)
+
+
+###
+# Buildtool
+###
+
+opts = arguments_parse()
+arguments_print(opts)
+build_db = database_connect(opts)
+do_builds(opts)
 
 try:
     #test_mkparser()
-    test_logparser()
+    #test_logparser()
+    pass
 except parglare.ParseError as parseError:
     print(str(parseError))
     print(str(parseError.symbols_before))

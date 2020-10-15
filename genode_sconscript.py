@@ -55,9 +55,6 @@ def process_builddir(build_dir, env):
     genode_dir = build_env.var_value('GENODE_DIR')
     env['GENODE_DIR'] = genode_dir
 
-    env['VERBOSE_OUTPUT'] = False
-    #env['VERBOSE_OUTPUT'] = True
-
     genode_localization_pattern = re.compile('^%s/' % (env['GENODE_DIR']))
     env['fn_localize_path'] = lambda path: genode_localization_pattern.sub('', path)
     env['fn_sconsify_path'] = lambda path: genode_localization_pattern.sub('#', path)
@@ -166,10 +163,12 @@ def process_builddir(build_dir, env):
     #pprint.pprint(build_env.debug_struct('pretty'), width=200)
 
     libs = []
-    libs.append(process_lib('cxx', env, build_env))
-    libs.append(process_lib('syscall-linux', env, build_env))
-    libs.append(process_lib('base-linux-common', env, build_env))
-    #process_lib('ld', env, build_env)
+
+    libs.append(process_lib(env['LIB'], env, build_env))
+
+    #libs.append(process_lib('cxx', env, build_env))
+    #libs.append(process_lib('syscall-linux', env, build_env))
+    #libs.append(process_lib('base-linux-common', env, build_env))
 
     env.Default(libs)
 
