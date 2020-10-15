@@ -11,6 +11,7 @@ def sconstruct():
     opts.Add('BUILD', 'Build directory (relative from genode root)')
 
     env = Environment(options = opts, ENV = os.environ)
+    env.SConsignFile('%s/.sconsign' % (env['BUILD']))
 
     buildtool_dir = os.path.dirname(os.path.abspath(__file__))
     env['BUILDTOOL_DIR'] = buildtool_dir
