@@ -1,10 +1,12 @@
 
+import os
 import parglare
 import pprint
 
 
 def initialize():
-    file_name = '/projects/genode/buildtool/mklogparser.pg'
+    parser_dir = os.path.dirname(os.path.abspath(__file__))
+    file_name = '%s/mklogparser.pg' % (parser_dir)
     grammar = parglare.Grammar.from_file(file_name)
 
     actions = {
