@@ -6,7 +6,9 @@ Command: EnteringDir LibraryTitle CmdList LeavingDir |
          EnteringDir CmdList LeavingDir |
          EnteringDir LeavingDir |
          BuildCommandTitle SimpleCommandList |
-         SimpleCommandList;
+         SimpleCommandList |
+         LINE_END |
+         EMPTY;
 
 SimpleCommandList: SimpleCommand | SimpleCommandList SimpleCommand;
 
