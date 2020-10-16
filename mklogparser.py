@@ -3,6 +3,8 @@ import os
 import parglare
 import pprint
 
+from logprocessor import *
+
 
 def initialize():
     parser_dir = os.path.dirname(os.path.abspath(__file__))
@@ -10,15 +12,16 @@ def initialize():
     grammar = parglare.Grammar.from_file(file_name)
 
     actions = {
-        "CmdList": [lambda _, nodes: [ nodes[0] ]  if nodes[0] is not None else [],
-                    lambda _, nodes: nodes[0] + [ nodes[1] ] if nodes[1] is not None else nodes[0],
+        "CmdList": [lambda _, nodes: BuildCommandGroup(None, None, '.',
+                                                       [ nodes[0] ]  if nodes[0] is not None else []),
+                    lambda _, nodes: nodes[0].append(nodes[1]) if nodes[1] is not None else nodes[0],
                     ],
-        "Command": [lambda _, nodes: [ [ "Library", nodes[1], "in", nodes[0] ], nodes[2] ],
-                    lambda _, nodes: [ [ "Program", nodes[1], "in", nodes[0] ], nodes[2] ],
-                    lambda _, nodes: [ [ "Commands in", nodes[0] ], nodes[1] ],
-                    lambda _, nodes: [ "Nothing in", nodes[0] ],
-                    lambda _, nodes: [ nodes[0], nodes[1] ],
-                    lambda _, nodes: nodes[0],
+        "Command": [lambda _, nodes: nodes[2].relabel("Library", nodes[1], nodes[0]),
+                    lambda _, nodes: nodes[2].relabel("Program", nodes[1], nodes[0]),
+                    lambda _, nodes: nodes[1].relabel(None, None, nodes[0]),
+                    lambda _, nodes: BuildCommandGroup(None, None, nodes[0], []),
+                    lambda _, nodes: SimpleBuildCommand(nodes[0][0], nodes[0][1], nodes[1]),
+                    lambda _, nodes: SimpleBuildCommand(None, None, nodes[0]),
                     lambda _, nodes: None,
                     lambda _, nodes: None,
                     ],

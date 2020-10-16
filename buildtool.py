@@ -94,7 +94,7 @@ def is_sc_build(build_name):
 def parse_mk_log(log_file):
     logparser = mklogparser.initialize()
     logparse_result = logparser.parse_file(log_file)
-    buildtool_utils.Python2PrettyPrinter().pprint(logparse_result)
+    buildtool_utils.Python2PrettyPrinter().pprint(logparse_result.debug_struct())
 
 
 
