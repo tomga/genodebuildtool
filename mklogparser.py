@@ -30,6 +30,9 @@ def initialize():
 
         "BuildCommandTitle": [lambda _, nodes: [ nodes[1], nodes[3] ] ],
 
+        "SimpleCommandList": [lambda _, nodes: [ nodes[0] ],
+                              lambda _, nodes: nodes[0] + [ nodes[1] ],
+                              ],
         "SimpleCommand": [lambda _, nodes: nodes[0] ],
 
         "SimpleCommandText": [lambda _, nodes: nodes[0],
