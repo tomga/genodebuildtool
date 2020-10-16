@@ -41,6 +41,9 @@ def arguments_parse():
                            help='database location')
     argparser.add_argument('--logs', default='../logs',
                            help='target run kernel')
+
+    argparser.add_argument('--test-mklogparser', nargs='+')
+
     return argparser.parse_args()
 
 
@@ -87,6 +90,15 @@ def is_sc_build(build_name):
             and not os.path.isdir(sc_file))
 
 
+
+def parse_mk_log(log_file):
+    logparser = mklogparser.initialize()
+    logparse_result = logparser.parse_file(log_file)
+    buildtool_utils.Python2PrettyPrinter().pprint(logparse_result)
+
+
+
+
 def do_mk_build(build_name, opts, stamp_dt, log_file):
 
     if len(opts.lib) > 1:
@@ -102,7 +114,7 @@ def do_mk_build(build_name, opts, stamp_dt, log_file):
                         '%s' % (kernel),
                         '%s' % (board),
                         'LIB=%s' % opts.lib[0] if len(opts.lib) > 0 else '',
-                        '2>&1 | tee %s/%s' % (opts.logs, log_file)])
+                        '2>&1 | tee %s' % (log_file)])
     output = buildtool_utils.command_execute(command)
 
 
@@ -122,7 +134,7 @@ def do_sc_build(build_name, opts, stamp_dt, log_file):
                         '%s' % (kernel),
                         '%s' % (board),
                         'LIB=%s' % opts.lib[0] if len(opts.lib) > 0 else '',
-                        '2>&1 | tee %s/%s' % (opts.logs, log_file)])
+                        '2>&1 | tee %s' % (log_file)])
     output = buildtool_utils.command_execute(command)
 
 
@@ -140,14 +152,16 @@ def do_builds(opts):
 
     for build in opts.build:
 
-        log_file = '%s_%s_%s.%s' % (tstamp,
-                                    opts.kernel if opts.kernel is not None else '',
-                                    opts.board if opts.board is not None else '',
-                                    build)
+        log_file = '%s/%s_%s_%s.%s' % (opts.logs,
+                                       tstamp,
+                                       opts.kernel if opts.kernel is not None else '',
+                                       opts.board if opts.board is not None else '',
+                                       build)
 
         if is_mk_build(build):
             print('Make type build: %s' % (build))
             do_mk_build(build, opts, stamp_dt, log_file)
+            parse_mk_log(log_file)
         elif is_sc_build(build):
             print('SCons type build: %s' % (build))
             do_sc_build(build, opts, stamp_dt, log_file)
@@ -219,24 +233,24 @@ def test_mkparser():
     build_mk = mkcache.get_parsed_mk('/projects/genode/genode/tool/builddir/build.mk')
 
 
-def test_logparser():
-    logparser = mklogparser.initialize()
-    logparse_result = logparser.parse_file('/projects/genode/logs/20201005_195213_linux_linux.tlog')
-    buildtool_utils.Python2PrettyPrinter().pprint(logparse_result)
-
-
 ###
 # Buildtool
 ###
 
 opts = arguments_parse()
 arguments_print(opts)
+
+if opts.test_mklogparser is not None:
+    for log_file in opts.test_mklogparser:
+        parse_mk_log(log_file)
+    quit()
+
+
 build_db = database_connect(opts)
 do_builds(opts)
 
 try:
     #test_mkparser()
-    #test_logparser()
     pass
 except parglare.ParseError as parseError:
     print(str(parseError))
