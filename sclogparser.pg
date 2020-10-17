@@ -1,0 +1,49 @@
+
+FullLog: SCONS_INIT_START LINE_END
+         SimpleCommandList
+         SCONS_INIT_END LINE_END
+         SCONS_BUILD_START LINE_END
+         CmdList
+         SCONS_BUILD_END LINE_END;
+
+CmdList: Command | CmdList Command;
+
+Command: BuildCommandTitle SimpleCommandList |
+         SimpleCommandList |
+         LINE_END |
+         EMPTY;
+
+BuildCommandTitle: BUILD_COMMAND_TITLE WS PATH LINE_END;
+
+SimpleCommandList: SimpleCommand | SimpleCommandList SimpleCommand;
+
+SimpleCommand: SimpleCommandText LINE_END;
+
+SimpleCommandText: SimpleCommandPart |
+                   SimpleCommandText SimpleCommandPart;
+
+SimpleCommandPart: TEXT |
+                   ESCAPED |
+                   LINE_CONTINUATION;
+
+SimpleCommandLineWithContinuation: TEXT LINE_CONTINUATION;               
+
+
+terminals
+
+SCONS_INIT_START: /scons: Reading SConscript files .../;
+SCONS_INIT_END: /scons: done reading SConscript files./;
+SCONS_BUILD_START: /scons: Building targets .../;
+SCONS_BUILD_END: /scons: done building targets./;
+
+
+PATH: /[.+\-a-zA-Z0-9_\/][.+\-a-zA-Z0-9_\/]*/;
+
+BUILD_COMMAND_TITLE: / (ASSEMBLE|COMPILE|CONVERT|LINK|MERGE)/;
+
+NONBACKSLASH: /[^\\]/;
+LINE_END: /\n/;
+LINE_CONTINUATION: /\\\n/;
+ESCAPED: /\\./;
+WS: /[ \t]+/;
+TEXT: /[^\x1b\\\n]/;

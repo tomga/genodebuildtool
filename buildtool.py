@@ -12,6 +12,7 @@ import schema
 import mkevaluator
 import mkparser
 import mklogparser
+import sclogparser
 
 import buildtool_utils
 
@@ -43,6 +44,7 @@ def arguments_parse():
                            help='target run kernel')
 
     argparser.add_argument('--test-mklogparser', nargs='+')
+    argparser.add_argument('--test-sclogparser', nargs='+')
 
     return argparser.parse_args()
 
@@ -93,6 +95,13 @@ def is_sc_build(build_name):
 
 def parse_mk_log(log_file):
     logparser = mklogparser.initialize()
+    logparse_result = logparser.parse_file(log_file)
+    buildtool_utils.Python2PrettyPrinter().pprint(logparse_result.debug_struct())
+
+
+
+def parse_sc_log(log_file):
+    logparser = sclogparser.initialize()
     logparse_result = logparser.parse_file(log_file)
     buildtool_utils.Python2PrettyPrinter().pprint(logparse_result.debug_struct())
 
@@ -165,6 +174,7 @@ def do_builds(opts):
         elif is_sc_build(build):
             print('SCons type build: %s' % (build))
             do_sc_build(build, opts, stamp_dt, log_file)
+            parse_sc_log(log_file)
         else:
             print('Unknown build type: %s' % (build))
 
@@ -243,6 +253,11 @@ arguments_print(opts)
 if opts.test_mklogparser is not None:
     for log_file in opts.test_mklogparser:
         parse_mk_log(log_file)
+    quit()
+
+if opts.test_sclogparser is not None:
+    for log_file in opts.test_sclogparser:
+        parse_sc_log(log_file)
     quit()
 
 
