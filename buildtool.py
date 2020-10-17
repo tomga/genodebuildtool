@@ -76,6 +76,21 @@ def database_connect(opts):
 
 
 
+def get_build_arch(build_name):
+    build_dir = 'build/%s' % (build_name)
+    specs_conf_file = '%s/etc/specs.conf' % (build_dir)
+
+    parser = mkparser.initialize()
+    mkcache = mkevaluator.MkCache(parser)
+    specs_conf = mkcache.get_parsed_mk(specs_conf_file)
+    env = mkevaluator.MkEnv(mkcache)
+    specs_conf.process(env)
+
+    arch = env.var_values('SPECS')[0]
+
+    return arch
+
+
 def is_mk_build(build_name):
     build_dir = 'build/%s' % (build_name)
     mk_file = '%s/Makefile' % (build_dir)
@@ -161,11 +176,14 @@ def do_builds(opts):
 
     for build in opts.build:
 
-        log_file = '%s/%s_%s_%s.%s' % (opts.logs,
-                                       tstamp,
-                                       opts.kernel if opts.kernel is not None else '',
-                                       opts.board if opts.board is not None else '',
-                                       build)
+        arch = get_build_arch(build)
+
+        log_file = '%s/%s_%s_%s_%s.%s' % (opts.logs,
+                                          tstamp,
+                                          arch,
+                                          opts.kernel if opts.kernel is not None else '',
+                                          opts.board if opts.board is not None else '',
+                                          build)
 
         if is_mk_build(build):
             print('Make type build: %s' % (build))
