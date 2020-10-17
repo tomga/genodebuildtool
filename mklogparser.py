@@ -31,7 +31,7 @@ def initialize():
         "LibraryTitle": [lambda _, nodes: nodes[1] ],
         "ProgramTitle": [lambda _, nodes: nodes[1] ],
 
-        "BuildCommandTitle": [lambda _, nodes: [ nodes[1], nodes[3] ] ],
+        "BuildCommandTitle": [lambda _, nodes: [ nodes[0].strip(), nodes[2] ] ],
 
         "SimpleCommandList": [lambda _, nodes: [ nodes[0] ],
                               lambda _, nodes: nodes[0] + [ nodes[1] ],
