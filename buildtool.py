@@ -8,6 +8,7 @@ import sqlite3
 import subprocess
 import sys
 
+import buildinfo_storer
 import schema
 import mkevaluator
 import mkparser
@@ -38,13 +39,16 @@ def arguments_parse():
                            help='target run kernel')
     argparser.add_argument('--board',
                            help='target run kernel')
-    argparser.add_argument('--database', default='buildtool.db',
+    argparser.add_argument('--database', default='build/buildtool.db',
                            help='database location')
     argparser.add_argument('--logs', default='../logs',
                            help='target run kernel')
 
-    argparser.add_argument('--test-mklogparser', nargs='+')
-    argparser.add_argument('--test-sclogparser', nargs='+')
+    argparser.add_argument('--test-database', action="store_true")
+    argparser.add_argument('--test-mklogparser', action="store_true")
+    argparser.add_argument('--test-sclogparser', action="store_true")
+    argparser.add_argument('--test-mkdbstore', action="store_true")
+    argparser.add_argument('--test-scdbstore', action="store_true")
 
     return argparser.parse_args()
 
@@ -112,6 +116,7 @@ def parse_mk_log(log_file):
     logparser = mklogparser.initialize()
     logparse_result = logparser.parse_file(log_file)
     buildtool_utils.Python2PrettyPrinter().pprint(logparse_result.debug_struct())
+    return logparse_result
 
 
 
@@ -119,6 +124,7 @@ def parse_sc_log(log_file):
     logparser = sclogparser.initialize()
     logparse_result = logparser.parse_file(log_file)
     buildtool_utils.Python2PrettyPrinter().pprint(logparse_result.debug_struct())
+    return logparse_result
 
 
 
@@ -164,7 +170,7 @@ def do_sc_build(build_name, opts, stamp_dt, log_file):
 
     
 
-def do_builds(opts):
+def do_builds(opts, build_db):
 
     # check logs directory
     if not os.path.isdir(opts.logs):
@@ -177,6 +183,8 @@ def do_builds(opts):
     for build in opts.build:
 
         arch = get_build_arch(build)
+        abs_dir = os.getcwd()
+        rel_dir = 'build/%s' % (build)
 
         log_file = '%s/%s_%s_%s_%s.%s' % (opts.logs,
                                           tstamp,
@@ -188,11 +196,20 @@ def do_builds(opts):
         if is_mk_build(build):
             print('Make type build: %s' % (build))
             do_mk_build(build, opts, stamp_dt, log_file)
-            parse_mk_log(log_file)
+            run_time = None
+            build_info = parse_mk_log(log_file)
+            buildinfo_storer.store_build_info(build_db, build_info, build, 'make',
+                                              stamp_dt, arch, log_file, run_time,
+                                              abs_dir, rel_dir)
         elif is_sc_build(build):
             print('SCons type build: %s' % (build))
             do_sc_build(build, opts, stamp_dt, log_file)
-            parse_sc_log(log_file)
+            run_time = None
+            build_info = parse_sc_log(log_file)
+            build_info.run_dir = abs_dir # this information is not in scons log
+            buildinfo_storer.store_build_info(build_db, build_info, build, 'scons',
+                                              stamp_dt, arch, log_file, run_time,
+                                              abs_dir, rel_dir)
         else:
             print('Unknown build type: %s' % (build))
 
@@ -268,19 +285,31 @@ def test_mkparser():
 opts = arguments_parse()
 arguments_print(opts)
 
-if opts.test_mklogparser is not None:
+build_db = database_connect(opts)
+
+if opts.test_database:
+    database_connect(opts)
+    quit()
+
+if opts.test_mklogparser:
     for log_file in opts.test_mklogparser:
         parse_mk_log(log_file)
     quit()
 
-if opts.test_sclogparser is not None:
+if opts.test_sclogparser:
     for log_file in opts.test_sclogparser:
         parse_sc_log(log_file)
     quit()
 
+if opts.test_mkdbstore:
+    for log_file in opts.test_mklogparser:
+        build_info = parse_mk_log(log_file)
+        buildinfo_storer.store_build_info(build_db, build_info, build, 'make',
+                                          stamp_dt, arch, log_file, None)
+    quit()
 
-build_db = database_connect(opts)
-do_builds(opts)
+
+do_builds(opts, build_db)
 
 try:
     #test_mkparser()
