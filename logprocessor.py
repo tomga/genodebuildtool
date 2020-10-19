@@ -1,10 +1,13 @@
 
 
+import cmd_cleaner
+
 class BuildCommand:
     def __init__(self, tgt_type, tgt_descr):
         self.tgt_type = tgt_type
         self.tgt_descr = tgt_descr
         pass
+
 
 
 class SimpleBuildCommand(BuildCommand):
@@ -18,29 +21,46 @@ class SimpleBuildCommand(BuildCommand):
         else:
             return [self.cmd_lines]
 
+    def process(self, save_fun, run_dir, abs_dir, rel_dir):
+
+        (cmd, src, tgt, orig) = cmd_cleaner.cmd_clean(self.cmd_lines,
+                                                      run_dir, abs_dir, rel_dir)
+
+        if cmd is None:
+            return
+
+        save_fun(tgt, src, orig, cmd)
+
+
+
 
 class BuildCommandGroup(BuildCommand):
-    def __init__(self, tgt_type, tgt_descr, directory, cmd_list):
+    def __init__(self, tgt_type, tgt_descr, run_dir, cmd_list):
         super().__init__(tgt_type, tgt_descr)
-        self.directory = directory
+        self.run_dir = run_dir
         self.cmd_list = cmd_list
 
     def append(self, cmd):
         self.cmd_list.append(cmd)
         return self
 
-    def relabel(self, tgt_type, tgt_descr, directory):
-        assert self.directory == '.'
+    def relabel(self, tgt_type, tgt_descr, run_dir):
+        assert self.run_dir == '.'
         self.tgt_type = tgt_type
         self.tgt_descr = tgt_descr
-        self.directory = directory
+        self.run_dir = run_dir
         return self
 
     def debug_struct(self):
         if self.tgt_type is not None or self.tgt_descr is not None:
             return [[self.tgt_type, self.tgt_descr],
-                    self.directory,
+                    self.run_dir,
                     [cmd.debug_struct() for cmd in self.cmd_list]]
         else:
-            return [self.directory,
+            return [self.run_dir,
                     [cmd.debug_struct() for cmd in self.cmd_list]]
+
+
+    def process(self, save_fun, run_dir, abs_dir, rel_dir):
+        for cmd in self.cmd_list:
+            cmd.process(save_fun, self.run_dir, abs_dir, rel_dir)

@@ -68,11 +68,17 @@ def db_prepare_schema(build_db, schema_version):
                   type TEXT,
                   extension TEXT)
               ''')
+    c.execute('''CREATE UNIQUE INDEX build_targets_uk
+                 ON build_targets (path)
+              ''')
 
     c.execute('''CREATE TABLE build_dirs
                  (path TEXT PRIMARY KEY,
                   arch TEXT,
                   tool TEXT)
+              ''')
+    c.execute('''CREATE UNIQUE INDEX build_dirs_uk
+                 ON build_dirs (path)
               ''')
 
     c.execute('''CREATE TABLE build_runs
@@ -83,13 +89,8 @@ def db_prepare_schema(build_db, schema_version):
                   run_time NUMERIC,
                   FOREIGN KEY (builddir_path) REFERENCES build_dirs)
               ''')
-
-    c.execute('''CREATE TABLE build_run_targets
-                 (run_id INTEGER,
-                  target_path TEXT,
-                  target_text TEXT,
-                  FOREIGN KEY (target_path) REFERENCES build_targets,
-                  FOREIGN KEY (run_id) REFERENCES build_runs)
+    c.execute('''CREATE UNIQUE INDEX build_runs_uk
+                 ON build_runs (builddir_path, run_date)
               ''')
 
     c.execute('''CREATE TABLE run_commands
@@ -99,16 +100,11 @@ def db_prepare_schema(build_db, schema_version):
                   command_text TEXT,
                   target_path TEXT,
                   canonical_text TEXT,
-                  FOREIGN KEY (target_path) REFERENCES build_targets,
-                  FOREIGN KEY (run_id) REFERENCES build_runs)
+                  FOREIGN KEY (run_id) REFERENCES build_runs,
+                  FOREIGN KEY (target_path) REFERENCES build_targets)
               ''')
-
-    c.execute('''CREATE TABLE command_args
-                 (id INTEGER PRIMARY KEY,
-                  command_id INTEGER,
-                  arg_num INTEGER,
-                  arg_text TEXT,
-                  FOREIGN KEY (command_id) REFERENCES run_commands)
+    c.execute('''CREATE UNIQUE INDEX run_commands_uk
+                 ON run_commands (run_id, target_path)
               ''')
 
     c.execute('''CREATE TABLE last_commands
@@ -119,6 +115,9 @@ def db_prepare_schema(build_db, schema_version):
                   FOREIGN KEY (target_path) REFERENCES build_targets,
                   FOREIGN KEY (builddir_path) REFERENCES build_dirs,
                   FOREIGN KEY (command_id) REFERENCES run_commands)
+              ''')
+    c.execute('''CREATE UNIQUE INDEX last_commands_uk
+                 ON last_commands (target_path, builddir_path)
               ''')
 
     c.execute('''CREATE TABLE schema_version
