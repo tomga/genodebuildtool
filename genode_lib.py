@@ -90,7 +90,7 @@ class GenodeLib:
             print("src_file: %s, tgt_file: %s" % (src_file, tgt_file))
             obj = self.env.SharedObject(source = src_file,
                                         target = self.target_path(tgt_file))
-            objs.append(obj)
+            objs += obj
         return objs
 
 
@@ -224,6 +224,11 @@ class GenodeMkLib(GenodeLib):
 
         o_objs = self.build_o_objects()
         objects += o_objs
+
+        # for compatibility with make build (it won't work for special
+        # cases like: a.cpp a.bbb.cpp as in make sources are sorted
+        # but here object files
+        objects = list(sorted(objects, key=lambda x: str(x)))
 
         lib_so = None
         abi_so = None
