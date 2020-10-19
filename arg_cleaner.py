@@ -6,10 +6,35 @@ import shlex
 
 
 
+def nodups(lst):
+    return list(collections.OrderedDict.fromkeys(lst))
+
+
+def path_clean(path, run_dir, abs_dir, rel_dir, modify_relatives):
+
+    path = os.path.normpath(path)
+
+    if modify_relatives and not path.startswith('/'):
+        path = os.path.join(run_dir, path)
+    if path.startswith(abs_dir + '/'):
+        path = path[len(abs_dir)+1:]
+    if path.startswith(rel_dir + '/'):
+        path = 'BLD/%s' % (path[len(rel_dir)+1:])
+
+    return path
+
+
+def arguments_print(opts):
+    print("Arguments")
+    for opt in vars(opts):
+        print("   %s: %s" % (str(opt), str(getattr(opts, opt))))
+
+
+
 def arg_parse_compile(args_array):
 
     argparser = argparse.ArgumentParser('gcc')
-    argparser.add_argument('SOURCES', action='append', default=[])
+    argparser.add_argument('SOURCES', action='append', default=[], nargs='+')
     argparser.add_argument('-c', action='store_true')
     argparser.add_argument('-g', action='store_true')
     argparser.add_argument('-O', action='append', default=[])
@@ -17,7 +42,7 @@ def arg_parse_compile(args_array):
     argparser.add_argument('-m', action='append', default=[])
     argparser.add_argument('-mcmodel', action='append', default=[])
     argparser.add_argument('-nostdinc', action='store_true')
-    argparser.add_argument('-o', action='append', default=[])
+    argparser.add_argument('-o', dest='TARGETS', action='append', default=[], nargs=1)
 
     argparser.add_argument('-f', action='append', default=[])
     argparser.add_argument('-W', action='append', default=[])
@@ -30,32 +55,17 @@ def arg_parse_compile(args_array):
     return argparser.parse_args(args_array)
 
 
-def nodups(lst):
-    return list(collections.OrderedDict.fromkeys(lst))
-
-
-def path_clean(path, paths_conf, modify_relatives):
-
-    path = os.path.normpath(path)
-
-    if modify_relatives and not path.startswith('/'):
-        path = os.path.join(paths_conf['run'], path)
-    if path.startswith(paths_conf['abs'] + '/'):
-        path = path[len(paths_conf['abs'])+1:]
-    if path.startswith(paths_conf['rel'] + '/'):
-        path = 'BLD/%s' % (path[len(paths_conf['rel'])+1:])
-    return path
-
-
-def arg_clean_compile(args_string, paths_conf):
-
-    args_tokenized = shlex.split(args_string)
-    print(str(args_tokenized))
+def arg_clean_compile(args_tokenized, run_dir, abs_dir, rel_dir):
 
     opts = arg_parse_compile(args_tokenized[1:])
-    arguments_print(opts)
+    #arguments_print(opts)
 
     res = [args_tokenized[0]]
+
+    sources = [ '%s' % (path_clean(v, run_dir, abs_dir, rel_dir, True))
+                for v in nodups(opts.SOURCES[0]) ]
+    targets = [ '%s' % (path_clean(v, run_dir, abs_dir, rel_dir, True))
+                for v in nodups(opts.TARGETS[0]) ]
 
     if opts.c: res += ['-c']
     if opts.g: res += ['-g']
@@ -64,46 +74,143 @@ def arg_clean_compile(args_string, paths_conf):
     res += [ '-m%s' % (v) for v in nodups(opts.m) ]
     res += [ '-mcmodel=%s' % (v) for v in nodups(opts.mcmodel) ]
     if opts.nostdinc: res += ['-nostdinc']
-    res += [ '-o%s' % (path_clean(v, paths_conf, True)) for v in nodups(opts.o) ]
+    res += [ '-o%s' % (v) for v in targets ]
     res += [ '-f%s' % (v) for v in nodups(opts.f) ]
     res += [ '-W%s' % (v) for v in nodups(opts.W) ]
     res += [ '-D%s' % (v) for v in nodups(opts.D) ]
-    res += [ '-I%s' % (path_clean(v, paths_conf, False)) for v in nodups(opts.I) ]
+    res += [ '-I%s' % (path_clean(v, run_dir, abs_dir, rel_dir, False))
+             for v in nodups(opts.I) ]
     #ignore
     # -MMD
     # -MP
     # -MT
-    res += [ '%s' % (path_clean(v, paths_conf, True)) for v in nodups(opts.SOURCES) ]
+    res += sources
 
-    return ' '.join(res)
+    command = ' '.join(res)
 
-
-def arguments_print(opts):
-    print("Arguments")
-    for opt in vars(opts):
-        print("   %s: %s" % (str(opt), str(getattr(opts, opt))))
+    return (command, sources, targets)
 
 
 
+def arg_parse_ar(args_array):
 
-if __name__ == "__main__":
+    argparser = argparse.ArgumentParser('ar')
+    argparser.add_argument('-rcs', action='store_true')
+    argparser.add_argument('TARGETS', action='append', nargs=1)
+    argparser.add_argument('SOURCES', action='append', nargs='+')
 
-    paths_s = { 'abs' : '/projects/genode/genode',
-                'rel' : 'build/linux_s',
-                'run' : '/projects/genode/genode',
-                }
+    return argparser.parse_args(args_array)
 
-    paths_t = { 'abs' : '/projects/genode/genode',
-                'rel' : 'build/linux_t',
-                'run' : '/projects/genode/genode/build/linux_t/var/libcache/base-linux-common',
-                }
-    
-    test_command_s = "/usr/local/genode/tool/19.05/bin/genode-x86-g++ -o build/linux_s/var/libcache/base-linux-common/mutex.o -c -D_GNU_SOURCE -ffunction-sections -fno-strict-aliasing -nostdinc -g -m64 -mcmodel=large -O2 -Wall -Wno-error=implicit-fallthrough -fPIC -Wextra -Weffc++ -Werror -Wsuggest-override -std=gnu++17 -fPIC -I. -Irepos/base-linux/src/include -Irepos/base/src/include -Irepos/base/include/spec/x86 -Irepos/os/include/spec/x86 -Irepos/base/include/spec/x86_64 -Irepos/os/include/spec/x86_64 -Irepos/base/include/spec/64bit -Irepos/base/include -Irepos/os/include -Irepos/demo/include -I/usr/local/genode/tool/19.05/lib/gcc/x86_64-pc-elf/8.3.0/include -Irepos/base-linux/src/lib/syscall -I/usr/include -I/usr/include/x86_64-linux-gnu repos/base/src/lib/base/mutex.cc"
-    test_command_t = "/usr/local/genode/tool/19.05/bin/genode-x86-g++  -D_GNU_SOURCE -ffunction-sections -fno-strict-aliasing -nostdinc -g -m64 -mcmodel=large -O2 -MMD -MP -MT 'mutex.o mutex.d' -Wall -Wno-error=implicit-fallthrough  -fPIC -Wall -Wno-error=implicit-fallthrough -Wextra -Weffc++ -Werror -Wsuggest-override -std=gnu++17 -I. -I/projects/genode/genode/repos/base-linux/src/include -I/projects/genode/genode/repos/base/src/include -I/projects/genode/genode/repos/base/include/spec/x86 -I/projects/genode/genode/repos/os/include/spec/x86 -I/projects/genode/genode/repos/base/include/spec/x86_64 -I/projects/genode/genode/repos/os/include/spec/x86_64 -I/projects/genode/genode/repos/base/include/spec/64bit -I/projects/genode/genode/repos/base/include -I/projects/genode/genode/repos/os/include -I/projects/genode/genode/repos/demo/include -I/usr/local/genode/tool/19.05/bin/../lib/gcc/x86_64-pc-elf/8.3.0/include -I/projects/genode/genode/repos/base-linux/src/lib/syscall/ -I/usr/include -I/usr/include/x86_64-linux-gnu -I/usr/include/x86_64-linux-gnu -c /projects/genode/genode/repos/base/src/lib/base/mutex.cc -o mutex.o"
 
-    clean_s = arg_clean_compile(test_command_s, paths_s)
-    clean_t = arg_clean_compile(test_command_t, paths_t)
-    
-    print('%s' % (clean_s))
-    print('%s' % (clean_t))
-    print("Result: %s" % ("OK" if clean_s == clean_t else "ERROR"))
+def arg_clean_ar(args_tokenized, run_dir, abs_dir, rel_dir):
+
+    opts = arg_parse_ar(args_tokenized[1:])
+    #arguments_print(opts)
+
+    res = [args_tokenized[0]]
+
+    sources = [ '%s' % (path_clean(v, run_dir, abs_dir, rel_dir, True))
+                for v in nodups(opts.SOURCES[0]) ]
+    targets = [ '%s' % (path_clean(v, run_dir, abs_dir, rel_dir, True))
+                for v in nodups(opts.TARGETS[0]) ]
+
+    if opts.rcs: res += ['-rcs']
+    res += targets
+    res += sources
+
+    command = ' '.join(res)
+
+    return (command, sources, targets)
+
+
+
+def arg_parse_ld(args_array):
+
+    argparser = argparse.ArgumentParser('ld')
+    argparser.add_argument('SOURCES', action='append', default=[], nargs='+')
+    argparser.add_argument('-m', action='append', default=[])
+    argparser.add_argument('-u', action='append', default=[])
+    argparser.add_argument('-r', action='store_true')
+    argparser.add_argument('-o', dest='TARGETS', action='append', default=[], nargs=1)
+
+    return argparser.parse_args(args_array)
+
+
+def arg_clean_ld(args_tokenized, run_dir, abs_dir, rel_dir):
+
+    opts = arg_parse_ld(args_tokenized[1:])
+    #arguments_print(opts)
+
+    res = [args_tokenized[0]]
+
+    sources = [ '%s' % (path_clean(v, run_dir, abs_dir, rel_dir, True))
+                for v in nodups(opts.SOURCES[0]) ]
+    targets = [ '%s' % (path_clean(v, run_dir, abs_dir, rel_dir, True))
+                for v in nodups(opts.TARGETS[0]) ]
+
+    res += [ '-m%s' % (v) for v in nodups(opts.m) ]
+    if opts.r: res += ['-r']
+    res += [ '-u %s' % (v) for v in nodups(opts.u) ]
+
+    res += sources
+    res += [ '-o%s' % (v) for v in targets ]
+
+    command = ' '.join(res)
+
+    return (command, sources, targets)
+
+
+
+def arg_parse_objcopy(args_array):
+
+    argparser = argparse.ArgumentParser('gcc')
+    argparser.add_argument('--localize-symbol', action='append', default=[])
+    argparser.add_argument('--redefine-sym', action='append', default=[])
+    argparser.add_argument('SOURCES', action='append', default=[], nargs=1)
+    argparser.add_argument('TARGETS', action='append', default=[], nargs=1)
+
+    return argparser.parse_args(args_array)
+
+
+def arg_clean_objcopy(args_tokenized, run_dir, abs_dir, rel_dir):
+
+    opts = arg_parse_objcopy(args_tokenized[1:])
+    #arguments_print(opts)
+
+    res = [args_tokenized[0]]
+
+    sources = [ '%s' % (path_clean(v, run_dir, abs_dir, rel_dir, True))
+                for v in nodups(opts.SOURCES[0]) ]
+    targets = [ '%s' % (path_clean(v, run_dir, abs_dir, rel_dir, True))
+                for v in nodups(opts.TARGETS[0]) ]
+
+    res += [ '--localize-symbol=%s' % (v) for v in nodups(opts.localize_symbol) ]
+    res += [ '--redefine-sym %s' % (v) for v in nodups(opts.redefine_sym) ]
+
+    res += sources
+    res += targets
+
+    command = ' '.join(res)
+
+    return (command, sources, targets)
+
+
+
+def arg_clean(args_string, run_dir, abs_dir, rel_dir):
+
+    args_tokenized = shlex.split(args_string)
+    #print(str(args_tokenized))
+
+    prg = args_tokenized[0]
+
+    if (prg.endswith('gcc') or prg.endswith('g++')):
+        return arg_clean_compile(args_tokenized, run_dir, abs_dir, rel_dir)
+    elif (prg.endswith('ar')):
+        return arg_clean_ar(args_tokenized, run_dir, abs_dir, rel_dir)
+    elif (prg.endswith('ld')):
+        return arg_clean_ld(args_tokenized, run_dir, abs_dir, rel_dir)
+    elif (prg.endswith('objcopy')):
+        return arg_clean_objcopy(args_tokenized, run_dir, abs_dir, rel_dir)
+
+    assert "unspported prog: %s" % prg == None
+
