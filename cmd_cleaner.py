@@ -12,7 +12,8 @@ def cmd_clean(cmd_lines, run_dir, abs_dir, rel_dir):
     #print('cmd: %s' % orig)
 
     if (orig.startswith('checking library dependencies') or
-        orig.startswith('make ')):
+        orig.startswith('make ') or
+        orig.startswith('scons:')):
         return (None, None, None, None)
 
     (cmd, src, tgt) = arg_cleaner.arg_clean(orig, run_dir, abs_dir, rel_dir)
