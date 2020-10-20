@@ -8,7 +8,7 @@ def mkfun_select_from_repositories(mkenv, args):
     print('arg: %s' % (str(file_pattern)))
     for repository in repositories:
         checked_file = os.path.join(repository, file_pattern)
-        if os.path.isfile(checked_file):
+        if os.path.exists(checked_file):
             print('return: %s' % (str([checked_file])))
             return [checked_file]
     print('return: %s' % (str([])))
