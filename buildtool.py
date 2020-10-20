@@ -145,6 +145,7 @@ def do_mk_build(build_name, opts, stamp_dt, log_file):
                         '%s' % (board),
                         'LIB=%s' % opts.lib[0] if len(opts.lib) > 0 else '',
                         '2>&1 | tee %s' % (log_file)])
+    print('Executing: %s' % command)
     output = buildtool_utils.command_execute(command)
 
 
@@ -165,6 +166,7 @@ def do_sc_build(build_name, opts, stamp_dt, log_file):
                         '%s' % (board),
                         'LIB=%s' % opts.lib[0] if len(opts.lib) > 0 else '',
                         '2>&1 | tee %s' % (log_file)])
+    print('Executing: %s' % command)
     output = buildtool_utils.command_execute(command)
 
 
