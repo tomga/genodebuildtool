@@ -25,14 +25,14 @@ def store_build_info(build_db, build_info, build_name, build_tool, stamp_dt, arc
             args = (output, None, None)
             c.execute('''REPLACE INTO build_targets (path, type, extension)
                          VALUES (?, ?, ?)''', args)
-            print(str(args))
+            #print(str(args))
 
             args = (build_run_id, output_num, command_text, output, canonical_text)
             c.execute('''REPLACE INTO run_commands (run_id, command_num, command_text,
                                                     target_path, canonical_text)
                          VALUES (?, ?, ?, ?, ?)''', args)
             args = (build_run_id, output)
-            print(str(args))
+            #print(str(args))
             c.execute('SELECT id FROM run_commands WHERE run_id = ? and target_path = ?', args)
             result = c.fetchone()
             run_command_id, = result
@@ -40,7 +40,7 @@ def store_build_info(build_db, build_info, build_name, build_tool, stamp_dt, arc
             args = (output, build_name, run_command_id)
             c.execute('''REPLACE INTO last_commands (target_path, builddir_path, command_id)
                          VALUES (?, ?, ?)''', args)
-            print(str(args))
+            #print(str(args))
 
     build_info.process(store_run_command, os.getcwd(), abs_dir, rel_dir)
 
