@@ -310,17 +310,21 @@ class GenodeMkLib(GenodeLib):
 
 
     def prepare_s_env(self):
-        self.env['AS'] = self.build_env.var_value('AS')
+        #self.env['ASCOM'] = '$AS $ASFLAGS -o $TARGET $SOURCES'
+        self.env['ASCOM'] = ('$CC $ASFLAGS $CPPFLAGS $_CPPDEFFLAGS $_CPPINCFLAGS'
+                             + ' -c -o $TARGET $SOURCES')
 
-        #cxx_def = self.build_env.var_values('CXX_DEF')
-        #self.env.AppendUnique(CXXFLAGS=cxx_def)
-        ##print('CXXFLAGS: %s' % (self.env['CXXFLAGS']))
-        #
-        #cc_opt_dep_to_remove = self.build_env.var_value('CC_OPT_DEP')
-        #cc_cxx_opt = self.build_env.var_value('CC_CXX_OPT')
-        #cc_cxx_opt = cc_cxx_opt.replace(cc_opt_dep_to_remove, '')
-        #self.env.AppendUnique(CXXFLAGS=cc_cxx_opt.split())
-        ##print('CXXFLAGS: %s' % (self.env['CXXFLAGS']))
+        self.env.AppendUnique(ASPPFLAGS=['-D__ASSEMBLY__'])
+
+        cc_def = self.build_env.var_values('CC_DEF')
+        self.env.AppendUnique(ASFLAGS=cc_def)
+        #print('ASFLAGS: %s' % (self.env['ASFLAGS']))
+
+        cc_opt_dep_to_remove = self.build_env.var_value('CC_OPT_DEP')
+        cc_c_opt = self.build_env.var_value('CC_C_OPT')
+        cc_c_opt = cc_c_opt.replace(cc_opt_dep_to_remove, '')
+        self.env.AppendUnique(ASFLAGS=cc_c_opt.split())
+        #print('ASFLAGS: %s' % (self.env['ASFLAGS']))
 
 
     def prepare_ld_env(self):
