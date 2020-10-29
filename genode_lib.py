@@ -156,18 +156,37 @@ class GenodeMkLib(GenodeLib):
         #pprint.pprint(self.build_env.debug_struct('pretty'), width=200)
 
 
+        repositories = self.env['REPOSITORIES']
+        specs = self.env['SPECS']
+        print("REPOSITORIES: %s" % (str(repositories)))
+        print("SPECS: %s" % (str(specs)))
+
         ### handle shared library settings
 
-        symbols_file = self.build_env.var_value('SYMBOLS')
-        shared_lib = len(symbols_file) > 0
+        ## find <lib> symbols file with repo
+        symbols_file = None
+        symbols_repo = None
+        for repository in repositories:
+            for spec in specs:
+                test_symbols_file = 'lib/symbols/spec/%s/%s' % (spec, self.lib_name)
+                if tools.is_repo_file(test_symbols_file, repository):
+                    symbols_file = tools.file_path(test_symbols_file, repository)
+                    symbols_repo = repository
+                    break
+            if symbols_file is not None:
+                break
 
-        if shared_lib:
-            self.build_env.var_set('SHARED_LIB', 'yes')
+            test_symbols_file = 'lib/symbols/%s' % (self.lib_name)
+            if tools.is_repo_file(test_symbols_file, repository):
+                symbols_file = tools.file_path(test_symbols_file, repository)
+                symbols_repo = repository
+                break
 
-            ### TODO - symbols link file
-            # $(LIB).symbols:
-            #    $(VERBOSE)ln -sf $(SYMBOLS) $@
-            ### handle <lib>.symbols.s
+        shared_lib = (symbols_file is not None
+                      or self.build_env.var_value('SHARED_LIB') == 'yes')
+
+        #print("SYMBOLS_FILE: %s" % (str(symbols_file)))
+        #print("SHARED_LIB: %s" % (str(shared_lib)))
 
 
         ### handle libgcc
@@ -230,15 +249,44 @@ class GenodeMkLib(GenodeLib):
         # but here object files
         objects = list(sorted(objects, key=lambda x: str(x)))
 
+        lib_targets = []
+
+        if symbols_file is not None:
+
+            ### handle <lib>.abi.so generation
+
+            abi_so = '%s.abi.so' % (self.lib_name)
+            abi_soname = '%s.lib.so' % (self.lib_name)
+
+
+            symbols_file = self.sconsify_path(os.path.join(symbols_repo, symbols_file))
+            #print('SYMBOLS_FILE: %s' % (symbols_file))
+            symbols_lnk = '%s.symbols' % (self.lib_name)
+            #print('SYMBOLS_LNK: %s' % (symbols_lnk))
+
+            # TODO: test correctness of changes of this link
+            symbols_lnk_tgt = self.env.SymLink(source = symbols_file,
+                                               target = self.target_path(symbols_lnk))
+
+            ### handle <lib>.symbols.s
+            symbols_asm = '%s.symbols.s' % (self.lib_name)
+            symbols_asm_tgt = self.env.Symbols(source = symbols_lnk_tgt,
+                                               target = self.target_path(symbols_asm))
+
+            ### handle <lib>.symbols.o
+            # assumes prepare_s_env() was already executed
+            symbols_obj_tgt = self.generic_compile(map(str, symbols_asm_tgt))
+
+            lib_targets.append(symbols_obj_tgt)
+
+
         lib_so = None
-        abi_so = None
         install_so = None
         debug_so = None
         lib_checked = None
         lib_a = None
 
         if shared_lib:
-            abi_so = '%s.abi.so' % (self.lib_name)
             if len(objects) + len(dep_libs) == 0:
                 lib_so = "%s.lib.so" % (self.lib_name)
                 install_so = "%s/%s" % (self.build_env.var_value('INSTALL_DIR'), lib_so)
@@ -264,8 +312,10 @@ class GenodeMkLib(GenodeLib):
         # TODO: ENTRY_POINT ?= 0x0
 
         if lib_a is not None:
-            return self.env.StaticLibrary(target=self.target_path(lib_a),
-                                          source=objects)
+            lib_targets.append(self.env.StaticLibrary(target=self.target_path(lib_a),
+                                                      source=objects))
+
+        return self.env.Alias(self.lib_name, lib_targets)
 
 
     def get_sources(self, files):

@@ -19,5 +19,8 @@ def sconstruct():
     env['BUILDTOOL_DIR'] = buildtool_dir
     env['OVERLAYS_DIR'] = os.path.join(buildtool_dir, 'genode')
 
+    env.Tool('genode_symlink', toolpath = [os.path.join(env['BUILDTOOL_DIR'], 'tools')])
+    env.Tool('genode_symbols', toolpath = [os.path.join(env['BUILDTOOL_DIR'], 'tools')])
+
     SConscript('SConscript', exports = 'env')
 
