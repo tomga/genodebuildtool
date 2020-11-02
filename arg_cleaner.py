@@ -149,8 +149,7 @@ def arg_parse_ld(args_array):
 def arg_clean_ld(args_tokenized, run_dir, abs_dir, rel_dir):
 
     opts = arg_parse_ld(args_tokenized[1:])
-    print("ARGS: ld")
-    arguments_print(opts)
+    #arguments_print(opts)
 
     res = [args_tokenized[0]]
 

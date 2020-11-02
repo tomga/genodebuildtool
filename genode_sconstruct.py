@@ -21,6 +21,7 @@ def sconstruct():
 
     env.Tool('genode_symlink', toolpath = [os.path.join(env['BUILDTOOL_DIR'], 'tools')])
     env.Tool('genode_symbols', toolpath = [os.path.join(env['BUILDTOOL_DIR'], 'tools')])
+    env.Tool('genode_abi_so', toolpath = [os.path.join(env['BUILDTOOL_DIR'], 'tools')])
 
     SConscript('SConscript', exports = 'env')
 

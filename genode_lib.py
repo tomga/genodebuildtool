@@ -256,8 +256,6 @@ class GenodeMkLib(GenodeLib):
             ### handle <lib>.abi.so generation
 
             abi_so = '%s.abi.so' % (self.lib_name)
-            abi_soname = '%s.lib.so' % (self.lib_name)
-
 
             symbols_file = self.sconsify_path(os.path.join(symbols_repo, symbols_file))
             #print('SYMBOLS_FILE: %s' % (symbols_file))
@@ -277,7 +275,13 @@ class GenodeMkLib(GenodeLib):
             # assumes prepare_s_env() was already executed
             symbols_obj_tgt = self.generic_compile(map(str, symbols_asm_tgt))
 
-            lib_targets.append(symbols_obj_tgt)
+            ### handle <lib>.abi.so
+            for v in ['LD_OPT', 'LIB_SO_DEPS', 'LD_SCRIPT_SO']:
+                self.env[v] = self.build_env.var_value(v)
+            abi_so_tgt = self.env.LibAbiSo(source = symbols_obj_tgt,
+                                           target = self.target_path(abi_so))
+
+            lib_targets.append(abi_so_tgt)
 
 
         lib_so = None
