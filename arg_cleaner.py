@@ -97,7 +97,7 @@ def arg_parse_ar(args_array):
     argparser = argparse.ArgumentParser('ar')
     argparser.add_argument('-rcs', action='store_true')
     argparser.add_argument('TARGETS', action='append', nargs=1)
-    argparser.add_argument('SOURCES', action='append', nargs='+')
+    argparser.add_argument('SOURCES', action='append', nargs='*')
 
     return argparser.parse_args(args_array)
 
