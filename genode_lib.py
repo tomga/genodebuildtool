@@ -139,14 +139,21 @@ class GenodeMkLib(GenodeLib):
         #pprint.pprint(self.build_env.debug_struct('pretty'), width=200)
 
 
-        ### handle include import-<lib>.mk files
+        ### register library dependencies
         dep_libs = self.build_env.var_values('LIBS')
+        if len(dep_libs) > 0:
+            dep_lib_targets = self.env['fn_require_libs'](dep_libs)
+
+
+        ### handle include import-<lib>.mk files
         for dep_lib in dep_libs:
             dep_lib_import_mk_file, dep_lib_import_mk_repo = tools.find_first(self.env['REPOSITORIES'], 'lib/import/import-%s.mk' % (dep_lib))
             if dep_lib_import_mk_file is not None:
                 print("processing import-%s file: %s" % (dep_lib, dep_lib_import_mk_file))
                 dep_lib_import_mk = mkcache.get_parsed_mk(dep_lib_import_mk_file)
                 dep_lib_import_mk.process(self.build_env)
+
+
 
 
         ### handle include global.mk
@@ -319,7 +326,8 @@ class GenodeMkLib(GenodeLib):
             lib_targets.append(self.env.StaticLibrary(target=self.target_path(lib_a),
                                                       source=objects))
 
-        return self.env.Alias(self.lib_name, lib_targets)
+
+        return self.env.Alias(self.env['fn_lib_alias_name'](self.lib_name), lib_targets)
 
 
     def get_sources(self, files):

@@ -163,9 +163,31 @@ def process_builddir(build_dir, env):
     build_env.var_set('LIBGCC_INC_DIR', '%s/include' % (os.path.dirname(output)))
     #pprint.pprint(build_env.debug_struct('pretty'), width=200)
 
-    libs = []
 
-    libs.append(process_lib(env['LIB'], env, build_env))
+
+    def lib_alias_name(lib_name):
+        return '%s:%s' % (lib_name, build_dir)
+    env['fn_lib_alias_name'] = lib_alias_name
+
+    required_libs = []
+    known_libs = set([])
+    def require_libs(dep_libs):
+        dep_aliases = []
+        for dep in dep_libs:
+            if dep not in known_libs:
+                known_libs.add(dep)
+                required_libs.append(dep)
+            dep_aliases.append(env.Alias(lib_alias_name(dep)))
+        return dep_aliases
+    env['fn_require_libs'] = require_libs
+
+
+
+    require_libs([env['LIB']])
+
+    libs = []
+    while len(libs) < len(required_libs):
+        libs.append(process_lib(required_libs[len(libs)], env, build_env))
 
     #libs.append(process_lib('cxx', env, build_env))
     #libs.append(process_lib('syscall-linux', env, build_env))
