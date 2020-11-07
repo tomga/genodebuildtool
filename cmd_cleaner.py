@@ -3,23 +3,22 @@ import arg_cleaner
 
 
 
-def cmd_clean(cmd_lines, run_dir, abs_dir, rel_dir):
+def commands_clean(cmd_lines, run_dir, abs_dir, rel_dir):
+    result = []
+    for orig in cmd_lines:
+        if (orig.startswith('rm ') or
+            orig.startswith('checking library dependencies') or
+            orig.startswith('make ') or
+            orig.startswith('scons:')):
+            break
 
-    orig = cmd_lines[0] if not cmd_lines[0].startswith('rm ') else cmd_lines[1]
-    src = None
-    tgt = None
+        #print('cmd: %s' % orig)
 
-    #print('cmd: %s' % orig)
+        (cmd, src, tgt) = arg_cleaner.arg_clean(orig, run_dir, abs_dir, rel_dir)
 
-    if (orig.startswith('checking library dependencies') or
-        orig.startswith('make ') or
-        orig.startswith('scons:')):
-        return (None, None, None, None)
+        result += [(cmd, src, tgt, orig)]
 
-    (cmd, src, tgt) = arg_cleaner.arg_clean(orig, run_dir, abs_dir, rel_dir)
-
-    return (cmd, src, tgt, orig)
-
+    return result
 
 
 if __name__ == "__main__":

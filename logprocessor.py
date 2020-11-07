@@ -24,13 +24,11 @@ class SimpleBuildCommand(BuildCommand):
     def process(self, save_fun, run_dir, abs_dir, rel_dir):
 
         #print("logprocessor::process: %s" % (str(self.debug_struct())))
-        (cmd, src, tgt, orig) = cmd_cleaner.cmd_clean(self.cmd_lines,
-                                                      run_dir, abs_dir, rel_dir)
+        clean_commands = cmd_cleaner.commands_clean(self.cmd_lines,
+                                                    run_dir, abs_dir, rel_dir)
 
-        if cmd is None:
-            return
-
-        save_fun(tgt, src, orig, cmd)
+        for cmd, src, tgt, orig in clean_commands:
+            save_fun(tgt, src, orig, cmd)
 
 
 
