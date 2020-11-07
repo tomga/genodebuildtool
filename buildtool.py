@@ -44,6 +44,8 @@ def arguments_parse():
     argparser.add_argument('--logs', default='../logs',
                            help='target run kernel')
 
+    argparser.add_argument('--log', nargs='+', default=[],
+                           help='log files to process')
     argparser.add_argument('--test-database', action="store_true")
     argparser.add_argument('--test-mklogparser', action="store_true")
     argparser.add_argument('--test-sclogparser', action="store_true")
@@ -64,7 +66,13 @@ def database_connect(opts):
     """Returns verified connnection to build database.
     """
 
-    build_db = sqlite3.connect(opts.database)
+    db_file = opts.database
+    if (opts.test_database or
+        opts.test_mklogparser or opts.test_sclogparser or
+        opts.test_mkdbstore or opts.test_scdbstore):
+        db_file = os.path.join(os.path.dirname(opts.database), 'testdb.db')
+
+    build_db = sqlite3.connect(db_file)
 
     check_result = schema.db_check_schema(build_db, schema.CURRENT_SCHEMA_VERSION)
     print('Check schema result: %s' % ('OK' if check_result else 'EMPTY'))
@@ -138,13 +146,14 @@ def do_mk_build(build_name, opts, stamp_dt, log_file):
     kernel = 'KERNEL=%s' % (opts.kernel) if opts.kernel is not None else ''
     board = 'BOARD=%s' % (opts.board) if opts.board is not None else ''
 
-    command = ' '.join(['LANG=C',
-                        'make VERBOSE= VERBOSE_MK= VERBOSE_DIR=',
-                        '-C build/%s' % (build_name),
-                        '%s' % (kernel),
-                        '%s' % (board),
-                        'LIB=%s' % opts.lib[0] if len(opts.lib) > 0 else '',
-                        '2>&1 | tee %s' % (log_file)])
+    command = ' '.join([p for p in ['LANG=C',
+                                    'make VERBOSE= VERBOSE_MK= VERBOSE_DIR=',
+                                    '-C build/%s' % (build_name),
+                                    '%s' % (kernel),
+                                    '%s' % (board),
+                                    'LIB=%s' % opts.lib[0] if len(opts.lib) > 0 else '',
+                                    '%s' % ' '.join(opts.prog),
+                                    '2>&1 | tee %s' % (log_file)] if p != ''])
     print('Executing: %s' % command)
     output = buildtool_utils.command_execute(command)
 
@@ -294,31 +303,38 @@ if opts.test_database:
     quit()
 
 if opts.test_mklogparser:
-    for log_file in opts.test_mklogparser:
+    for log_file in opts.log:
         parse_mk_log(log_file)
     quit()
 
 if opts.test_sclogparser:
-    for log_file in opts.test_sclogparser:
+    for log_file in opts.log:
         parse_sc_log(log_file)
     quit()
 
 if opts.test_mkdbstore:
-    for log_file in opts.test_mklogparser:
+    build = opts.build[0]
+    stamp_dt = datetime.datetime.now()
+    abs_dir = os.getcwd()
+    rel_dir = 'build/%s' % (build)
+    for log_file in opts.log:
         build_info = parse_mk_log(log_file)
         buildinfo_storer.store_build_info(build_db, build_info, build, 'make',
-                                          stamp_dt, arch, log_file, None)
+                                          stamp_dt, 'test', log_file, None,
+                                          abs_dir, rel_dir)
+    quit()
+
+if opts.test_scdbstore:
+    build = opts.build[0]
+    stamp_dt = datetime.datetime.now()
+    abs_dir = os.getcwd()
+    rel_dir = 'build/%s' % (build)
+    for log_file in opts.log:
+        build_info = parse_sc_log(log_file)
+        buildinfo_storer.store_build_info(build_db, build_info, build, 'make',
+                                          stamp_dt, 'test', log_file, None,
+                                          abs_dir, rel_dir)
     quit()
 
 
 do_builds(opts, build_db)
-
-try:
-    #test_mkparser()
-    pass
-except parglare.ParseError as parseError:
-    print(str(parseError))
-    print(str(parseError.symbols_before))
-    print(str(parseError.symbols_before[0]))
-
-
