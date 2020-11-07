@@ -39,7 +39,7 @@ def arguments_print(opts):
 
 def arg_parse_compiler(args_array):
 
-    argparser = argparse.ArgumentParser('gcc')
+    argparser = argparse.ArgumentParser('gcc/g++')
     argparser.add_argument('SOURCES', action='append', default=[], nargs='+')
     argparser.add_argument('-c', action='store_true')
     argparser.add_argument('-g', action='store_true')
@@ -280,7 +280,7 @@ def arg_clean_ld(args_tokenized, run_dir, abs_dir, rel_dir):
 
 def arg_parse_objcopy(args_array):
 
-    argparser = argparse.ArgumentParser('gcc')
+    argparser = argparse.ArgumentParser('objcopy')
     argparser.add_argument('--localize-symbol', action='append', default=[])
     argparser.add_argument('--redefine-sym', action='append', default=[])
     argparser.add_argument('SOURCES', action='append', default=[], nargs=1)
@@ -313,9 +313,39 @@ def arg_clean_objcopy(args_tokenized, run_dir, abs_dir, rel_dir):
 
 
 
+def arg_parse_strip(args_array):
+
+    argparser = argparse.ArgumentParser('strip')
+    argparser.add_argument('SOURCES', action='append', default=[], nargs=1)
+    argparser.add_argument('-o', dest='TARGETS', action='append', default=[], nargs=1)
+
+    return argparser.parse_args(args_array)
+
+
+def arg_clean_strip(args_tokenized, run_dir, abs_dir, rel_dir):
+
+    opts = arg_parse_strip(args_tokenized[1:])
+    #arguments_print(opts)
+
+    res = [args_tokenized[0]]
+
+    sources = [ '%s' % (path_clean(v, run_dir, abs_dir, rel_dir, True))
+                for v in nodups(opts.SOURCES[0]) ]
+    targets = [ '%s' % (path_clean(v, run_dir, abs_dir, rel_dir, True))
+                for v in nodups(opts.TARGETS[0]) ]
+
+    res += [ '-o %s' % (v) for v in targets ]
+    res += sources
+
+    command = ' '.join(res)
+
+    return (command, sources, targets)
+
+
+
 def arg_parse_sed(args_array):
 
-    argparser = argparse.ArgumentParser('gcc')
+    argparser = argparse.ArgumentParser('sed')
     argparser.add_argument('--localize-symbol', action='append', default=[])
     argparser.add_argument('--redefine-sym', action='append', default=[])
     argparser.add_argument('SOURCES', action='append', default=[], nargs=1)
@@ -387,6 +417,8 @@ def arg_clean(args_string, run_dir, abs_dir, rel_dir):
         return arg_clean_ld(args_tokenized, run_dir, abs_dir, rel_dir)
     elif (prg.endswith('objcopy')):
         return arg_clean_objcopy(args_tokenized, run_dir, abs_dir, rel_dir)
+    elif (prg.endswith('strip')):
+        return arg_clean_strip(args_tokenized, run_dir, abs_dir, rel_dir)
     elif (prg.endswith('sed')):
         return arg_clean_sed(args_tokenized, run_dir, abs_dir, rel_dir)
     elif (prg.endswith('ln')):
