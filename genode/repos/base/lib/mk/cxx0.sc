@@ -7,7 +7,7 @@ class GenodeCxxMkLib(genode_lib.GenodeMkLib):
         print("build_o_objects")
         cxx_src = self.build_env.var_values('CXX_SRC')
         cxx_src_files = self.get_sources(cxx_src)
-        cxx_internal_objs = self.compile_cc_sources(cxx_src_files)
+        cxx_internal_objs = self.build_helper.compile_cc_sources(self.env, cxx_src_files)
         print("build_o_objects: %s" % (str(cxx_internal_objs)))
 
         target_name = self.build_env.var_value('SRC_O')

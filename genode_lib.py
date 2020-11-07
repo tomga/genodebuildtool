@@ -9,17 +9,23 @@ import pprint
 import mkevaluator
 import mkparser
 
+import genode_build_helper
+
 import genode_tools as tools
 
 
 class GenodeLib:
 
-    def __init__(self, lib_name, env):
+    def __init__(self, lib_name, env, build_helper):
         self.lib_name = lib_name
         self.env = env.Clone()
 
         # for use in target_path
         self.relative_lib_cache_dir = self.sconsify_path(self.env['LIB_CACHE_DIR'])
+
+        self.build_helper = build_helper
+
+        self.env['fn_target_path'] = lambda tgt: self.target_path(tgt)
 
 
     def sconsify_path(self, path):
@@ -30,39 +36,19 @@ class GenodeLib:
         return '#%s/%s/%s' % (self.relative_lib_cache_dir, self.lib_name, target)
 
 
-    def prepare_c_env(self):
-        # setup CC, CFLAGS
-        raise Exception("prepare_c_env should be overridden")
-
-
-    def prepare_cc_env(self):
-        # setup CXX, CXXFLAGS
-        raise Exception("prepare_cc_env should be overridden")
-
-
-    def prepare_s_env(self):
-        # setup AS, ASFLAGS
-        raise Exception("prepare_s_env should be overridden")
-
-
-    def prepare_ld_env(self):
-        # setup LD*
-        raise Exception("prepare_ld_env should be overridden")
-
-
     def build_c_objects(self):
         src_files = self.get_c_sources()
-        return self.compile_c_sources(src_files)
+        return self.build_helper.compile_c_sources(self.env, src_files)
 
 
     def build_cc_objects(self):
         src_files = self.get_cc_sources()
-        return self.compile_cc_sources(src_files)
+        return self.build_helper.compile_cc_sources(self.env, src_files)
 
 
     def build_s_objects(self):
         src_files = self.get_s_sources()
-        return self.compile_s_sources(src_files)
+        return self.build_helper.compile_s_sources(self.env, src_files)
 
 
     def build_o_objects(self):
@@ -70,40 +56,18 @@ class GenodeLib:
         return []
 
 
-    def compile_c_sources(self, src_files):
-        return self.generic_compile(src_files)
-
-
-    def compile_cc_sources(self, src_files):
-        return self.generic_compile(src_files)
-
-
-    def compile_s_sources(self, src_files):
-        return self.generic_compile(src_files)
-
-
-    def generic_compile(self, src_files):
-        objs = []
-        for src_file in src_files:
-            tgt_file = os.path.basename(src_file)
-            tgt_file = '%s.o' % (os.path.splitext(tgt_file)[0])
-            print("src_file: %s, tgt_file: %s" % (src_file, tgt_file))
-            obj = self.env.SharedObject(source = src_file,
-                                        target = self.target_path(tgt_file))
-            objs += obj
-        return objs
-
 
 class GenodeMkLib(GenodeLib):
     def __init__(self, lib_name, env,
                  lib_mk_file, lib_mk_repo,
                  build_env):
-        super().__init__(lib_name, env)
-        self.lib_mk_file = lib_mk_file
-        self.lib_mk_repo = lib_mk_repo
         self.build_env = mkevaluator.MkEnv(mk_cache=build_env.mk_cache,
                                            parent_env=build_env)
+        self.lib_mk_file = lib_mk_file
+        self.lib_mk_repo = lib_mk_repo
         self.build_env.var_set('REP_DIR', self.lib_mk_repo)
+
+        super().__init__(lib_name, env, genode_build_helper.GenodeMkBuildHelper(self.build_env))
 
 
     def process(self):
@@ -225,10 +189,10 @@ class GenodeMkLib(GenodeLib):
         self.env.AppendUnique(CPPPATH=all_inc_dir)
         print('CPPPATH: %s' % (self.env['CPPPATH']))
 
-        self.prepare_c_env()
-        self.prepare_cc_env()
-        self.prepare_s_env()
-        self.prepare_ld_env()
+        self.build_helper.prepare_c_env(self.env)
+        self.build_helper.prepare_cc_env(self.env)
+        self.build_helper.prepare_s_env(self.env)
+        self.build_helper.prepare_ld_env(self.env)
 
         objects = []
 
@@ -280,7 +244,7 @@ class GenodeMkLib(GenodeLib):
 
             ### handle <lib>.symbols.o
             # assumes prepare_s_env() was already executed
-            symbols_obj_tgt = self.generic_compile(map(str, symbols_asm_tgt))
+            symbols_obj_tgt = self.build_helper.generic_compile(self.env, map(str, symbols_asm_tgt))
 
             ### handle <lib>.abi.so
             for v in ['LD_OPT', 'LIB_SO_DEPS', 'LD_SCRIPT_SO']:
@@ -341,69 +305,6 @@ class GenodeMkLib(GenodeLib):
             src_file = self.sconsify_path(src_file)
             src_files.append(src_file)
         return src_files
-
-
-    def prepare_c_env(self):
-        self.env['CC'] = self.build_env.var_value('CC')
-
-        cc_def = self.build_env.var_values('CC_DEF')
-        self.env.AppendUnique(CFLAGS=cc_def)
-        #print('CFLAGS: %s' % (self.env['CFLAGS']))
-
-        cc_opt_dep_to_remove = self.build_env.var_value('CC_OPT_DEP')
-        cc_c_opt = self.build_env.var_value('CC_C_OPT')
-        cc_c_opt = cc_c_opt.replace(cc_opt_dep_to_remove, '')
-        self.env.AppendUnique(CFLAGS=cc_c_opt.split())
-        #print('CFLAGS: %s' % (self.env['CFLAGS']))
-
-
-    def prepare_cc_env(self):
-        self.env['CXX'] = self.build_env.var_value('CXX')
-
-        cxx_def = self.build_env.var_values('CXX_DEF')
-        self.env.AppendUnique(CXXFLAGS=cxx_def)
-        #print('CXXFLAGS: %s' % (self.env['CXXFLAGS']))
-
-        cc_opt_dep_to_remove = self.build_env.var_value('CC_OPT_DEP')
-        cc_cxx_opt = self.build_env.var_value('CC_CXX_OPT')
-        cc_cxx_opt = cc_cxx_opt.replace(cc_opt_dep_to_remove, '')
-        self.env.AppendUnique(CXXFLAGS=cc_cxx_opt.split())
-        #print('CXXFLAGS: %s' % (self.env['CXXFLAGS']))
-
-
-    def prepare_s_env(self):
-        #self.env['ASCOM'] = '$AS $ASFLAGS -o $TARGET $SOURCES'
-        self.env['ASCOM'] = ('$CC $ASFLAGS $CPPFLAGS $_CPPDEFFLAGS $_CPPINCFLAGS'
-                             + ' -c -o $TARGET $SOURCES')
-
-        self.env.AppendUnique(ASPPFLAGS=['-D__ASSEMBLY__'])
-
-        cc_def = self.build_env.var_values('CC_DEF')
-        self.env.AppendUnique(ASFLAGS=cc_def)
-        #print('ASFLAGS: %s' % (self.env['ASFLAGS']))
-
-        cc_opt_dep_to_remove = self.build_env.var_value('CC_OPT_DEP')
-        cc_c_opt = self.build_env.var_value('CC_C_OPT')
-        cc_c_opt = cc_c_opt.replace(cc_opt_dep_to_remove, '')
-        self.env.AppendUnique(ASFLAGS=cc_c_opt.split())
-        #print('ASFLAGS: %s' % (self.env['ASFLAGS']))
-
-
-    def prepare_ld_env(self):
-        self.env['LD'] = self.build_env.var_value('LD')
-        self.env['NM'] = self.build_env.var_value('NM')
-        self.env['OBJCOPY'] = self.build_env.var_value('OBJCOPY')
-        self.env['RANLIB'] = self.build_env.var_value('RANLIB')
-        self.env['AR'] = self.build_env.var_value('AR')
-        self.env['LIBPREFIX'] = ''
-        # NOTICE: reproducible builds require D - so it would be -rcsD
-        self.env['ARFLAGS'] = '-rcs'
-        # NOTICE: rm is not needed because scons unlinks target before
-        #         build (at least for static libraries)
-        # self.env['ARCOM'] = 'rm -f $TARGET\n$AR $ARFLAGS $TARGET $SOURCES'
-        # NOTICE: following disables executing ranlib by scons
-        self.env['RANLIBCOM'] = ""
-        self.env['RANLIBCOMSTR'] = ""
 
 
     def get_c_sources(self):
