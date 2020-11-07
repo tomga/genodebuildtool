@@ -6,11 +6,13 @@ import arg_cleaner
 def commands_clean(cmd_lines, run_dir, abs_dir, rel_dir):
     result = []
     for orig in cmd_lines:
+        orig = orig.strip()
         if (orig.startswith('rm ') or
             orig.startswith('checking library dependencies') or
             orig.startswith('make ') or
+            orig.startswith('mkdir ') or
             orig.startswith('scons:')):
-            break
+            continue
 
         #print('cmd: %s' % orig)
 
