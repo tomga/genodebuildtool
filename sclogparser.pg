@@ -1,6 +1,6 @@
 
 FullLog: SCONS_INIT_START LINE_END
-         SimpleCommandList
+         SimpleCommandList?
          SCONS_INIT_END LINE_END
          SCONS_BUILD_START LINE_END
          CmdList
