@@ -691,7 +691,7 @@ class MkCmdInclude(MkCommand):
         for include in includes_list:
             if not os.path.isfile(include):
                 if self.optional:
-                    print("MkCmdInclude: skipping not existing optionally included file '%s'" % (include))
+                    #print("MkCmdInclude: skipping not existing optionally included file '%s'" % (include))
                     continue
                 raise Exception("MkCmdInclude: '%s' file to include does not exist" % (include))
             include_mk = mkenv.get_mk_cache().get_parsed_mk(include)

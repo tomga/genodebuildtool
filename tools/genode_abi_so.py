@@ -45,7 +45,7 @@ def abi_so_emitter(target, source, env):
 
     main_script = env['fn_localize_path'](env['LD_SCRIPT_SO'])
     ld_opts, scripts = process_T_options(env['LD_OPT'], env)
-    print('abi_so_emitter: %s %s' % (str(target), str(source + [main_script] + scripts)))
+    env['fn_debug']('abi_so_emitter: %s %s' % (str(target), str(source + [main_script] + scripts)))
     return (target, source + [main_script] + scripts)
 
 

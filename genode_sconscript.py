@@ -100,7 +100,7 @@ def process_builddir(build_dir, env):
     ### handle */etc/specs.conf files
     repositories_specs_conf_files = tools.find_files('%s/etc/specs.conf', repositories)
     specs_conf_files = repositories_specs_conf_files + ['%s/etc/specs.conf' % (build_dir)]
-    print("processing specs files: %s" % (str(specs_conf_files)))
+    env['fn_info']("processing specs files: %s" % (str(specs_conf_files)))
     for specs_conf_file in specs_conf_files:
         specs_conf = mkcache.get_parsed_mk(specs_conf_file)
         specs_conf.process(build_env)
@@ -114,7 +114,7 @@ def process_builddir(build_dir, env):
     #       which is selected but currently just mimic behaviour from
     #       build.mk
     specs = build_env.var_values('SPECS')
-    print("SPECS: %s" % (specs))
+    env['fn_debug']("SPECS: %s" % (specs))
     specs_mk_files = []
     for spec in specs:
         specs_mk_file, specs_mk_repo = tools.find_first(repositories, 'mk/spec/%s.mk' % (spec))
@@ -124,14 +124,14 @@ def process_builddir(build_dir, env):
     base_specs_mk_files = tools.find_files(base_dir + '/mk/spec/%s.mk', specs)
     specs_mk_files = list(set(specs_mk_files + base_specs_mk_files))
 
-    print("processing <spec>.mk files: %s" % (str(specs_mk_files)))
+    env['fn_info']("processing <spec>.mk files: %s" % (str(specs_mk_files)))
     for specs_mk_file in specs_mk_files:
         specs_mk = mkcache.get_parsed_mk(specs_mk_file)
         specs_mk.process(build_env)
     #pprint.pprint(build_env.debug_struct('pretty'), width=200)
 
     specs = build_env.var_values('SPECS')
-    print("SPECS: %s" % (specs))
+    env['fn_debug']("SPECS: %s" % (specs))
     env['SPECS'] = specs
 
 
@@ -183,7 +183,7 @@ def process_builddir(build_dir, env):
 
 
 
-    require_libs([env['LIB']])
+    require_libs(env['LIB'].split())
 
     libs = []
     while len(libs) < len(required_libs):
@@ -195,7 +195,7 @@ def process_builddir(build_dir, env):
 
     env.Default(libs)
 
-    print(env.Dump())
+    env['fn_debug'](env.Dump())
 
 
 def process_lib(lib_name, env, build_env):
@@ -265,7 +265,7 @@ def process_lib(lib_name, env, build_env):
         print("TODO: support needed")
         quit()
     else:
-        print("lib_mk_file: %s" % (lib_mk_file))
+        env['fn_debug']("lib_mk_file: %s" % (lib_mk_file))
         overlay_file_path = check_for_lib_mk_overlay(lib_name, env, lib_mk_file, lib_mk_repo)
         if overlay_file_path is None:
             lib = genode_lib.GenodeMkLib(lib_name, env,
@@ -294,10 +294,10 @@ def check_for_lib_mk_overlay(lib_name, env, lib_mk_file, lib_mk_repo):
         # no overlays info file - fallback to default mk processing
         return
 
-    print("Found overlays info file %s" % (overlay_info_file_path))
+    env['fn_info']("Found overlays info file %s" % (overlay_info_file_path))
 
     mk_file_md5 = tools.file_md5(mk_file_path)
-    print("library mk '%s' hash: '%s'" % (mk_file_path, mk_file_md5))
+    env['fn_info']("library mk '%s' hash: '%s'" % (mk_file_path, mk_file_md5))
 
     overlay_file_name = None
     with open(overlay_info_file_path, "r") as f:
@@ -320,6 +320,6 @@ def check_for_lib_mk_overlay(lib_name, env, lib_mk_file, lib_mk_repo):
         print("ERROR: missing overlay file '%s' mentioned metioned  in '%s':" % (overlay_file_path, overlay_info_file_path))
         quit()
 
-    print("Found overlay file '%s' for mk '%s'" % (overlay_file_path, mk_file_path))
+    env['fn_notice']("Found overlay file '%s' for mk '%s'" % (overlay_file_path, mk_file_path))
     return overlay_file_path
 

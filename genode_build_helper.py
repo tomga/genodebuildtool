@@ -41,7 +41,7 @@ class GenodeBuildHelper:
         for src_file in src_files:
             tgt_file = os.path.basename(src_file)
             tgt_file = '%s.o' % (os.path.splitext(tgt_file)[0])
-            print("src_file: %s, tgt_file: %s" % (src_file, tgt_file))
+            env['fn_debug']("src_file: %s, tgt_file: %s" % (src_file, tgt_file))
             obj = env.SharedObject(source = src_file,
                                    target = env['fn_target_path'](tgt_file))
             objs += obj
@@ -58,13 +58,13 @@ class GenodeMkBuildHelper(GenodeBuildHelper):
 
         cc_def = self.build_env.var_values('CC_DEF')
         env.AppendUnique(CFLAGS=cc_def)
-        #print('CFLAGS: %s' % (env['CFLAGS']))
+        #env['fn_debug']('CFLAGS: %s' % (env['CFLAGS']))
 
         cc_opt_dep_to_remove = self.build_env.var_value('CC_OPT_DEP')
         cc_c_opt = self.build_env.var_value('CC_C_OPT')
         cc_c_opt = cc_c_opt.replace(cc_opt_dep_to_remove, '')
         env.AppendUnique(CFLAGS=cc_c_opt.split())
-        #print('CFLAGS: %s' % (env['CFLAGS']))
+        #env['fn_debug']('CFLAGS: %s' % (env['CFLAGS']))
 
 
     def prepare_cc_env(self, env):
@@ -72,13 +72,13 @@ class GenodeMkBuildHelper(GenodeBuildHelper):
 
         cxx_def = self.build_env.var_values('CXX_DEF')
         env.AppendUnique(CXXFLAGS=cxx_def)
-        #print('CXXFLAGS: %s' % (env['CXXFLAGS']))
+        #env['fn_debug']('CXXFLAGS: %s' % (env['CXXFLAGS']))
 
         cc_opt_dep_to_remove = self.build_env.var_value('CC_OPT_DEP')
         cc_cxx_opt = self.build_env.var_value('CC_CXX_OPT')
         cc_cxx_opt = cc_cxx_opt.replace(cc_opt_dep_to_remove, '')
         env.AppendUnique(CXXFLAGS=cc_cxx_opt.split())
-        #print('CXXFLAGS: %s' % (env['CXXFLAGS']))
+        #env['fn_debug']('CXXFLAGS: %s' % (env['CXXFLAGS']))
 
 
     def prepare_s_env(self, env):
@@ -90,13 +90,13 @@ class GenodeMkBuildHelper(GenodeBuildHelper):
 
         cc_def = self.build_env.var_values('CC_DEF')
         env.AppendUnique(ASFLAGS=cc_def)
-        #print('ASFLAGS: %s' % (env['ASFLAGS']))
+        #env['fn_debug']('ASFLAGS: %s' % (env['ASFLAGS']))
 
         cc_opt_dep_to_remove = self.build_env.var_value('CC_OPT_DEP')
         cc_c_opt = self.build_env.var_value('CC_C_OPT')
         cc_c_opt = cc_c_opt.replace(cc_opt_dep_to_remove, '')
         env.AppendUnique(ASFLAGS=cc_c_opt.split())
-        #print('ASFLAGS: %s' % (env['ASFLAGS']))
+        #env['fn_debug']('ASFLAGS: %s' % (env['ASFLAGS']))
 
 
     def prepare_ld_env(self, env):

@@ -1,6 +1,7 @@
 
 from SCons.Script import *
 
+from functools import partial
 import os
 
 
@@ -11,9 +12,25 @@ def sconstruct():
     opts.Add('BUILD', 'Build directory (relative from genode root)')
     opts.Add('LIB', 'Single library to build')
     opts.Add(BoolVariable('VERBOSE_OUTPUT', 'Enable verbose output', default=False))
+    opts.Add('LOG_LEVEL', 'Specify log output level', default='none',
+             allowed_values=('none', 'error', 'warning', 'notice', 'info', 'debug'))
 
     env = Environment(options = opts, ENV = os.environ)
     env.SConsignFile('%s/.sconsign' % (env['BUILD']))
+
+    def nodebug(txt):
+        pass
+    def debug(lvl, txt):
+        for line in txt.splitlines():
+            print('%s: %s' % (lvl, line))
+
+    log_level = env['LOG_LEVEL']
+    env['fn_debug'] = partial(debug, 'DBG') if log_level in ['debug'] else nodebug
+    env['fn_info'] = partial(debug, 'INF') if log_level in ['debug', 'info'] else nodebug
+    env['fn_notice'] = partial(debug, 'NOT') if log_level in ['debug', 'info', 'notice'] else nodebug
+    env['fn_warning'] = partial(debug, 'WAR') if log_level in ['debug', 'info', 'notice', 'warning'] else nodebug
+    env['fn_error'] = partial(debug, 'ERR') if log_level in ['debug', 'info', 'notice', 'warning', 'error'] else nodebug
+
 
     buildtool_dir = os.path.dirname(os.path.abspath(__file__))
     env['BUILDTOOL_DIR'] = buildtool_dir

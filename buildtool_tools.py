@@ -18,8 +18,8 @@ def get_process_lib_overlay_fun(file_path):
 def import_module_from_overlay(file_path, register_module=False):
     relative_file_path = overlay_localization_pattern.sub('', file_path)
     module_name = relative_file_path.replace('/', '.')
-    print("relative_file_path: %s" % (relative_file_path))
-    print("module_name: %s" % (module_name))
+    #print("relative_file_path: %s" % (relative_file_path))
+    #print("module_name: %s" % (module_name))
 
     return import_module_from_file(module_name, file_path, register_module)
 
@@ -34,7 +34,7 @@ def import_module_from_file(module_name, file_path, register_module=False):
     #spec = importlib.util.spec_from_file_location(module_name, file_path)
     spec = importlib.util.spec_from_loader(module_name,
                                            importlib.machinery.SourceFileLoader(module_name, file_path))
-    print("spec: %s" % (str(spec)))
+    #print("spec: %s" % (str(spec)))
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
 

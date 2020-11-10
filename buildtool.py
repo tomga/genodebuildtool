@@ -123,7 +123,7 @@ def is_sc_build(build_name):
 def parse_mk_log(log_file):
     logparser = mklogparser.initialize()
     logparse_result = logparser.parse_file(log_file)
-    buildtool_utils.Python2PrettyPrinter().pprint(logparse_result.debug_struct())
+    #buildtool_utils.Python2PrettyPrinter().pprint(logparse_result.debug_struct())
     return logparse_result
 
 
@@ -131,7 +131,7 @@ def parse_mk_log(log_file):
 def parse_sc_log(log_file):
     logparser = sclogparser.initialize()
     logparse_result = logparser.parse_file(log_file)
-    buildtool_utils.Python2PrettyPrinter().pprint(logparse_result.debug_struct())
+    #buildtool_utils.Python2PrettyPrinter().pprint(logparse_result.debug_struct())
     return logparse_result
 
 
@@ -282,7 +282,7 @@ def test_mkparser():
 
     # overrides
     env.get_create_var('CC_OPT_DEP').set_value(mkevaluator.MkRValueExpr.from_values_list([]))
-    pprint.pprint(env.debug_struct('pretty'), width=200)
+    env['fn_debug'](pprint.pformat(env.debug_struct('pretty'), width=200))
 
 
     # build.mk
