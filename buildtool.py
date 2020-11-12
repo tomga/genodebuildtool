@@ -43,6 +43,9 @@ def arguments_parse():
                            help='database location')
     argparser.add_argument('--logs', default='../logs',
                            help='target run kernel')
+    argparser.add_argument('--log-level', default='none',
+                           choices=['none', 'error', 'warning', 'notice', 'info', 'debug'],
+                           help='scons helper code diagnostics log level')
 
     argparser.add_argument('--log', nargs='+', default=[],
                            help='log files to process')
@@ -168,13 +171,15 @@ def do_sc_build(build_name, opts, stamp_dt, log_file):
     kernel = 'KERNEL=%s' % (opts.kernel) if opts.kernel is not None else ''
     board = 'BOARD=%s' % (opts.board) if opts.board is not None else ''
 
-    command = ' '.join(['scons',
-                        'BUILD=build/%s' % (build_name),
-                        'VERBOSE_OUTPUT=yes',
-                        '%s' % (kernel),
-                        '%s' % (board),
-                        'LIB=%s' % opts.lib[0] if len(opts.lib) > 0 else '',
-                        '2>&1 | tee %s' % (log_file)])
+    command = ' '.join([p for p in ['scons',
+                                    'BUILD=build/%s' % (build_name),
+                                    'VERBOSE_OUTPUT=yes',
+                                    'LOG_LEVEL=%s' % (opts.log_level) if opts.log_level != 'none' else '',
+                                    '%s' % (kernel),
+                                    '%s' % (board),
+                                    'LIB=%s' % opts.lib[0] if len(opts.lib) > 0 else '',
+                                    '%s' % ' '.join(opts.prog),
+                                    '2>&1 | tee %s' % (log_file)] if p != ''])
     print('Executing: %s' % command)
     output = buildtool_utils.command_execute(command)
 
