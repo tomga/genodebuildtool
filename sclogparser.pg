@@ -34,7 +34,7 @@ terminals
 SCONS_INIT_START: /scons: Reading SConscript files .../;
 SCONS_INIT_END: /scons: done reading SConscript files./;
 SCONS_BUILD_START: /scons: Building targets .../;
-SCONS_BUILD_END: /scons: done building targets./;
+SCONS_BUILD_END: /scons: done building targets.|scons: building terminated because of errors./;
 
 
 PATH: /[.+\-a-zA-Z0-9_\/][.+\-a-zA-Z0-9_\/]*/;
