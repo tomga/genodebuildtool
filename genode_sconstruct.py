@@ -10,13 +10,18 @@ def sconstruct():
     opts = Variables()
 
     opts.Add('BUILD', 'Build directory (relative from genode root)')
-    opts.Add('LIB', 'Single library to build')
+    opts.Add('LIB', 'Space separated libraries list to build (named for conformance with mk build)')
     opts.Add(BoolVariable('VERBOSE_OUTPUT', 'Enable verbose output', default=False))
     opts.Add('LOG_LEVEL', 'Specify log output level', default='none',
              allowed_values=('none', 'error', 'warning', 'notice', 'info', 'debug'))
 
     env = Environment(options = opts, ENV = os.environ)
     env.SConsignFile('%s/.sconsign' % (env['BUILD']))
+
+    env['LIB_TARGETS'] = env['LIB'].split() if 'LIB' in env else []
+    env['PROG_TARGETS'] = list(BUILD_TARGETS)  # TODO: filter when adding support for run scripts
+    env['BUILD_TARGETS'] = BUILD_TARGETS
+    BUILD_TARGETS.clear()
 
     def nodebug(txt):
         pass

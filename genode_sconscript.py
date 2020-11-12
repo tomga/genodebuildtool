@@ -14,6 +14,7 @@ import mkparser
 import mklogparser
 
 import genode_lib
+import genode_prog
 import genode_tools as tools
 
 import genode_util_mk_functions
@@ -166,7 +167,7 @@ def process_builddir(build_dir, env):
 
 
     def lib_alias_name(lib_name):
-        return '%s:%s' % (lib_name, build_dir)
+        return 'LIB:%s:%s' % (build_dir, lib_name)
     env['fn_lib_alias_name'] = lib_alias_name
 
     required_libs = []
@@ -183,19 +184,44 @@ def process_builddir(build_dir, env):
 
 
 
-    require_libs(env['LIB'].split())
+    def prog_alias_name(prog_name):
+        return 'PRG:%s:%s' % (build_dir, prog_name)
+    env['fn_prog_alias_name'] = prog_alias_name
+
+    required_progs = []
+    known_progs = set([])
+    def require_progs(dep_progs):
+        dep_aliases = []
+        for dep in dep_progs:
+            if dep not in known_progs:
+                known_progs.add(dep)
+                required_progs.append(dep)
+            dep_aliases.append(env.Alias(prog_alias_name(dep)))
+        return dep_aliases
+    env['fn_require_progs'] = require_progs
+
+
+    require_libs(env['LIB_TARGETS'])
+    require_progs(env['PROG_TARGETS'])
 
     libs = []
-    while len(libs) < len(required_libs):
-        libs.append(process_lib(required_libs[len(libs)], env, build_env))
+    progs = []
+    while (len(libs) < len(required_libs) or
+           len(progs) < len(required_progs)):
 
-    #libs.append(process_lib('cxx', env, build_env))
-    #libs.append(process_lib('syscall-linux', env, build_env))
-    #libs.append(process_lib('base-linux-common', env, build_env))
+        if len(libs) < len(required_libs):
+            libs += process_lib(required_libs[len(libs)], env, build_env)
+            continue
 
-    env.Default(libs)
+        if len(progs) < len(required_progs):
+            progs += process_prog(required_progs[len(progs)], env, build_env)
+            continue
+
+    targets = libs + progs
+    env['BUILD_TARGETS'] += targets
 
     env['fn_debug'](env.Dump())
+
 
 
 def process_lib(lib_name, env, build_env):
@@ -204,7 +230,7 @@ def process_lib(lib_name, env, build_env):
     Build rules are read from <lib>.mk file like in standard Genode
     build (repos/<repo>/lib/mk/<lib>.mk) but there are possibilities
     to overwrite default with providing build rules in
-    <buildtool>/genode/repos/<repo>/lib/mk/<lib>.py file where <repo>
+    <buildtool>/genode/repos/<repo>/lib/mk/<lib>.ovr file where <repo>
     must be the same as for found <lib>.mk file.
     """
 
@@ -298,6 +324,129 @@ def check_for_lib_mk_overlay(lib_name, env, lib_mk_file, lib_mk_repo):
 
     mk_file_md5 = tools.file_md5(mk_file_path)
     env['fn_info']("library mk '%s' hash: '%s'" % (mk_file_path, mk_file_md5))
+
+    overlay_file_name = None
+    with open(overlay_info_file_path, "r") as f:
+        for line in f:
+            if line.startswith(mk_file_md5):
+                ovr_data = line.split()
+                if len(ovr_data) < 2:
+                    print("ERROR: invalid overlay entry in '%s':" % (overlay_info_file_path))
+                    print("     : %s" % (line))
+                    quit()
+                overlay_file_name = ovr_data[1]
+    if overlay_file_name is None:
+        print("ERROR: overlay not found in '%s' for hash '%s':" % (overlay_info_file_path, mk_file_md5))
+        quit()
+
+    overlay_file_path = os.path.join(os.path.dirname(overlay_info_file_path), overlay_file_name)
+
+    #print("Checking overlay file %s" % (overlay_file_path))
+    if not os.path.isfile(overlay_file_path):
+        print("ERROR: missing overlay file '%s' mentioned metioned  in '%s':" % (overlay_file_path, overlay_info_file_path))
+        quit()
+
+    env['fn_notice']("Found overlay file '%s' for mk '%s'" % (overlay_file_path, mk_file_path))
+    return overlay_file_path
+
+
+
+def process_prog(prog_name, env, build_env):
+    """Process program build rules.
+
+    Build rules are read from <prog>/target.mk file like in standard
+    Genode build (repos/<repo>/src/<prog>/target.mk) but there are
+    possibilities to overwrite default with providing build rules in
+    <buildtool>/genode/repos/<repo>/src/<prog>/mk/<prog>.ovr file where
+    <repo> must be the same as for found <prog>/target.mk file.
+    """
+
+    repositories = env['REPOSITORIES']
+    specs = env['SPECS']
+
+    ## find <prog>.mk file with repo
+    prog_mk_file = None
+    prog_mk_repo = None
+    for repository in repositories:
+        for spec in specs:
+            test_mk_file = 'src/%s/spec/%s/target.mk' % (prog_name, spec)
+            if tools.is_repo_file(test_mk_file, repository):
+                prog_mk_file = tools.file_path(test_mk_file, repository)
+                prog_mk_repo = repository
+                break
+        if prog_mk_file is not None:
+            break
+
+        test_mk_file = 'src/%s/target.mk' % (prog_name)
+        if tools.is_repo_file(test_mk_file, repository):
+            prog_mk_file = tools.file_path(test_mk_file, repository)
+            prog_mk_repo = repository
+            break
+
+    ## find <prog>.sc file with repo
+    prog_sc_file = None
+    prog_sc_repo = None
+    for repository in repositories:
+        for spec in specs:
+            test_sc_file = 'src/%s/spec/%s/target.sc' % (prog_name, spec)
+            if tools.is_repo_file(test_sc_file, repository):
+                prog_sc_file = tools.file_path(test_sc_file, repository)
+                prog_sc_repo = repository
+                break
+        if prog_sc_file is not None:
+            break
+
+        test_sc_file = 'prog/%s/target.sc' % (prog_name)
+        if tools.is_repo_file(test_sc_file, repository):
+            prog_sc_file = tools.file_path(test_sc_file, repository)
+            prog_sc_repo = repository
+            break
+
+    if (prog_mk_file is None and prog_sc_file is None):
+        print("Build rules file not found for program '%s'" % (prog_name))
+        quit()
+
+    if (prog_mk_file is not None and prog_sc_file is not None):
+        print("Multiple build rules files found for program '%s' ('%s' and '%s')"
+              % (prog_name,
+                 tools.file_path(prog_mk_file, prog_mk_repo),
+                 tools.file_path(prog_sc_file, prog_sc_repo)))
+        quit()
+
+    if prog_sc_file is not None:
+        print("prog_sc_file: %s" % (prog_sc_file))
+        print("TODO: support needed")
+        quit()
+    else:
+        env['fn_debug']("prog_mk_file: %s" % (prog_mk_file))
+        overlay_file_path = check_for_prog_mk_overlay(prog_name, env, prog_mk_file, prog_mk_repo)
+        if overlay_file_path is None:
+            prog = genode_prog.GenodeMkProg(prog_name, env,
+                                            prog_mk_file, prog_mk_repo,
+                                            build_env)
+            return prog.process()
+        else:
+            process_prog_overlay_fun = buildtool_tools.get_process_prog_overlay_fun(overlay_file_path)
+            return process_prog_overlay_fun(prog_name, env, prog_mk_file, prog_mk_repo, build_env)
+
+
+def check_for_prog_mk_overlay(prog_name, env, prog_mk_file, prog_mk_repo):
+    """Looks for program"""
+
+    full_mk_file_path = tools.file_path(prog_mk_file, prog_mk_repo)
+    mk_file_path = env['fn_localize_path'](full_mk_file_path)
+
+    mk_pattern = re.compile(r'\.mk$')
+    overlay_info_file_path = os.path.join(env['OVERLAYS_DIR'], mk_pattern.sub('.ovr', mk_file_path))
+    #print("Checking overlays info file %s" % (overlay_info_file_path))
+    if not os.path.isfile(overlay_info_file_path):
+        # no overlays info file - fallback to default mk processing
+        return
+
+    env['fn_info']("Found overlays info file %s" % (overlay_info_file_path))
+
+    mk_file_md5 = tools.file_md5(mk_file_path)
+    env['fn_info']("program mk '%s' hash: '%s'" % (mk_file_path, mk_file_md5))
 
     overlay_file_name = None
     with open(overlay_info_file_path, "r") as f:
