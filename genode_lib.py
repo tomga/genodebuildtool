@@ -33,7 +33,7 @@ class GenodeLib:
 
 
     def target_path(self, target):
-        return '#%s/%s/%s' % (self.relative_lib_cache_dir, self.lib_name, target)
+        return '%s/%s/%s' % (self.relative_lib_cache_dir, self.lib_name, target)
 
 
     def build_c_objects(self):

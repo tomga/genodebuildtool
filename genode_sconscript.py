@@ -57,7 +57,7 @@ def process_builddir(build_dir, env):
 
     genode_localization_pattern = re.compile('^%s/' % (env['GENODE_DIR']))
     env['fn_localize_path'] = lambda path: genode_localization_pattern.sub('', path)
-    env['fn_sconsify_path'] = lambda path: genode_localization_pattern.sub('#', path)
+    env['fn_sconsify_path'] = lambda path: '#' + env['fn_localize_path'](path) if not path.startswith('/') else path
     genode_prettify_pattern = re.compile('^.*/var/libcache/')
     env['fn_prettify_path'] = lambda path: genode_prettify_pattern.sub('', str(path))
 
