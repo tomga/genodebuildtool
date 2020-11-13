@@ -25,6 +25,8 @@ def exists(env):
 
 def symbols_generator(target, source, env, for_signature):
 
+    ## TODO: check if SPECS change cause rebuild; probably it should
+    ## as command is treated as a dependency
     if 'x86_64' in env['SPECS']:
         asm_sym_dependency = r'movq \1@GOTPCREL(%rip), %rax'
     else:
