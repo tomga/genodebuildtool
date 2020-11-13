@@ -291,6 +291,11 @@ class GenodeMkLib(GenodeLib):
                                                       source=objects))
 
 
+        lib_tag = "%s.lib.tag" % (self.lib_name)
+        lib_tag_tgt = self.env.LibTag(source = lib_targets,
+                                      target = self.target_path(lib_tag))
+        lib_targets.append(lib_tag_tgt)
+
         return self.env.Alias(self.env['fn_lib_alias_name'](self.lib_name), lib_targets)
 
 
