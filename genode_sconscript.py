@@ -170,14 +170,14 @@ def process_builddir(build_dir, env):
         return 'LIB:%s:%s' % (build_dir, lib_name)
     env['fn_lib_alias_name'] = lib_alias_name
 
-    required_libs = []
+    libs = []
     known_libs = set([])
     def require_libs(dep_libs):
         dep_aliases = []
         for dep in dep_libs:
             if dep not in known_libs:
                 known_libs.add(dep)
-                required_libs.append(dep)
+                libs.extend(process_lib(dep, env, build_env))
             dep_aliases.append(env.Alias(lib_alias_name(dep)))
         return dep_aliases
     env['fn_require_libs'] = require_libs
@@ -188,14 +188,14 @@ def process_builddir(build_dir, env):
         return 'PRG:%s:%s' % (build_dir, prog_name)
     env['fn_prog_alias_name'] = prog_alias_name
 
-    required_progs = []
+    progs = []
     known_progs = set([])
     def require_progs(dep_progs):
         dep_aliases = []
         for dep in dep_progs:
             if dep not in known_progs:
                 known_progs.add(dep)
-                required_progs.append(dep)
+                progs.extend(process_prog(dep, env, build_env))
             dep_aliases.append(env.Alias(prog_alias_name(dep)))
         return dep_aliases
     env['fn_require_progs'] = require_progs
@@ -203,19 +203,6 @@ def process_builddir(build_dir, env):
 
     require_libs(env['LIB_TARGETS'])
     require_progs(env['PROG_TARGETS'])
-
-    libs = []
-    progs = []
-    while (len(libs) < len(required_libs) or
-           len(progs) < len(required_progs)):
-
-        if len(libs) < len(required_libs):
-            libs += process_lib(required_libs[len(libs)], env, build_env)
-            continue
-
-        if len(progs) < len(required_progs):
-            progs += process_prog(required_progs[len(progs)], env, build_env)
-            continue
 
     targets = libs + progs
     env['BUILD_TARGETS'] += targets
