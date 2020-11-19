@@ -33,7 +33,10 @@ class GenodeLib:
 
 
     def target_path(self, target):
-        return '%s/%s/%s' % (self.relative_lib_cache_dir, self.lib_name, target)
+        if target is not None:
+            return '%s/%s/%s' % (self.relative_lib_cache_dir, self.lib_name, target)
+        else:
+            return '%s/%s' % (self.relative_lib_cache_dir, self.lib_name)
 
 
     def build_c_objects(self):
@@ -104,13 +107,23 @@ class GenodeMkLib(GenodeLib):
 
 
         ### register library dependencies
-        dep_libs = self.build_env.var_values('LIBS')
-        if len(dep_libs) > 0:
-            dep_lib_targets = self.env['fn_require_libs'](dep_libs)
+        direct_dep_libs = self.build_env.var_values('LIBS')
+        if len(direct_dep_libs) > 0:
+            dep_lib_targets = self.env['fn_require_libs'](direct_dep_libs)
 
+        ### calculate list of shared library dependencies (recursively complete)
+        lib_so_deps = []
+        for dep_lib in direct_dep_libs:
+            dep_lib_so_deps = self.env['fn_get_lib_info'](dep_lib)['so_deps']
+            lib_so_deps.extend(dep_lib_so_deps)
+        lib_so_deps = sorted(lib_so_deps)
+
+        ### create links to shared library dependencies
+        dep_lib_links = self.build_helper.create_dep_lib_links(
+            self.env, self.target_path(None), lib_so_deps)
 
         ### handle include import-<lib>.mk files
-        for dep_lib in dep_libs:
+        for dep_lib in direct_dep_libs:
             dep_lib_import_mk_file, dep_lib_import_mk_repo = tools.find_first(self.env['REPOSITORIES'], 'lib/import/import-%s.mk' % (dep_lib))
             if dep_lib_import_mk_file is not None:
                 self.env['fn_info']("processing import-%s file: %s" % (dep_lib, dep_lib_import_mk_file))
@@ -222,6 +235,11 @@ class GenodeMkLib(GenodeLib):
 
         lib_targets = []
 
+        # lib_type as abi/so/a information is put into libraries info
+        # registry for use by other libraries and programs that depend
+        # on it
+        lib_type = None
+
         if symbols_file is not None:
 
             ### handle <lib>.abi.so generation
@@ -253,6 +271,7 @@ class GenodeMkLib(GenodeLib):
                                            target = self.target_path(abi_so))
 
             lib_targets.append(abi_so_tgt)
+            lib_type = 'abi'
 
 
         lib_so = None
@@ -262,12 +281,14 @@ class GenodeMkLib(GenodeLib):
         lib_a = None
 
         if shared_lib:
-            if len(objects) + len(dep_libs) == 0:
+            if len(objects) + len(direct_dep_libs) != 0:
                 lib_so = "%s.lib.so" % (self.lib_name)
                 install_so = "%s/%s" % (self.build_env.var_value('INSTALL_DIR'), lib_so)
                 debug_so = "%s/%s" % (self.build_env.var_value('DEBUG_DIR'), lib_so)
+                lib_type = 'so'
         else:
             lib_a = "%s.lib.a" % (self.lib_name)
+            lib_type = 'a'
 
         if lib_so is not None and abi_so is not None:
             lib_checked = "%s.lib.checked" % (self.lib_name)
@@ -289,12 +310,19 @@ class GenodeMkLib(GenodeLib):
         if lib_a is not None:
             lib_targets.append(self.env.StaticLibrary(target=self.target_path(lib_a),
                                                       source=objects))
+            lib_type = 'a'
 
 
         lib_tag = "%s.lib.tag" % (self.lib_name)
         lib_tag_tgt = self.env.LibTag(source = lib_targets,
                                       target = self.target_path(lib_tag))
         lib_targets.append(lib_tag_tgt)
+
+        if shared_lib:
+            lib_so_deps = sorted(lib_so_deps + [self.lib_name])
+
+        self.env['fn_register_lib_info'](self.lib_name, { 'type': lib_type,
+                                                          'so_deps': lib_so_deps })
 
         return self.env.Alias(self.env['fn_lib_alias_name'](self.lib_name), lib_targets)
 

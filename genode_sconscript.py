@@ -89,6 +89,22 @@ def process_builddir(build_dir, env):
     env['MERGECOMSTR']  = '${fn_msg(TARGET, SOURCES, " MERGE   ", "MERGECOM",  __env__)}'
     env['OBJCPYCOMSTR'] = '${fn_msg(TARGET, SOURCES, " CONVERT ", "OBJCPYCOM", __env__)}'
 
+
+    lib_info_dict = {}
+    def register_lib_info(lib_name, lib_info):
+        env['fn_debug']('register_lib_info: %s, %s' % (lib_name, str(lib_info)))
+        assert lib_name not in lib_info_dict
+        lib_info_dict[lib_name] = lib_info
+    env['fn_register_lib_info'] = register_lib_info
+
+    def get_lib_info(lib_name):
+        assert lib_name in lib_info_dict, 'get_lib_info: not found info for "%s"' % lib_name
+        lib_info = lib_info_dict[lib_name]
+        env['fn_debug']('get_lib_info: %s, %s' % (lib_name, str(lib_info)))
+        return lib_info
+    env['fn_get_lib_info'] = get_lib_info
+
+
     repositories = build_env.var_values('REPOSITORIES')
     env['REPOSITORIES'] = repositories
 

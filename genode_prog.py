@@ -34,7 +34,10 @@ class GenodeProg:
 
 
     def target_path(self, target):
-        return '%s/%s' % (self.relative_prog_dir, target)
+        if target is not None:
+            return '%s/%s' % (self.relative_prog_dir, target)
+        else:
+            return self.relative_prog_dir
 
 
     def build_c_objects(self):
@@ -91,13 +94,23 @@ class GenodeMkProg(GenodeProg):
 
 
         ### register program dependencies
-        dep_libs = self.build_env.var_values('LIBS')
-        if len(dep_libs) > 0:
-            dep_lib_targets = self.env['fn_require_libs'](dep_libs)
+        direct_dep_libs = self.build_env.var_values('LIBS')
+        if len(direct_dep_libs) > 0:
+            dep_lib_targets = self.env['fn_require_libs'](direct_dep_libs)
 
+        ### calculate list of shared library dependencies (recursively complete)
+        lib_so_deps = []
+        for dep_lib in direct_dep_libs:
+            dep_lib_so_deps = self.env['fn_get_lib_info'](dep_lib)['so_deps']
+            lib_so_deps.extend(dep_lib_so_deps)
+        lib_so_deps = sorted(lib_so_deps)
+
+        ### create links to shared library dependencies
+        dep_lib_links = self.build_helper.create_dep_lib_links(
+            self.env, self.target_path(None), lib_so_deps)
 
         ### handle include import-<lib>.mk files
-        for dep_lib in dep_libs:
+        for dep_lib in direct_dep_libs:
             dep_lib_import_mk_file, dep_lib_import_mk_repo = tools.find_first(self.env['REPOSITORIES'], 'lib/import/import-%s.mk' % (dep_lib))
             if dep_lib_import_mk_file is not None:
                 self.env['fn_info']("processing import-%s file: %s" % (dep_lib, dep_lib_import_mk_file))
@@ -282,6 +295,7 @@ class GenodeMkProg(GenodeProg):
                                                        source=objects))
 
         prog_targets += objects
+        prog_targets += dep_lib_links
         self.env['fn_notice']('prog_targets: %s' % (str(list(map(str, prog_targets)))))
 
         retval = self.env.Alias(self.env['fn_prog_alias_name'](self.prog_name), prog_targets)

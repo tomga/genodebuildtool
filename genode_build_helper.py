@@ -3,6 +3,13 @@ import os
 
 class GenodeBuildHelper:
 
+    def get_lib_cache_dir(self, env):
+        return env['fn_sconsify_path'](env['LIB_CACHE_DIR'])
+
+
+    def target_lib_path(self, lib_cache_dir, lib_name, target):
+        return '%s/%s/%s' % (lib_cache_dir, lib_name, target)
+
 
     def prepare_c_env(self, env):
         # setup CC, CFLAGS
@@ -46,6 +53,25 @@ class GenodeBuildHelper:
                                    target = env['fn_target_path'](tgt_file))
             objs += obj
         return objs
+
+    def create_dep_lib_links(self, env, target_path, dep_libs):
+        env['fn_notice']('create_dep_lib_links: %s %s' % (target_path, str(dep_libs)))
+        lib_cache_dir = self.get_lib_cache_dir(env)
+
+        dep_lib_links = []
+        for dep_lib in dep_libs:
+            dep_lib_type = env['fn_get_lib_info'](dep_lib)['type']
+            if dep_lib_type == 'a':
+                continue
+            dep_lib_file_name = '%s.lib.so' % (dep_lib)
+            dep_lib_so_file_name = '%s.%s.so' % (dep_lib, 'abi' if dep_lib_type == 'abi' else 'lib')
+
+            dep_lib_lnk_tgt = env.SymLink(
+                source = self.target_lib_path(lib_cache_dir, dep_lib, dep_lib_so_file_name),
+                target = '%s/%s' % (target_path, dep_lib_file_name))
+            dep_lib_links.append(dep_lib_lnk_tgt)
+
+        return dep_lib_links
 
 
 class GenodeMkBuildHelper(GenodeBuildHelper):
