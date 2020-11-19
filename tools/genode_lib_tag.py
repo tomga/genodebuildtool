@@ -43,7 +43,7 @@ def lib_tag_print(target, source, env):
     presentation = target[0]
     if 'fn_prettify_path' in env:
         presentation = env['fn_prettify_path'](presentation)
-    retval = ' LIBTAG %s' % (presentation)
+    retval = ' LIBTAG   %s' % (presentation)
     if env['VERBOSE_OUTPUT']:
         tag_file = target[0]
         tag = calculate_tag(source)
