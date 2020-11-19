@@ -80,7 +80,7 @@ def abi_so_print(target, source, env):
     presentation = target[0]
     if 'fn_prettify_path' in env:
         presentation = env['fn_prettify_path'](presentation)
-    retval = ' MERGE %s' % (presentation)
+    retval = ' MERGE    %s' % (presentation)
     if env['VERBOSE_OUTPUT']:
         retval += '\n%s' % (abi_so_generator(target, source, env, True))
     return retval
