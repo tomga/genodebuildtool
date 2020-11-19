@@ -13,6 +13,9 @@ def nodups(lst):
 
 def path_clean(path, run_dir, abs_dir, rel_dir, modify_relatives):
 
+    if (path.startswith('BLD/')):
+        return path
+
     # print("path_clean: %s" % (str(path)))
     # print("       run: %s" % (str(run_dir)))
     # print("       abs: %s" % (str(abs_dir)))
@@ -377,6 +380,7 @@ def arg_clean_ln(args_tokenized, run_dir, abs_dir, rel_dir):
     res = args_tokenized
 
     res[-2] = path_clean(res[-2], os.path.abspath(res[-1]), abs_dir, '.', True)
+    res[-2] = path_clean(res[-2], abs_dir, abs_dir, rel_dir, True)
     sources = [res[-2]]
 
     res[-1] = path_clean(res[-1], run_dir, abs_dir, rel_dir, True)
