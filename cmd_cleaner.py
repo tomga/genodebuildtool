@@ -9,6 +9,7 @@ def commands_clean(cmd_lines, run_dir, abs_dir, rel_dir):
         orig = orig.strip()
         if (orig.startswith('rm ') or
             orig.startswith('echo ') or
+            orig.startswith('for ') or
             orig.startswith('checking library dependencies') or
             orig.startswith('make ') or
             orig.startswith('mkdir ') or
