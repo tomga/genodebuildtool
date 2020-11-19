@@ -51,7 +51,7 @@ def symbols_print(target, source, env):
     presentation = target[0]
     if 'fn_prettify_path' in env:
         presentation = env['fn_prettify_path'](presentation)
-    retval = ' CONVERT %s' % (presentation)
+    retval = ' CONVERT  %s' % (presentation)
     if env['VERBOSE_OUTPUT']:
         retval += '\n%s' % (symbols_generator(target, source, env, True))
     return retval
