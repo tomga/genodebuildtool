@@ -35,7 +35,7 @@ def symlink_print(target, source, env):
     presentation = target[0]
     if 'fn_prettify_path' in env:
         presentation = env['fn_prettify_path'](presentation)
-    retval = ' SYMLINK %s' % (presentation)
+    retval = ' SYMLINK  %s' % (presentation)
     if env['VERBOSE_OUTPUT']:
         lnk = target[0]
         src = os.path.relpath(source[0].abspath, target[0].abspath)
