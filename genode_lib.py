@@ -111,6 +111,16 @@ class GenodeMkLib(GenodeLib):
         if len(direct_dep_libs) > 0:
             dep_lib_targets = self.env['fn_require_libs'](direct_dep_libs)
 
+        ### add ldso_so_support as a dependency
+        #
+        # NOTE: in case of libraries such as ld (on linux) which are
+        #       not compiled and linked but created using symbols this
+        #       dependency is not needed but it is added here for full
+        #       compatibility
+        shared_lib_defined = self.build_env.check_var('SHARED_LIB')
+        if shared_lib_defined:
+            ldso_support_lib_target = self.env['fn_require_libs'](['ldso_so_support'])
+
         ### calculate list of shared library dependencies (recursively complete)
         lib_so_deps = []
         for dep_lib in direct_dep_libs:
