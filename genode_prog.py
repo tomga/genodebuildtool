@@ -83,6 +83,11 @@ class GenodeMkProg(GenodeProg):
 
         mkcache = self.build_env.get_mk_cache()
 
+        ### handle base-libs.mk
+        base_libs_mk_file = '%s/mk/base-libs.mk' % (self.env['BASE_DIR'])
+        base_libs_mk = mkcache.get_parsed_mk(base_libs_mk_file)
+        base_libs_mk.process(self.build_env)
+
 
         ### handle include <prog>.mk
 
@@ -98,6 +103,11 @@ class GenodeMkProg(GenodeProg):
         if len(direct_dep_libs) > 0:
             dep_lib_targets = self.env['fn_require_libs'](direct_dep_libs)
 
+        ### calculate list of static library dependencies (directo only)
+        archives = [ lib for lib in direct_dep_libs if self.env['fn_get_lib_info'](lib)['type'] == 'a' ]
+        self.env['fn_debug']("archives: %s" % (str(archives)))
+
+
         ### calculate list of shared library dependencies (recursively complete)
         lib_so_deps = []
         for dep_lib in direct_dep_libs:
@@ -106,7 +116,7 @@ class GenodeMkProg(GenodeProg):
         lib_so_deps = sorted(lib_so_deps)
 
         ### create links to shared library dependencies
-        dep_lib_links = self.build_helper.create_dep_lib_links(
+        dep_shlib_links = self.build_helper.create_dep_lib_links(
             self.env, self.target_path(None), lib_so_deps)
 
         ### handle include import-<lib>.mk files
@@ -123,6 +133,13 @@ class GenodeMkProg(GenodeProg):
         # NOTE: passing this option is not documented
 
 
+        ### initial cxx_link_opt
+        #
+        # NOTE: important to retrieve this value before processing
+        #       global.mk as LD_OPT is appended inside but it is
+        #       processed here independently
+        cxx_link_opt = self.build_env.var_values('CXX_LINK_OPT')
+
         ### handle include global.mk
         global_mk_file = '%s/mk/global.mk' % (self.env['BASE_DIR'])
         global_mk = mkcache.get_parsed_mk(global_mk_file)
@@ -135,51 +152,13 @@ class GenodeMkProg(GenodeProg):
         self.env['fn_debug']("REPOSITORIES: %s" % (str(repositories)))
         self.env['fn_debug']("SPECS: %s" % (str(specs)))
 
-        ### ### handle shared program settings
-        ### 
-        ### ## find <prog> symbols file with repo
-        ### symbols_file = None
-        ### symbols_repo = None
-        ### for repository in repositories:
-        ###     for spec in specs:
-        ###         test_symbols_file = 'prog/symbols/spec/%s/%s' % (spec, self.prog_name)
-        ###         if tools.is_repo_file(test_symbols_file, repository):
-        ###             symbols_file = tools.file_path(test_symbols_file, repository)
-        ###             symbols_repo = repository
-        ###             break
-        ###     if symbols_file is not None:
-        ###         break
-        ### 
-        ###     test_symbols_file = 'prog/symbols/%s' % (self.prog_name)
-        ###     if tools.is_repo_file(test_symbols_file, repository):
-        ###         symbols_file = tools.file_path(test_symbols_file, repository)
-        ###         symbols_repo = repository
-        ###         break
-        ### 
-        ### shared_prog = (symbols_file is not None
-        ###               or self.build_env.var_value('SHARED_PROG') == 'yes')
-        ### 
-        ### #self.env['fn_debug']("SYMBOLS_FILE: %s" % (str(symbols_file)))
-        ### #self.env['fn_debug']("SHARED_PROG: %s" % (str(shared_prog)))
-        ### 
-        ### 
-        ### ### handle proggcc
-        ### # TODO cache results or maybe set unconditionally
-        ### if shared_prog:
-        ###     ##PROGGCC = $(shell $(CC) $(CC_MARCH) -print-proggcc-file-name)
-        ###     cmd = "%s %s -print-proggcc-file-name" % (self.build_env.var_value('CC'),
-        ###                                              self.build_env.var_value('CC_MARCH'))
-        ###     results = subprocess.run(cmd, stdout=subprocess.PIPE,
-        ###                              shell=True, universal_newlines=True, check=True)
-        ###     output = results.stdout
-        ###     self.build_env.var_set('PROGGCC', output)
-        ### 
-        ### 
-        ### 
-        ### self.env['fn_debug'](pprint.pformat(self.build_env.debug_struct('pretty'), width=200))
-
 
         ### handle include generic.mk functionality
+
+        ### handle cc_march
+        ld_opt_nostdlib = self.build_env.var_values('LD_OPT_NOSTDLIB')
+        cxx_link_opt += ld_opt_nostdlib
+
 
 
 
@@ -224,78 +203,113 @@ class GenodeMkProg(GenodeProg):
         # but here object files
         objects = list(sorted(objects, key=lambda x: str(x)))
 
+        ### ld_text_addr
+        ld_text_addr = '0x01000000'
+        if self.build_env.check_var('LD_TEXT_ADDR'):
+            ld_text_addr = self.build_env.var_value('LD_TEXT_ADDR')
+        if ld_text_addr != '':
+            cxx_link_opt.append('-Wl,-Ttext=%s' % (ld_text_addr))
+
+        ### cc_march
+        cc_march = self.build_env.var_values('CC_MARCH')
+        cxx_link_opt.extend(cc_march)
+
+        ### ld_script_static
+        ld_script_static = None
+        if self.build_env.check_var('LD_SCRIPT_STATIC'):
+            ld_script_static = self.build_env.var_values('LD_SCRIPT_STATIC')
+        else:
+            ld_script_static = ['%s/src/ld/genode.ld' % (self.env['BASE_DIR'])]
+            if 'linux' in specs:
+                stack_area_ld_file, stack_area_ld_repo = tools.find_first(repositories, 'src/ld/stack_area.ld')
+                ld_script_static.append(stack_area_ld_file)
+
+
+        ### #
+        ### # Enforce unconditional call of gnatmake rule when compiling Ada sources
+        ### #
+        ### # Citation from texinfo manual for make:
+        ### #
+        ### # If a rule has no prerequisites or commands, and the target of the rule
+        ### # is a nonexistent file, then `make' imagines this target to have been
+        ### # updated whenever its rule is run.  This implies that all targets
+        ### # depending on this one will always have their commands run.
+        ### #
+        ### FORCE:
+        ### $(SRC_ADA:.adb=.o): FORCE
+        ###
+        ### #
+        ### # Run binder if Ada sources are included in the build
+        ### #
+        ### ifneq ($(SRC_ADS)$(SRC_ADB),)
+        ###
+        ### CUSTOM_BINDER_FLAGS ?= -n -we -D768k
+        ###
+        ### OBJECTS += b~$(TARGET).o
+        ###
+        ### ALIS := $(addsuffix .ali, $(basename $(SRC_ADS) $(SRC_ADB)))
+        ### ALI_DIRS := $(foreach LIB,$(LIBS),$(call select_from_repositories,lib/ali/$(LIB)))
+        ### BINDER_SEARCH_DIRS = $(addprefix -I$(BUILD_BASE_DIR)/var/libcache/, $(LIBS)) $(addprefix -aO, $(ALI_DIRS))
+        ###
+        ### BINDER_SRC := b~$(TARGET).ads b~$(TARGET).adb
+        ###
+        ### $(BINDER_SRC): $(ALIS)
+        ### 	$(VERBOSE)$(GNATBIND) $(CUSTOM_BINDER_FLAGS) $(BINDER_SEARCH_DIRS) $(INCLUDES) --RTS=$(ADA_RTS) -o $@ $^
+        ### endif
+
+        ld_opt = self.build_env.var_values('LD_OPT')
+
+        ld_scripts = []
+        if len(lib_so_deps) == 0:
+            ld_scripts = self.build_env.var_values('LD_SCRIPT_STATIC')
+            pass
+        else:
+            genode_ld_path = '%s/src/ld/genode_dyn.dl' % (self.env['BASE_DIR'])
+            print('genode_ld_path: %s' % (genode_ld_path))
+            ld_opt.append('--dynamic-list=%s' % (self.env['fn_localize_path'](genode_ld_path)))
+            print('ld_opt: %s' % (str(ld_opt)))
+            ld_scripts = self.build_env.var_values('LD_SCRIPT_DYN')
+
+            cxx_link_opt.append('-Wl,--dynamic-linker=%s.lib.so' % (self.build_env.var_value('DYNAMIC_LINKER')))
+            cxx_link_opt.append('-Wl,--eh-frame-hdr')
+            cxx_link_opt.append('-Wl,-rpath-link=.')
+
+            base_libs = self.build_env.var_values('BASE_LIBS')
+            archives = [ lib for lib in archives if lib not in base_libs ]
+
+        for lib in ld_scripts:
+            cxx_link_opt += [ '-Wl,-T', '-Wl,%s' % (self.env['fn_localize_path'](lib)) ]
+
+        lib_cache_dir = self.build_helper.get_lib_cache_dir(self.env)
+        dep_static_libs = []
+        for dep_lib in archives:
+            static_archive_name = '%s.lib.a' % (dep_lib)
+            static_archive_path = self.build_helper.target_lib_path(lib_cache_dir, dep_lib, static_archive_name)
+            dep_static_libs.append(static_archive_path)
+        self.env['fn_debug']("dep_static_libs: %s" % (str(dep_static_libs)))
+
+
+        ### handle LD_LIBGCC
+        cmd = "%s %s -print-libgcc-file-name" % (self.env['CC'], ' '.join(cc_march)),
+        results = subprocess.run(cmd, stdout=subprocess.PIPE,
+                                 shell=True, universal_newlines=True, check=True)
+        ld_libgcc = results.stdout
+        self.env['LD_LIBGCC'] = ld_libgcc
+
+
         prog_targets = []
 
-        ### if symbols_file is not None:
-        ### 
-        ###     ### handle <prog>.abi.so generation
-        ### 
-        ###     abi_so = '%s.abi.so' % (self.prog_name)
-        ### 
-        ###     symbols_file = self.sconsify_path(os.path.join(symbols_repo, symbols_file))
-        ###     #self.env['fn_debug']('SYMBOLS_FILE: %s' % (symbols_file))
-        ###     symbols_lnk = '%s.symbols' % (self.prog_name)
-        ###     #self.env['fn_debug']('SYMBOLS_LNK: %s' % (symbols_lnk))
-        ### 
-        ###     # TODO: test correctness of changes of this link
-        ###     symbols_lnk_tgt = self.env.SymLink(source = symbols_file,
-        ###                                        target = self.target_path(symbols_lnk))
-        ### 
-        ###     ### handle <prog>.symbols.s
-        ###     symbols_asm = '%s.symbols.s' % (self.prog_name)
-        ###     symbols_asm_tgt = self.env.Symbols(source = symbols_lnk_tgt,
-        ###                                        target = self.target_path(symbols_asm))
-        ### 
-        ###     ### handle <prog>.symbols.o
-        ###     # assumes prepare_s_env() was already executed
-        ###     symbols_obj_tgt = self.build_helper.generic_compile(self.env, map(str, symbols_asm_tgt))
-        ### 
-        ###     ### handle <prog>.abi.so
-        ###     for v in ['LD_OPT', 'PROG_SO_DEPS', 'LD_SCRIPT_SO']:
-        ###         self.env[v] = self.build_env.var_value(v)
-        ###     abi_so_tgt = self.env.ProgAbiSo(source = symbols_obj_tgt,
-        ###                                    target = self.target_path(abi_so))
-        ### 
-        ###     prog_targets.append(abi_so_tgt)
+        self.env['fn_debug']("ld_opt: %s" % (str(ld_opt)))
+        self.env['fn_debug']("cxx_link_opt: %s" % (str(cxx_link_opt)))
 
+        ld_cxx_opt = [ '-Wl,%s' % (opt) for opt in ld_opt ] 
+        self.env['LINKFLAGS'] = cxx_link_opt + ld_cxx_opt
+        prog_name = self.build_env.var_value('TARGET')
+        ## $LINK -o $TARGET $LINKFLAGS $__RPATH $SOURCES $_LIBDIRFLAGS $_LIBFLAGS
+        self.env['LINKCOM'] = '$LINK -o $TARGET $LINKFLAGS $__RPATH -Wl,--whole-archive -Wl,--start-group $SOURCES -Wl,--no-whole-archive -Wl,--end-group $_LIBDIRFLAGS $_LIBFLAGS $LD_LIBGCC'
+        prog_targets.append(self.env.Program(target=self.target_path(prog_name),
+                                             source=objects + dep_static_libs + dep_shlib_links))
 
-        prog_so = None
-        install_so = None
-        debug_so = None
-        prog_checked = None
-        prog_a = None
-
-        ### if shared_prog:
-        ###     if len(objects) + len(dep_progs) == 0:
-        ###         prog_so = "%s.prog.so" % (self.prog_name)
-        ###         install_so = "%s/%s" % (self.build_env.var_value('INSTALL_DIR'), prog_so)
-        ###         debug_so = "%s/%s" % (self.build_env.var_value('DEBUG_DIR'), prog_so)
-        ### else:
-        ###     prog_a = "%s.prog.a" % (self.prog_name)
-
-        ### if prog_so is not None and abi_so is not None:
-        ###     prog_checked = "%s.prog.checked" % (self.prog_name)
-
-        ### self.env['fn_debug']('PROG: %s %s' % (self.prog_name, 'shared' if shared_prog else 'static'))
-
-        ### if shared_prog:
-        ###     # ARCHIVES += ldso_so_support.prog.a
-        ###     pass
-
-        ### # TODO: PROG_IS_DYNAMIC_LINKER
-        ### 
-        ### # TODO: STATIC_PROGS
-        ### 
-        ### # NOTICE: PROG_SO_DEPS seems to be an artifact of the past
-        ### 
-        ### # TODO: ENTRY_POINT ?= 0x0
-
-        if prog_a is not None:
-            prog_targets.append(self.env.StaticProgram(target=self.target_path(prog_a),
-                                                       source=objects))
-
-        prog_targets += objects
-        prog_targets += dep_lib_links
         self.env['fn_notice']('prog_targets: %s' % (str(list(map(str, prog_targets)))))
 
         retval = self.env.Alias(self.env['fn_prog_alias_name'](self.prog_name), prog_targets)
