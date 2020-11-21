@@ -175,6 +175,7 @@ class GenodeMkProg(GenodeProg):
         self.build_helper.prepare_cc_env(self.env)
         self.build_helper.prepare_s_env(self.env)
         self.build_helper.prepare_ld_env(self.env)
+        self.build_helper.prepare_strip_env(self.env)
 
         objects = []
 
@@ -307,8 +308,13 @@ class GenodeMkProg(GenodeProg):
         prog_name = self.build_env.var_value('TARGET')
         ## $LINK -o $TARGET $LINKFLAGS $__RPATH $SOURCES $_LIBDIRFLAGS $_LIBFLAGS
         self.env['LINKCOM'] = '$LINK -o $TARGET $LINKFLAGS $__RPATH -Wl,--whole-archive -Wl,--start-group $SOURCES -Wl,--no-whole-archive -Wl,--end-group $_LIBDIRFLAGS $_LIBFLAGS $LD_LIBGCC'
-        prog_targets.append(self.env.Program(target=self.target_path(prog_name),
-                                             source=objects + dep_static_libs + dep_shlib_links))
+        prog_tgt = self.env.Program(target=self.target_path(prog_name),
+                                    source=objects + dep_static_libs + dep_shlib_links)
+        prog_targets.append(prog_tgt)
+
+        strip_tgt = self.env.Strip(target=self.target_path('%s.stripped' % (prog_name)),
+                                   source=prog_tgt)
+        prog_targets.append(strip_tgt)
 
         self.env['fn_notice']('prog_targets: %s' % (str(list(map(str, prog_targets)))))
 

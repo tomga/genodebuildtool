@@ -39,7 +39,7 @@ SCONS_BUILD_END: /scons: done building targets.|scons: building terminated becau
 
 PATH: /[.+\-a-zA-Z0-9_\/][.+\-a-zA-Z0-9_\/]*/;
 
-BUILD_COMMAND_TITLE: / (ASSEMBLE|COMPILE|CONVERT|LINK|MERGE|SYMLINK|LIBTAG)/;
+BUILD_COMMAND_TITLE: / (ASSEMBLE|COMPILE|CONVERT|LINK|MERGE|SYMLINK|LIBTAG|STRIP)/;
 
 NONBACKSLASH: /[^\\]/;
 LINE_END: /\n/;

@@ -142,3 +142,5 @@ class GenodeMkBuildHelper(GenodeBuildHelper):
         env['RANLIBCOMSTR'] = ""
 
 
+    def prepare_strip_env(self, env):
+        env['STRIP'] = self.build_env.var_value('STRIP')
