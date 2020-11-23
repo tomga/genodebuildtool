@@ -72,6 +72,8 @@ class GenodeMkProg(GenodeProg):
         self.build_env.var_set('REP_DIR', self.prog_mk_repo)
 
         prog_mk_path = os.path.dirname(prog_mk_file)
+        self.build_env.var_set('PRG_DIR', prog_mk_path)
+
         super().__init__(prog_name, env,
                          genode_build_helper.GenodeMkBuildHelper(self.build_env),
                          prog_mk_path)
