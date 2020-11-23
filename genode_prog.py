@@ -331,6 +331,15 @@ class GenodeMkProg(GenodeProg):
         prog_targets.append(dbg_prog_tgt)
 
 
+        # handle CONFIG_XSD
+        config_xsd = self.build_env.var_value('CONFIG_XSD')
+        if len(config_xsd) > 0:
+            xsd_name = '%s.xsd' % (prog_name)
+            config_xst_tgt = self.env.SymLink(source = os.path.join(self.relative_src_dir, config_xsd),
+                                              target=self.sconsify_path(os.path.join(self.env['INSTALL_DIR'], xsd_name)))
+            prog_targets.append(config_xst_tgt)
+
+
         self.env['fn_notice']('prog_targets: %s' % (str(list(map(str, prog_targets)))))
 
         retval = self.env.Alias(self.env['fn_prog_alias_name'](self.prog_name), prog_targets)
