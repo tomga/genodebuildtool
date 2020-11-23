@@ -52,7 +52,6 @@ def process_builddir(build_dir, env):
     build_env.var_set('INSTALL_DIR', '%s/bin' % (build_dir))
     build_env.var_set('LIB_CACHE_DIR', '%s/var/libcache' % (build_dir))
 
-
     genode_dir = build_env.var_value('GENODE_DIR')
     env['GENODE_DIR'] = genode_dir
 
@@ -110,6 +109,12 @@ def process_builddir(build_dir, env):
 
     base_dir = build_env.var_value('BASE_DIR')
     env['BASE_DIR'] = base_dir
+
+    install_dir = build_env.var_value('INSTALL_DIR')
+    env['INSTALL_DIR'] = install_dir
+
+    debug_dir = build_env.var_value('DEBUG_DIR')
+    env['DEBUG_DIR'] = debug_dir
 
     lib_cache_dir = build_env.var_value('LIB_CACHE_DIR')
     env['LIB_CACHE_DIR'] = lib_cache_dir

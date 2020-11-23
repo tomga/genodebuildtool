@@ -316,6 +316,19 @@ class GenodeMkProg(GenodeProg):
                                    source=prog_tgt)
         prog_targets.append(strip_tgt)
 
+
+        # symlink to stripped version
+        inst_prog_tgt = self.env.SymLink(source = strip_tgt,
+                                         target = self.sconsify_path(os.path.join(self.env['INSTALL_DIR'], prog_name)))
+        prog_targets.append(inst_prog_tgt)
+
+
+        # symlink to debug version
+        dbg_prog_tgt = self.env.SymLink(source = prog_tgt,
+                                        target = self.sconsify_path(os.path.join(self.env['DEBUG_DIR'], prog_name)))
+        prog_targets.append(dbg_prog_tgt)
+
+
         self.env['fn_notice']('prog_targets: %s' % (str(list(map(str, prog_targets)))))
 
         retval = self.env.Alias(self.env['fn_prog_alias_name'](self.prog_name), prog_targets)
