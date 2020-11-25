@@ -216,7 +216,7 @@ def process_builddir(build_dir, env):
         for dep in dep_progs:
             if dep not in known_progs:
                 known_progs.add(dep)
-                progs.extend(process_prog(dep, env, build_env))
+                progs.extend(process_progs(dep, env, build_env))
             dep_aliases.append(env.Alias(prog_alias_name(dep)))
         return dep_aliases
     env['fn_require_progs'] = require_progs
@@ -358,8 +358,55 @@ def check_for_lib_mk_overlay(lib_name, env, lib_mk_file, lib_mk_repo):
     return overlay_file_path
 
 
+def process_progs(prog_name, env, build_env):
 
-def process_prog(prog_name, env, build_env):
+    repositories = env['REPOSITORIES']
+    env['fn_debug']('process_progs: %s, repositories: %s' % (prog_name, repositories))
+
+    target_descr_files = {}
+
+    for repository in repositories:
+        mk_list = glob.glob('%s/src/%s/**/target.mk' % (repository, prog_name), recursive=True)
+        for mk in mk_list:
+            prog_path = mk[len('%s/src/' % (repository)):-len('/target.mk')]
+            print('prog_path: %s' % (prog_path))
+            if prog_path in target_descr_files:
+                print("Multiple build rules files found for program '%s' ('%s' and '%s')"
+                      % (prog_name, target_descr_files[prog_path][1], mk))
+                quit()
+            target_descr_files[prog_path] = ['mk', mk, repository]
+
+        sc_list = glob.glob('%s/src/%s/**/target.sc' % (repository, prog_name), recursive=True)
+        for sc in sc_list:
+            prog_path = sc[len('%s/src/' % (repository)):-len('/target.sc')]
+            print('prog_path: %s' % (prog_path))
+            if prog_path in target_descr_files:
+                print("Multiple build rules files found for program '%s' ('%s' and '%s')"
+                      % (prog_name, target_descr_files[prog_path][1], sc))
+                quit()
+            target_descr_files[prog_path] = ['sc', sc, repository]
+
+    env['fn_debug']('process_progs: %s, found descr files: %s' % (prog_name, str(target_descr_files)))
+
+    progs = []
+    for prog, desc in target_descr_files.items():
+        prog_mk_file = desc[1] if desc[0] == 'mk' else None
+        prog_mk_repo = desc[2] if desc[0] == 'mk' else None
+        prog_sc_file = desc[1] if desc[0] == 'sc' else None
+        prog_sc_repo = desc[2] if desc[0] == 'sc' else None
+        progs.extend(process_prog(prog,
+                                  prog_mk_file, prog_mk_repo,
+                                  prog_sc_file, prog_sc_repo,
+                                  env, build_env))
+
+    return progs
+
+
+
+def process_prog(prog_name,
+                 prog_mk_file, prog_mk_repo,
+                 prog_sc_file, prog_sc_repo,
+                 env, build_env):
     """Process program build rules.
 
     Build rules are read from <prog>/target.mk file like in standard
@@ -370,56 +417,7 @@ def process_prog(prog_name, env, build_env):
     """
 
     repositories = env['REPOSITORIES']
-    specs = env['SPECS']
 
-    ## find <prog>.mk file with repo
-    prog_mk_file = None
-    prog_mk_repo = None
-    for repository in repositories:
-        for spec in specs:
-            test_mk_file = 'src/%s/spec/%s/target.mk' % (prog_name, spec)
-            if tools.is_repo_file(test_mk_file, repository):
-                prog_mk_file = tools.file_path(test_mk_file, repository)
-                prog_mk_repo = repository
-                break
-        if prog_mk_file is not None:
-            break
-
-        test_mk_file = 'src/%s/target.mk' % (prog_name)
-        if tools.is_repo_file(test_mk_file, repository):
-            prog_mk_file = tools.file_path(test_mk_file, repository)
-            prog_mk_repo = repository
-            break
-
-    ## find <prog>.sc file with repo
-    prog_sc_file = None
-    prog_sc_repo = None
-    for repository in repositories:
-        for spec in specs:
-            test_sc_file = 'src/%s/spec/%s/target.sc' % (prog_name, spec)
-            if tools.is_repo_file(test_sc_file, repository):
-                prog_sc_file = tools.file_path(test_sc_file, repository)
-                prog_sc_repo = repository
-                break
-        if prog_sc_file is not None:
-            break
-
-        test_sc_file = 'prog/%s/target.sc' % (prog_name)
-        if tools.is_repo_file(test_sc_file, repository):
-            prog_sc_file = tools.file_path(test_sc_file, repository)
-            prog_sc_repo = repository
-            break
-
-    if (prog_mk_file is None and prog_sc_file is None):
-        print("Build rules file not found for program '%s'" % (prog_name))
-        quit()
-
-    if (prog_mk_file is not None and prog_sc_file is not None):
-        print("Multiple build rules files found for program '%s' ('%s' and '%s')"
-              % (prog_name,
-                 tools.file_path(prog_mk_file, prog_mk_repo),
-                 tools.file_path(prog_sc_file, prog_sc_repo)))
-        quit()
 
     if prog_sc_file is not None:
         print("prog_sc_file: %s" % (prog_sc_file))
