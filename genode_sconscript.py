@@ -370,7 +370,7 @@ def process_progs(prog_name, env, build_env):
         mk_list = glob.glob('%s/src/%s/**/target.mk' % (repository, prog_name), recursive=True)
         for mk in mk_list:
             prog_path = mk[len('%s/src/' % (repository)):-len('/target.mk')]
-            print('prog_path: %s' % (prog_path))
+            env['fn_debug']('prog_path: %s' % (prog_path))
             if prog_path in target_descr_files:
                 print("Multiple build rules files found for program '%s' ('%s' and '%s')"
                       % (prog_name, target_descr_files[prog_path][1], mk))
