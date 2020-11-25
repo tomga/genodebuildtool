@@ -155,6 +155,9 @@ class GenodeMkProg(GenodeProg):
         self.env['fn_debug']("SPECS: %s" % (str(specs)))
 
 
+        self.env['fn_debug'](pprint.pformat(self.build_env.debug_struct('pretty'), width=200))
+
+
         ### handle include generic.mk functionality
 
         ### handle cc_march
@@ -173,11 +176,7 @@ class GenodeMkProg(GenodeProg):
         self.env.AppendUnique(CPPPATH=all_inc_dir)
         self.env['fn_debug']('CPPPATH: %s' % (self.env['CPPPATH']))
 
-        self.build_helper.prepare_c_env(self.env)
-        self.build_helper.prepare_cc_env(self.env)
-        self.build_helper.prepare_s_env(self.env)
-        self.build_helper.prepare_ld_env(self.env)
-        self.build_helper.prepare_strip_env(self.env)
+        self.build_helper.prepare_env(self.env)
 
         objects = []
 

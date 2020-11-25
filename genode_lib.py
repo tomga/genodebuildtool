@@ -212,10 +212,7 @@ class GenodeMkLib(GenodeLib):
         self.env.AppendUnique(CPPPATH=all_inc_dir)
         self.env['fn_debug']('CPPPATH: %s' % (self.env['CPPPATH']))
 
-        self.build_helper.prepare_c_env(self.env)
-        self.build_helper.prepare_cc_env(self.env)
-        self.build_helper.prepare_s_env(self.env)
-        self.build_helper.prepare_ld_env(self.env)
+        self.build_helper.prepare_env(self.env)
 
         objects = []
 
@@ -272,7 +269,7 @@ class GenodeMkLib(GenodeLib):
 
             ### handle <lib>.symbols.o
             # assumes prepare_s_env() was already executed
-            symbols_obj_tgt = self.build_helper.generic_compile(self.env, map(str, symbols_asm_tgt))
+            symbols_obj_tgt = self.build_helper.generic_compile(self.env, map(str, symbols_asm_tgt), 'ASFLAGS')
 
             ### handle <lib>.abi.so
             for v in ['LD_OPT', 'LIB_SO_DEPS', 'LD_SCRIPT_SO']:

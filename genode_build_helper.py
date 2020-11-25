@@ -11,6 +11,19 @@ class GenodeBuildHelper:
         return '%s/%s/%s' % (lib_cache_dir, lib_name, target)
 
 
+    def prepare_env(self, env):
+        self.prepare_common_env(env)
+        self.prepare_c_env(env)
+        self.prepare_cc_env(env)
+        self.prepare_s_env(env)
+        self.prepare_ld_env(env)
+        self.prepare_strip_env(env)
+
+
+    def prepare_common_env(self, env):
+        raise Exception("prepare_common_env should be overridden")
+
+
     def prepare_c_env(self, env):
         # setup CC, CFLAGS
         raise Exception("prepare_c_env should be overridden")
@@ -32,25 +45,38 @@ class GenodeBuildHelper:
 
 
     def compile_c_sources(self, env, src_files):
-        return self.generic_compile(env, src_files)
+        return self.generic_compile(env, src_files, 'CFLAGS')
 
 
     def compile_cc_sources(self, env, src_files):
-        return self.generic_compile(env, src_files)
+        return self.generic_compile(env, src_files, 'CCFLAGS')
 
 
     def compile_s_sources(self, env, src_files):
-        return self.generic_compile(env, src_files)
+        return self.generic_compile(env, src_files, 'ASFLAGS')
 
 
-    def generic_compile(self, env, src_files):
+    def generic_compile(self, env, src_files, flags_var):
         objs = []
+
+        target_opts_fun = lambda tgt: None
+        if 'fn_get_target_opts' in env:
+            target_opts_fun = env['fn_get_target_opts']
+
         for src_file in src_files:
             tgt_file = os.path.basename(src_file)
-            tgt_file = '%s.o' % (os.path.splitext(tgt_file)[0])
+            tgt_basename = os.path.splitext(tgt_file)[0]
+            tgt_file = '%s.o' % (tgt_basename)
             env['fn_debug']("src_file: %s, tgt_file: %s" % (src_file, tgt_file))
+
+            kwargs = {}
+            target_opts = target_opts_fun(tgt_basename)
+            if target_opts is not None:
+                kwargs[flags_var] = target_opts + env[flags_var]
+
             obj = env.SharedObject(source = src_file,
-                                   target = env['fn_target_path'](tgt_file))
+                                   target = env['fn_target_path'](tgt_file),
+                                   **kwargs)
             objs += obj
         return objs
 
@@ -78,6 +104,19 @@ class GenodeMkBuildHelper(GenodeBuildHelper):
 
     def __init__(self, build_env):
         self.build_env = build_env
+
+
+    def prepare_common_env(self, env):
+        # prepare function to retrieve target specific options
+        def get_target_opts(tgt):
+            opt_name = 'CC_OPT_' + tgt.replace('.', '_')
+            if not self.build_env.check_var(opt_name):
+                return None
+            opts = self.build_env.var_values(opt_name)
+            env['fn_debug']('target_opts: %s - %s' % (tgt, str(opts)))
+            return opts
+        env['fn_get_target_opts'] = get_target_opts
+
 
     def prepare_c_env(self, env):
         env['CC'] = self.build_env.var_value('CC')
