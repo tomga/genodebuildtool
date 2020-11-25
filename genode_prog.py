@@ -267,9 +267,9 @@ class GenodeMkProg(GenodeProg):
             pass
         else:
             genode_ld_path = '%s/src/ld/genode_dyn.dl' % (self.env['BASE_DIR'])
-            print('genode_ld_path: %s' % (genode_ld_path))
+            self.env['fn_debug']('genode_ld_path: %s' % (genode_ld_path))
             ld_opt.append('--dynamic-list=%s' % (self.env['fn_localize_path'](genode_ld_path)))
-            print('ld_opt: %s' % (str(ld_opt)))
+            self.env['fn_debug']('ld_opt: %s' % (str(ld_opt)))
             ld_scripts = self.build_env.var_values('LD_SCRIPT_DYN')
 
             cxx_link_opt.append('-Wl,--dynamic-linker=%s.lib.so' % (self.build_env.var_value('DYNAMIC_LINKER')))
