@@ -10,6 +10,7 @@ def sconstruct():
     opts = Variables()
 
     opts.Add('BUILD', 'Build directory (relative from genode root)')
+    opts.Add('BOARD', 'Selected board')
     opts.Add('LIB', 'Space separated libraries list to build (named for conformance with mk build)')
     opts.Add(BoolVariable('VERBOSE_OUTPUT', 'Enable verbose output', default=False))
     opts.Add('LOG_LEVEL', 'Specify log output level', default='none',

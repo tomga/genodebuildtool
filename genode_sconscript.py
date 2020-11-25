@@ -47,6 +47,7 @@ def process_builddir(build_dir, env):
     #pprint.pprint(build_env.debug_struct('pretty'), width=200)
 
 
+    build_env.var_set('BOARD', env['BOARD'])
     build_env.var_set('BUILD_BASE_DIR', '%s' % (build_dir))
     build_env.var_set('DEBUG_DIR', '%s/debug' % (build_dir))
     build_env.var_set('INSTALL_DIR', '%s/bin' % (build_dir))
