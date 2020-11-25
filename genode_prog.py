@@ -289,6 +289,7 @@ class GenodeMkProg(GenodeProg):
             static_archive_name = '%s.lib.a' % (dep_lib)
             static_archive_path = self.build_helper.target_lib_path(lib_cache_dir, dep_lib, static_archive_name)
             dep_static_libs.append(static_archive_path)
+        dep_static_libs = sorted(dep_static_libs)
         self.env['fn_debug']("dep_static_libs: %s" % (str(dep_static_libs)))
 
 
