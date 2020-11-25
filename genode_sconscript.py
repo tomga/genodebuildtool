@@ -59,26 +59,21 @@ def process_builddir(build_dir, env):
     genode_localization_pattern = re.compile('^%s/' % (env['GENODE_DIR']))
     env['fn_localize_path'] = lambda path: genode_localization_pattern.sub('', path)
     env['fn_sconsify_path'] = lambda path: '#' + env['fn_localize_path'](path) if not path.startswith('/') else path
-    genode_prettify_pattern = re.compile('^.*/var/libcache/')
-    env['fn_prettify_path'] = lambda path: genode_prettify_pattern.sub('', str(path))
+    genode_prettify_lib_pattern = re.compile('^%s/var/libcache/' % (build_dir))
+    genode_prettify_prog_pattern = re.compile('^%s/' % (build_dir))
+    def prettify_path(path):
+        p = str(path)
+        p = genode_prettify_lib_pattern.sub('lib/', p)
+        p = genode_prettify_prog_pattern.sub('', p)
+        return p
+    env['fn_prettify_path'] = prettify_path
 
     def format_message_simple(tgt, src, cmd_pres, cmd_var, e):
-        return "%s %s" % (cmd_pres, genode_prettify_pattern.sub('', str(tgt)))
-
-    #processed_messages = set([])
-    #def format_message_verbose(tgt, src, cmd_pres, cmd_var, e):
-    #    tgt_str = str(tgt)
-    #    if tgt_str in processed_messages:
-    #        return " " # ugly hack to avoid duplicated messages
-    #    processed_messages.add(tgt_str)
-    #    return "%s %s%s" % (cmd_pres,
-    #                        genode_prettify_pattern.sub('', tgt_str),
-    #                        "\n%s" % (e.subst(e[cmd_var], raw=0,
-    #                                          target=tgt, source=src)))
+        return "%s %s" % (cmd_pres, prettify_path(tgt))
 
     def format_message_verbose(tgt, src, cmd_pres, cmd_var, e):
         return "%s %s\n%s" % (cmd_pres,
-                              genode_prettify_pattern.sub('', str(tgt)),
+                              prettify_path(tgt),
                               e.subst(e[cmd_var], raw=0, target=tgt, source=src))
     env['fn_msg'] = format_message_simple if not env['VERBOSE_OUTPUT'] else format_message_verbose
     env['SHCXXCOMSTR']  = '${fn_msg(TARGET, SOURCES, " COMPILE ", "SHCXXCOM",  __env__)}'
@@ -88,6 +83,7 @@ def process_builddir(build_dir, env):
     env['ARCOMSTR']     = '${fn_msg(TARGET, SOURCES, " LINK    ", "ARCOM",     __env__)}'
     env['MERGECOMSTR']  = '${fn_msg(TARGET, SOURCES, " MERGE   ", "MERGECOM",  __env__)}'
     env['OBJCPYCOMSTR'] = '${fn_msg(TARGET, SOURCES, " CONVERT ", "OBJCPYCOM", __env__)}'
+    env['LINKCOMSTR']   = '${fn_msg(TARGET, SOURCES, " LINK    ", "LINKCOM",   __env__)}'
 
 
     lib_info_dict = {}
