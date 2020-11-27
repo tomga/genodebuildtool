@@ -12,6 +12,9 @@ class MkEnvVar:
         self.mode = mode
         self.value = value if value is not None else MkRValueExpr()
 
+    def soft_clone(self):
+        return MkEnvVar(mode=self.mode, value=self.value.soft_clone())
+
     def is_simply_expanded(self):
         return self.mode == 'simple'
 
@@ -56,7 +59,14 @@ class MkEnv:
 
     def get_create_var(self, varname):
         if self.check_var(varname):
-            return self.get_var(varname)
+            found_var = self.get_var(varname)
+            if varname in self.variables:
+                return found_var
+
+            # it means it is from parent
+            cloned_var = found_var.soft_clone()
+            self.variables[varname] = cloned_var
+            return cloned_var
 
         self.variables[varname] = MkEnvVar()
         return self.variables[varname]
@@ -477,6 +487,9 @@ class MkRValueSubst(MkRValue):
 class MkRValueExpr:
     def __init__(self, parts = None):
         self.parts = parts if parts is not None else []
+
+    def soft_clone(self):
+        return MkRValueExpr(parts=self.parts[:])
 
     def append_part(self, part):
         if (len(self.parts) > 0
