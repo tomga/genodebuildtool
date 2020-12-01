@@ -8,7 +8,7 @@ def commands_clean(cmd_lines, run_dir, abs_dir, rel_dir):
     for orig in cmd_lines:
         orig = orig.strip()
         if (orig.startswith('rm ') or
-            orig.startswith('echo ') or
+            (orig.startswith('echo ') and ' .incbin ' not in orig) or
             orig.startswith('for ') or
             orig.startswith('checking library dependencies') or
             orig.startswith('make ') or

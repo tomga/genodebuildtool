@@ -316,6 +316,57 @@ def arg_clean_objcopy(args_tokenized, run_dir, abs_dir, rel_dir):
 
 
 
+def arg_parse_binary(args_array):
+
+    argparser = argparse.ArgumentParser('as')
+    argparser.add_argument('-f', action='store_true')
+    argparser.add_argument('SOURCES', action='append', default=[], nargs=1)
+    argparser.add_argument('-o', dest='TARGETS', action='append', default=[], nargs=1)
+
+    return argparser.parse_args(args_array)
+
+
+def arg_clean_binary(args_tokenized, run_dir, abs_dir, rel_dir):
+
+    # it should have form:
+    # echo sth_with_incbin | as ..args..
+    assert args_tokenized[0] == 'echo'
+    assert args_tokenized[2] == '|'
+    assert args_tokenized[3].endswith('as')
+
+    src = args_tokenized[1].split('"')
+    assert len(src) == 3
+    assert src[0].endswith('; .incbin ')
+
+    opts = arg_parse_binary(args_tokenized[4:])
+    #arguments_print(opts)
+
+    res = [args_tokenized[0]]
+
+    source = path_clean(src[1], run_dir, abs_dir, rel_dir, True)
+    res += [ r'"%s\"%s\"%s"' % (src[0], source, src[2]) ]
+
+    res += [ '|' ]
+    res += [ args_tokenized[3] ]
+
+    if opts.f: res += ['-f']
+
+    assert len(opts.SOURCES) == 1
+    assert len(opts.SOURCES[0]) == 1
+    assert opts.SOURCES[0][0] == '-'
+
+    targets = [ '%s' % (path_clean(v, run_dir, abs_dir, rel_dir, True))
+                for v in nodups(opts.TARGETS[0]) ]
+
+    res += [ '-o %s' % (v) for v in targets ]
+    res += [ '-' ]
+
+    command = ' '.join(res)
+
+    return (command, [source], targets)
+
+
+
 def arg_parse_strip(args_array):
 
     argparser = argparse.ArgumentParser('strip')
@@ -427,6 +478,8 @@ def arg_clean(args_string, run_dir, abs_dir, rel_dir):
         return arg_clean_sed(args_tokenized, run_dir, abs_dir, rel_dir)
     elif (prg.endswith('ln')):
         return arg_clean_ln(args_tokenized, run_dir, abs_dir, rel_dir)
+    elif (prg.endswith('echo') and '.incbin' in args_string):
+        return arg_clean_binary(args_tokenized, run_dir, abs_dir, rel_dir)
 
     print("unspported prog: %s" % prg)
     assert "unspported prog: %s" % prg == None
