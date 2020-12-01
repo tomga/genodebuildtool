@@ -16,6 +16,7 @@ class GenodeBuildHelper:
         self.prepare_c_env(env)
         self.prepare_cc_env(env)
         self.prepare_s_env(env)
+        self.prepare_binary_env(env)
         self.prepare_ld_env(env)
         self.prepare_strip_env(env)
 
@@ -35,8 +36,13 @@ class GenodeBuildHelper:
 
 
     def prepare_s_env(self, env):
-        # setup AS, ASFLAGS
+        # setup ASCOM, ASFLAGS
         raise Exception("prepare_s_env should be overridden")
+
+
+    def prepare_binary_env(self, env):
+        # setup AS, AS_OPT
+        raise Exception("prepare_binary_env should be overridden")
 
 
     def prepare_ld_env(self, env):
@@ -54,6 +60,20 @@ class GenodeBuildHelper:
 
     def compile_s_sources(self, env, src_files):
         return self.generic_compile(env, src_files, 'ASFLAGS')
+
+
+    def compile_binary_sources(self, env, src_files):
+        objs = []
+
+        for src_file in src_files:
+            tgt_file = os.path.basename(src_file)
+            tgt_file = 'binary_%s.o' % (tgt_file)
+            env['fn_debug']("src_file: %s, tgt_file: %s" % (src_file, tgt_file))
+
+            obj = env.BinaryObj(source = src_file,
+                                target = env['fn_target_path'](tgt_file))
+            objs += obj
+        return objs
 
 
     def generic_compile(self, env, src_files, flags_var):
@@ -162,6 +182,11 @@ class GenodeMkBuildHelper(GenodeBuildHelper):
         cc_c_opt = cc_c_opt.replace(cc_opt_dep_to_remove, '')
         env.AppendUnique(ASFLAGS=cc_c_opt.split())
         #env['fn_debug']('ASFLAGS: %s' % (env['ASFLAGS']))
+
+
+    def prepare_binary_env(self, env):
+        env['AS'] = self.build_env.var_value('AS')
+        env['AS_OPT'] = self.build_env.var_value('AS_OPT')
 
 
     def prepare_ld_env(self, env):

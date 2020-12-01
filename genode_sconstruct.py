@@ -47,6 +47,7 @@ def sconstruct():
     env.Tool('genode_abi_so',  toolpath = [os.path.join(env['BUILDTOOL_DIR'], 'tools')])
     env.Tool('genode_lib_tag', toolpath = [os.path.join(env['BUILDTOOL_DIR'], 'tools')])
     env.Tool('genode_strip',   toolpath = [os.path.join(env['BUILDTOOL_DIR'], 'tools')])
+    env.Tool('genode_binary',  toolpath = [os.path.join(env['BUILDTOOL_DIR'], 'tools')])
 
     SConscript('SConscript', exports = 'env')
 
