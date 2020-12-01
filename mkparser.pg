@@ -55,10 +55,10 @@ RValuePart: RValuePartText |
 
 
 RValuePartExpr: DOLLAR VarName |
-            		DOLLAR BRACE_OPEN Fun1Name WS ParamExpr BRACE_CLOSE |
-            		DOLLAR BRACE_OPEN Fun2Name WS ParamExpr CommaSeparator ParamExpr BRACE_CLOSE |
-            		DOLLAR BRACE_OPEN Fun3Name WS ParamExpr CommaSeparator ParamExpr CommaSeparator ParamExpr BRACE_CLOSE |
-            		DOLLAR BRACE_OPEN FunAnyName WS ParamList BRACE_CLOSE |
+            		DOLLAR BRACE_OPEN Fun1Name WS? ParamExpr BRACE_CLOSE |
+            		DOLLAR BRACE_OPEN Fun2Name WS? ParamExpr CommaSeparator ParamExpr BRACE_CLOSE |
+            		DOLLAR BRACE_OPEN Fun3Name WS? ParamExpr CommaSeparator ParamExpr CommaSeparator ParamExpr BRACE_CLOSE |
+            		DOLLAR BRACE_OPEN FunAnyName WS? ParamList BRACE_CLOSE |
             		DOLLAR BRACE_OPEN VarName BRACE_CLOSE |
             		DOLLAR BRACE_OPEN VAR_INDEX BRACE_CLOSE |
             		DOLLAR BRACE_OPEN VAR_SPECIAL BRACE_CLOSE |
@@ -78,10 +78,10 @@ ParamPart: ParamPartText |
 
 
 ParamPartExpr: DOLLAR VarName |
-           		 DOLLAR BRACE_OPEN Fun1Name WS ParamExpr BRACE_CLOSE |
-            	 DOLLAR BRACE_OPEN Fun2Name WS ParamExpr CommaSeparator ParamExpr BRACE_CLOSE |
-            	 DOLLAR BRACE_OPEN Fun3Name WS ParamExpr CommaSeparator ParamExpr CommaSeparator ParamExpr BRACE_CLOSE |
-            	 DOLLAR BRACE_OPEN FunAnyName WS ParamList BRACE_CLOSE |
+           		 DOLLAR BRACE_OPEN Fun1Name WS? ParamExpr BRACE_CLOSE |
+            	 DOLLAR BRACE_OPEN Fun2Name WS? ParamExpr CommaSeparator ParamExpr BRACE_CLOSE |
+            	 DOLLAR BRACE_OPEN Fun3Name WS? ParamExpr CommaSeparator ParamExpr CommaSeparator ParamExpr BRACE_CLOSE |
+            	 DOLLAR BRACE_OPEN FunAnyName WS? ParamList BRACE_CLOSE |
             	 DOLLAR BRACE_OPEN VarName BRACE_CLOSE |
             	 DOLLAR BRACE_OPEN VAR_INDEX BRACE_CLOSE |
             	 DOLLAR BRACE_OPEN VAR_SPECIAL BRACE_CLOSE |
@@ -110,30 +110,30 @@ CommaSeparator: COMMA WS?;
 
 ColonSeparator: COLON WS?;
 
-Fun1Name: "basename" |
-					"dir" |
-					"firstword" |
-					"lastword" |
-					"notdir" |
-					"realpath" |
-					"sort" |
-					"strip" |
-					"wildcard";
+Fun1Name: "basename " |
+					"dir " |
+					"firstword " |
+					"lastword " |
+					"notdir " |
+					"realpath " |
+					"sort " |
+					"strip " |
+					"wildcard ";
 
-Fun2Name: "addprefix" |
-					"addsuffix" |
-					"call" |
-					"filter" |
-					"filter-out" |
-					"findstring";
+Fun2Name: "addprefix " |
+					"addsuffix " |
+					"call " |
+					"filter " |
+					"filter-out " |
+					"findstring ";
 
-Fun3Name: "foreach" |
-					"if" |
-					"patsubst" |
-					"subst";
+Fun3Name: "foreach " |
+					"if " |
+					"patsubst " |
+					"subst ";
 
-FunAnyName: "error" |
-            "shell";
+FunAnyName: "error " |
+            "shell ";
 
 VarIdentWithOptWs: VarIdent WSOPT;
 

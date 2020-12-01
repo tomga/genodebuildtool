@@ -314,7 +314,7 @@ functionsDict['lastword'] = mkfun_lastword
 
 class MkRValueFun1(MkRValue):
     def __init__(self, funname, arg):
-        self.funname = funname
+        self.funname = funname.strip()
         self.arg = arg
 
     def type(self):
@@ -342,7 +342,7 @@ class MkRValueFun1(MkRValue):
 
 class MkRValueFun2(MkRValue):
     def __init__(self, funname, arg1, arg2):
-        self.funname = funname
+        self.funname = funname.strip()
         self.arg1 = arg1
         self.arg2 = arg2
 
@@ -372,7 +372,7 @@ class MkRValueFun2(MkRValue):
 
 class MkRValueFun3(MkRValue):
     def __init__(self, funname, arg1, arg2, arg3):
-        self.funname = funname
+        self.funname = funname.strip()
         self.arg1 = arg1
         self.arg2 = arg2
         self.arg3 = arg3
@@ -417,7 +417,7 @@ class MkRValueFun3(MkRValue):
 
 class MkRValueFunAny(MkRValue):
     def __init__(self, funname, args):
-        self.funname = funname
+        self.funname = funname.strip()
         self.args = args
 
     def type(self):
