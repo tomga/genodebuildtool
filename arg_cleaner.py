@@ -494,6 +494,50 @@ def arg_clean_ld_platform_symbol_map(args_tokenized, run_dir, abs_dir, rel_dir):
 
 
 
+def arg_parse_dd(args_array):
+
+    argparser = argparse.ArgumentParser('dd')
+    argparser.add_argument('--of', action='append', default=[], nargs=1)
+    argparser.add_argument('--bs', action='append', default=[], nargs=1)
+    argparser.add_argument('--seek', action='append', default=[], nargs=1)
+    argparser.add_argument('--count', action='append', default=[], nargs=1)
+    argparser.add_argument('--conv', action='append', default=[], nargs=1)
+
+    return argparser.parse_args(['--' + v for v in args_array])
+
+
+def arg_clean_ld_elf_executable(args_tokenized, run_dir, abs_dir, rel_dir):
+
+    assert len(args_tokenized) == 11
+    assert args_tokenized[2] == '|'
+    assert args_tokenized[3] == 'dd'
+    assert args_tokenized[9] == '2>'
+    assert args_tokenized[10] == '/dev/null'
+
+    opts = arg_parse_dd(args_tokenized[4:9])
+    #arguments_print(opts)
+
+    res = args_tokenized[:4]
+
+    sources = [ '%s' % (path_clean(v, run_dir, abs_dir, rel_dir, True))
+                for v in nodups(opts.of[0]) ]
+    targets = [ sources[0] + '[elf_exe]' ]
+
+    res += ['of=%s' % sources[0] ]
+    res += ['bs=%s' % opts.bs[0][0] ]
+    res += ['seek=%s' % opts.seek[0][0] ]
+    res += ['count=%s' % opts.count[0][0] ]
+    res += ['conv=%s' % opts.conv[0][0] ]
+
+    res += args_tokenized[9:]
+
+    command = ' '.join(res)
+
+    return (command, sources, targets)
+
+
+
+
 libs_var_pattern = re.compile(r'^libs=(.*);$')
 
 def arg_tokenize(args_string):
@@ -536,6 +580,8 @@ def arg_clean(args_string, run_dir, abs_dir, rel_dir):
         return arg_clean_binary(args_tokenized, run_dir, abs_dir, rel_dir)
     elif (prg == '(echo' and 'global' in args_string and 'local' in args_string):
         return arg_clean_ld_platform_symbol_map(args_tokenized, run_dir, abs_dir, rel_dir)
+    elif (prg == 'printf' and args_tokenized[3] == 'dd'):
+        return arg_clean_ld_elf_executable(args_tokenized, run_dir, abs_dir, rel_dir)
 
     print("unsupported prog: %s" % prg)
     assert "unsupported prog: %s" % prg == None
