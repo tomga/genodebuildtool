@@ -441,17 +441,6 @@ def arg_clean_check_abi(args_tokenized, run_dir, abs_dir, rel_dir):
 
 
 
-def arg_parse_sed(args_array):
-
-    argparser = argparse.ArgumentParser('sed')
-    argparser.add_argument('--localize-symbol', action='append', default=[])
-    argparser.add_argument('--redefine-sym', action='append', default=[])
-    argparser.add_argument('SOURCES', action='append', default=[], nargs=1)
-    argparser.add_argument('TARGETS', action='append', default=[], nargs=1)
-
-    return argparser.parse_args(args_array)
-
-
 def arg_clean_sed(args_tokenized, run_dir, abs_dir, rel_dir):
 
     assert args_tokenized[-2] == '>'
