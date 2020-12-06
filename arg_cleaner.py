@@ -194,7 +194,10 @@ def arg_parse_ld(args_array):
     argparser.add_argument('-soname', action='append', default=[])
     argparser.add_argument('-shared', action='store_true')
     argparser.add_argument('--eh-frame-hdr', action='store_true')
+    argparser.add_argument('-Bsymbolic-functions', action='store_true')
+    argparser.add_argument('--version-script', action='append', default=[])
     argparser.add_argument('-T', action='append', default=[])
+    argparser.add_argument('--entry', action='append', default=[])
     argparser.add_argument('-m', action='append', default=[])
     argparser.add_argument('-gc-sections', action='store_true')
     argparser.add_argument('-r', action='store_true')
@@ -212,7 +215,17 @@ def arg_parse_ld(args_array):
     argparser.add_argument('--no-whole-archive', action='store_true')
     argparser.add_argument('-o', dest='TARGETS', action='append', default=[], nargs=1)
 
-    return argparser.parse_args(args_array)
+    ### special treatment of ungrouped sources
+    argparser.add_argument('-UNGROUPED_SOURCES')   # just a placeholder
+
+    last_not_ungrouped_arg_index = len(args_array)-1
+    if '--no-whole-archive' in args_array:
+        last_not_ungrouped_arg_index = args_array.index('--no-whole-archive')
+
+    retval = argparser.parse_args(args_array[:last_not_ungrouped_arg_index+1])
+    retval.UNGROUPED_SOURCES = args_array[last_not_ungrouped_arg_index+1:]
+
+    return retval
 
 
 def arg_output_ld(args_parsed, run_dir, abs_dir, rel_dir, opts_prefix=None):
@@ -233,11 +246,16 @@ def arg_output_ld(args_parsed, run_dir, abs_dir, rel_dir, opts_prefix=None):
     res1 += [ '-soname%s' % (v) for v in nodups(opts.soname) ]
     if opts.shared: res1 += ['-shared']
     if opts.eh_frame_hdr: res1 += ['--eh-frame-hdr']
+    if opts.Bsymbolic_functions: res1 += ['-Bsymbolic-functions']
+    for v in nodups(opts.version_script):
+        res1 += [ '--version-script=%s' % (path_clean(v, run_dir, abs_dir, rel_dir, True)) ]
     for v in nodups(opts.T):
         if '=' not in v:
             res1 += [ '-T', path_clean(v, run_dir, abs_dir, rel_dir, True) ]
         else:
             res1 += [ '-T%s' % v ]
+    for v in nodups(opts.entry):
+        res1 += [ '--entry=%s' % (v) ]
     res1 += [ '-m%s' % (v) for v in nodups(opts.m) ]
     if opts.r: res1 += ['-r']
     if opts.gc_sections: res1 += ['-gc-sections']
@@ -256,6 +274,9 @@ def arg_output_ld(args_parsed, run_dir, abs_dir, rel_dir, opts_prefix=None):
     resS += sources
     if opts.end_group: res2 += ['--end-group']
     if opts.no_whole_archive: res2 += ['--no-whole-archive']
+
+    if opts.UNGROUPED_SOURCES is not None:
+        res2 += opts.UNGROUPED_SOURCES
 
     if opts_prefix is not None:
         res1 = [ opts_prefix + opt for opt in res1 ]
@@ -397,6 +418,29 @@ def arg_clean_strip(args_tokenized, run_dir, abs_dir, rel_dir):
 
 
 
+def arg_clean_check_abi(args_tokenized, run_dir, abs_dir, rel_dir):
+
+    assert len(args_tokenized) == 6
+    assert args_tokenized[3] == '&&'
+    assert args_tokenized[4] == 'touch'
+
+    res = args_tokenized
+
+    res[0] = path_clean(res[0], run_dir, abs_dir, rel_dir, True)
+
+    res[1] = path_clean(res[1], run_dir, abs_dir, rel_dir, True)
+    res[2] = path_clean(res[2], run_dir, abs_dir, rel_dir, True)
+    sources = [res[1], res[2]]
+
+    res[5] = path_clean(res[5], run_dir, abs_dir, rel_dir, True)
+    targets = [res[5]]
+
+    command = ' '.join(res)
+
+    return (command, sources, targets)
+
+
+
 def arg_parse_sed(args_array):
 
     argparser = argparse.ArgumentParser('sed')
@@ -442,6 +486,25 @@ def arg_clean_ln(args_tokenized, run_dir, abs_dir, rel_dir):
     return (command, sources, targets)
 
 
+def arg_clean_ld_platform_symbol_map(args_tokenized, run_dir, abs_dir, rel_dir):
+    assert args_tokenized[3] == 'sed'
+    assert args_tokenized[4] == '-n'
+    assert args_tokenized[-2] == '>'
+
+    res = args_tokenized
+
+    res[6] = path_clean(res[6], run_dir, abs_dir, rel_dir, True)
+    sources = [res[6]]
+
+    res[-1] = path_clean(res[-1], run_dir, abs_dir, rel_dir, True)
+    targets = [res[-1]]
+
+    command = ' '.join(res)
+
+    return (command, sources, targets)
+
+
+
 libs_var_pattern = re.compile(r'^libs=(.*);$')
 
 def arg_tokenize(args_string):
@@ -474,12 +537,16 @@ def arg_clean(args_string, run_dir, abs_dir, rel_dir):
         return arg_clean_objcopy(args_tokenized, run_dir, abs_dir, rel_dir)
     elif (prg.endswith('strip')):
         return arg_clean_strip(args_tokenized, run_dir, abs_dir, rel_dir)
+    elif (prg.endswith('check_abi')):
+        return arg_clean_check_abi(args_tokenized, run_dir, abs_dir, rel_dir)
     elif (prg.endswith('sed')):
         return arg_clean_sed(args_tokenized, run_dir, abs_dir, rel_dir)
     elif (prg.endswith('ln')):
         return arg_clean_ln(args_tokenized, run_dir, abs_dir, rel_dir)
     elif (prg.endswith('echo') and '.incbin' in args_string):
         return arg_clean_binary(args_tokenized, run_dir, abs_dir, rel_dir)
+    elif (prg == '(echo' and 'global' in args_string and 'local' in args_string):
+        return arg_clean_ld_platform_symbol_map(args_tokenized, run_dir, abs_dir, rel_dir)
 
     print("unspported prog: %s" % prg)
     assert "unspported prog: %s" % prg == None
