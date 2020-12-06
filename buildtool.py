@@ -74,6 +74,7 @@ def database_connect(opts):
         opts.test_mklogparser or opts.test_sclogparser or
         opts.test_mkdbstore or opts.test_scdbstore):
         db_file = os.path.join(os.path.dirname(opts.database), 'testdb.db')
+        print('Using test database: %s' % (db_file))
 
     build_db = sqlite3.connect(db_file)
 
