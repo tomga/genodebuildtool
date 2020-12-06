@@ -548,6 +548,6 @@ def arg_clean(args_string, run_dir, abs_dir, rel_dir):
     elif (prg == '(echo' and 'global' in args_string and 'local' in args_string):
         return arg_clean_ld_platform_symbol_map(args_tokenized, run_dir, abs_dir, rel_dir)
 
-    print("unspported prog: %s" % prg)
-    assert "unspported prog: %s" % prg == None
+    print("unsupported prog: %s" % prg)
+    assert "unsupported prog: %s" % prg == None
 
