@@ -35,7 +35,7 @@ def calculate_tag(source):
            None)
 
     if tag is None:
-        raise("LibTag: could not detect library tag: %s" % (str(list(map(str, source)))))
+        raise Exception("LibTag: could not detect library tag: %s" % (str(list(map(str, source)))))
     return tag
 
 
