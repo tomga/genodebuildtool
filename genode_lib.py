@@ -125,17 +125,29 @@ class GenodeMkLib(GenodeLib):
         shared_lib_defined = self.build_env.check_var('SHARED_LIB')
         if shared_lib_defined:
             ldso_support_lib_target = self.env['fn_require_libs'](['ldso_so_support'])
+            direct_dep_libs.append('ldso_so_support')
 
-        ### calculate list of shared library dependencies (recursively complete)
-        lib_so_deps = []
+        ### calculate list of library dependencies (recursively complete)
+        lib_deps = []
         for dep_lib in direct_dep_libs:
-            dep_lib_so_deps = self.env['fn_get_lib_info'](dep_lib)['so_deps']
-            lib_so_deps.extend(dep_lib_so_deps)
-        lib_so_deps = sorted(lib_so_deps)
+            dep_lib_deps = self.env['fn_get_lib_info'](dep_lib)['lib_deps']
+            lib_deps.extend(dep_lib_deps)
+        lib_deps = sorted(list(set(lib_deps)))
+        self.env['fn_debug']("direct_dep_libs: '%s'" % (str(direct_dep_libs)))
+        self.env['fn_debug']("lib_deps: '%s'" % (str(lib_deps)))
+
+        lib_so_deps = []
+        lib_a_deps = []
+        for lib in lib_deps:
+            if self.env['fn_get_lib_info'](lib)['type'] == 'a':
+                lib_a_deps.append(lib)
+            else:
+                lib_so_deps.append(lib)
 
         ### create links to shared library dependencies
         dep_lib_links = self.build_helper.create_dep_lib_links(
             self.env, self.target_path(None), lib_so_deps)
+
 
         ### handle include import-<lib>.mk files
         for dep_lib in direct_dep_libs:
@@ -159,6 +171,7 @@ class GenodeMkLib(GenodeLib):
         specs = self.env['SPECS']
         self.env['fn_debug']("REPOSITORIES: %s" % (str(repositories)))
         self.env['fn_debug']("SPECS: %s" % (str(specs)))
+
 
         ### handle shared library settings
 
@@ -198,6 +211,7 @@ class GenodeMkLib(GenodeLib):
                                      shell=True, universal_newlines=True, check=True)
             output = results.stdout
             self.build_env.var_set('LIBGCC', output)
+            self.env['LIBGCC'] = output
 
 
 
@@ -255,6 +269,8 @@ class GenodeMkLib(GenodeLib):
         # on it
         lib_type = None
 
+        abi_so = None
+
         if symbols_file is not None:
 
             ### handle <lib>.abi.so generation
@@ -310,7 +326,8 @@ class GenodeMkLib(GenodeLib):
 
         self.env['fn_debug']('LIB: %s %s' % (self.lib_name, 'shared' if shared_lib else 'static'))
 
-        if shared_lib:
+
+        if lib_so is not None:
             # ARCHIVES += ldso_so_support.lib.a
             pass
 
@@ -320,7 +337,34 @@ class GenodeMkLib(GenodeLib):
 
         # NOTICE: LIB_SO_DEPS seems to be an artifact of the past
 
-        # TODO: ENTRY_POINT ?= 0x0
+
+        if lib_so is not None:
+            # handle entry point
+            entry_point_defined = self.build_env.check_var('ENTRY_POINT')
+            if entry_point_defined:
+                entry_point = self.build_env.var_value('ENTRY_POINT')
+            else:
+                entry_point = '0x0'
+            self.env['ENTRY_POINT'] = entry_point
+
+
+            lib_cache_dir = self.build_helper.get_lib_cache_dir(self.env)
+            dep_archives = []
+            for dep_lib in lib_a_deps:
+                a_file_name = '%s.lib.a' % (dep_lib)
+                a_path = self.build_helper.target_lib_path(lib_cache_dir, dep_lib, a_file_name)
+                dep_archives.append(a_path)
+            self.env['fn_debug']('dep_archives: %s' % (str(dep_archives)))
+
+
+            for v in ['LD_OPT', 'LIB_SO_DEPS', 'LD_SCRIPT_SO']:
+                self.env[v] = self.build_env.var_value(v)
+            lib_so_tgt = self.env.LibSo(source = dep_lib_links + dep_archives + objects,
+                                        target = self.target_path(lib_so))
+
+            lib_targets.append(lib_so_tgt)
+
+
 
         if lib_a is not None:
             lib_targets.append(self.env.StaticLibrary(target=self.target_path(lib_a),
@@ -333,11 +377,14 @@ class GenodeMkLib(GenodeLib):
                                       target = self.target_path(lib_tag))
         lib_targets.append(lib_tag_tgt)
 
+
         if shared_lib:
-            lib_so_deps = sorted(lib_so_deps + [self.lib_name])
+            lib_deps = [self.lib_name]
+        else:
+            lib_deps.append(self.lib_name)
 
         self.env['fn_register_lib_info'](self.lib_name, { 'type': lib_type,
-                                                          'so_deps': lib_so_deps })
+                                                          'lib_deps': lib_deps })
 
         return self.env.Alias(self.env['fn_lib_alias_name'](self.lib_name), lib_targets)
 
