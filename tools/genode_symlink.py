@@ -31,7 +31,7 @@ def exists(env):
     '''
     return True
 
-def symlink_print(target, source, env):
+def symlink_print(target, source, env, executor=None):
     presentation = target[0]
     if 'fn_prettify_path' in env:
         presentation = env['fn_prettify_path'](presentation)

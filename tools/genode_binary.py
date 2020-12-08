@@ -36,7 +36,7 @@ def binary_generator(target, source, env, for_signature):
 
     return cmd
 
-def binary_print(target, source, env):
+def binary_print(target, source, env, executor=None):
     presentation = target[0]
     if 'fn_prettify_path' in env:
         presentation = env['fn_prettify_path'](presentation)
