@@ -14,7 +14,13 @@ def get_process_lib_overlay_fun(file_path):
     module = import_module_from_overlay(file_path)
     process_lib_overlay_fun = getattr(module, 'process_lib_overlay')
     return process_lib_overlay_fun
-    
+
+
+def get_process_prog_overlay_fun(file_path):
+    module = import_module_from_overlay(file_path)
+    process_prog_overlay_fun = getattr(module, 'process_prog_overlay')
+    return process_prog_overlay_fun
+
 
 def import_module_from_overlay(file_path, register_module=False):
     relative_file_path = overlay_localization_pattern.sub('', file_path)
