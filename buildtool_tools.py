@@ -8,6 +8,7 @@ import sys
 
 buildtool_dir = os.path.dirname(os.path.abspath(__file__))
 overlay_localization_pattern = re.compile('^%s/' % (buildtool_dir))
+ignored_overlay_extension_pattern = re.compile(r'^\.(sc|[0-9]+)$')
 
 def get_process_lib_overlay_fun(file_path):
     module = import_module_from_overlay(file_path)
@@ -17,6 +18,11 @@ def get_process_lib_overlay_fun(file_path):
 
 def import_module_from_overlay(file_path, register_module=False):
     relative_file_path = overlay_localization_pattern.sub('', file_path)
+    overlay_base, overlay_extension = os.path.splitext(relative_file_path)
+    while (ignored_overlay_extension_pattern.match(overlay_extension)):
+        relative_file_path = overlay_base
+        overlay_base, overlay_extension = os.path.splitext(relative_file_path)
+
     module_name = relative_file_path.replace('/', '.')
     #print("relative_file_path: %s" % (relative_file_path))
     #print("module_name: %s" % (module_name))
@@ -25,11 +31,10 @@ def import_module_from_overlay(file_path, register_module=False):
 
 
 def import_module_from_file(module_name, file_path, register_module=False):
-    assert "FIXIT"
 
-    module_name = 'genode.repos.base.lib.mk.cxx0'
-    #module_name = 'cxx0'
-    file_path = '/projects/genode/buildtool/genode/repos/base/lib/mk/cxx0.sc'
+    #print("imff: file_path: %s" % (file_path))
+    #print("imff: module_name: %s" % (module_name))
+    #print("imff: buildtool_dir: %s" % (buildtool_dir))
 
     #spec = importlib.util.spec_from_file_location(module_name, file_path)
     spec = importlib.util.spec_from_loader(module_name,
