@@ -13,7 +13,7 @@ def sconstruct():
     opts.Add('BOARD', 'Selected board')
     opts.Add('LIB', 'Space separated libraries list to build (named for conformance with mk build)')
     opts.Add(BoolVariable('VERBOSE_OUTPUT', 'Enable verbose output', default=False))
-    opts.Add('LOG_LEVEL', 'Specify log output level', default='none',
+    opts.Add('LOG_LEVEL', 'Specify log output level', default='error',
              allowed_values=('none', 'error', 'warning', 'notice', 'info', 'debug'))
 
     env = Environment(options = opts, ENV = os.environ)
