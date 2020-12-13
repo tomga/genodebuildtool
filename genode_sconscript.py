@@ -235,7 +235,7 @@ def process_lib(lib_name, env, build_env):
     Build rules are read from <lib>.mk file like in standard Genode
     build (repos/<repo>/lib/mk/<lib>.mk) but there are possibilities
     to overwrite default with providing build rules in
-    <buildtool>/genode/repos/<repo>/lib/mk/<lib>.ovr file where <repo>
+    <buildtool>/genode/repos/<repo>/lib/mk/<lib>.mk.ovr file where <repo>
     must be the same as for found <lib>.mk file.
     """
 
@@ -318,8 +318,7 @@ def check_for_lib_mk_overlay(lib_name, env, lib_mk_file, lib_mk_repo):
     full_mk_file_path = tools.file_path(lib_mk_file, lib_mk_repo)
     mk_file_path = env['fn_localize_path'](full_mk_file_path)
 
-    mk_pattern = re.compile(r'\.mk$')
-    overlay_info_file_path = os.path.join(env['OVERLAYS_DIR'], mk_pattern.sub('.ovr', mk_file_path))
+    overlay_info_file_path = os.path.join(env['OVERLAYS_DIR'], '%s.ovr' % (mk_file_path))
     #print("Checking overlays info file %s" % (overlay_info_file_path))
     if not os.path.isfile(overlay_info_file_path):
         # no overlays info file - fallback to default mk processing
@@ -336,19 +335,19 @@ def check_for_lib_mk_overlay(lib_name, env, lib_mk_file, lib_mk_repo):
             if line.startswith(mk_file_md5):
                 ovr_data = line.split()
                 if len(ovr_data) < 2:
-                    print("ERROR: invalid overlay entry in '%s':" % (overlay_info_file_path))
+                    env['fn_error']("ERROR: invalid overlay entry in '%s':" % (overlay_info_file_path))
                     print("     : %s" % (line))
                     quit()
                 overlay_file_name = ovr_data[1]
     if overlay_file_name is None:
-        print("ERROR: overlay not found in '%s' for hash '%s':" % (overlay_info_file_path, mk_file_md5))
+        env['fn_error']("ERROR: overlay not found in '%s' for hash '%s':" % (overlay_info_file_path, mk_file_md5))
         quit()
 
     overlay_file_path = os.path.join(os.path.dirname(overlay_info_file_path), overlay_file_name)
 
-    #print("Checking overlay file %s" % (overlay_file_path))
+    env['fn_debug']("Checking overlay file %s" % (overlay_file_path))
     if not os.path.isfile(overlay_file_path):
-        print("ERROR: missing overlay file '%s' mentioned metioned  in '%s':" % (overlay_file_path, overlay_info_file_path))
+        env['fn_error']("ERROR: missing overlay file '%s' mentioned metioned  in '%s':" % (overlay_file_path, overlay_info_file_path))
         quit()
 
     env['fn_notice']("Found overlay file '%s' for mk '%s'" % (overlay_file_path, mk_file_path))
