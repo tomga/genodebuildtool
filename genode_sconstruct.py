@@ -19,6 +19,8 @@ def sconstruct():
     env = Environment(options = opts, ENV = os.environ)
     env.SConsignFile('%s/.sconsign' % (env['BUILD']))
 
+    env['SHELL'] = 'bash'
+
     env['LIB_TARGETS'] = env['LIB'].split() if 'LIB' in env else []
     env['PROG_TARGETS'] = list(BUILD_TARGETS)  # TODO: filter when adding support for run scripts
     env['BUILD_TARGETS'] = BUILD_TARGETS
