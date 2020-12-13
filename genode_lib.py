@@ -354,6 +354,8 @@ class GenodeMkLib(GenodeLib):
                 a_file_name = '%s.lib.a' % (dep_lib)
                 a_path = self.build_helper.target_lib_path(lib_cache_dir, dep_lib, a_file_name)
                 dep_archives.append(a_path)
+            # sort libs with paths for compatibility with mk build
+            dep_archives = list(sorted(dep_archives))
             self.env['fn_debug']('dep_archives: %s' % (str(dep_archives)))
 
 
