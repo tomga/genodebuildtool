@@ -8,6 +8,7 @@ import pprint
 
 import mkevaluator
 import mkparser
+import scmkevaluator
 
 import genode_build_helper
 
@@ -18,7 +19,7 @@ class GenodeProg:
 
     def __init__(self, prog_name, env, build_helper, prog_base_path):
         self.prog_name = prog_name
-        self.env = env.Clone()
+        self.env = env
 
         # for use in target_path
         self.relative_src_dir = self.env['fn_localize_path'](prog_base_path)
@@ -26,6 +27,7 @@ class GenodeProg:
 
         self.build_helper = build_helper
 
+        self.env['fn_current_target_type'] = lambda : 'prog'
         self.env['fn_target_path'] = lambda tgt: self.target_path(tgt)
 
 
@@ -65,8 +67,12 @@ class GenodeMkProg(GenodeProg):
     def __init__(self, prog_name, env,
                  prog_mk_file, prog_mk_repo,
                  build_env):
-        self.build_env = mkevaluator.MkEnv(mk_cache=build_env.mk_cache,
-                                           parent_env=build_env)
+
+        prog_env = env.Clone()
+
+        self.build_env = scmkevaluator.ScMkEnv(prog_env,
+                                               mk_cache=build_env.mk_cache,
+                                               parent_env=build_env)
         self.prog_mk_file = prog_mk_file
         self.prog_mk_repo = prog_mk_repo
         self.build_env.var_set('REP_DIR', self.prog_mk_repo)
@@ -74,7 +80,7 @@ class GenodeMkProg(GenodeProg):
         prog_mk_path = os.path.dirname(prog_mk_file)
         self.build_env.var_set('PRG_DIR', prog_mk_path)
 
-        super().__init__(prog_name, env,
+        super().__init__(prog_name, prog_env,
                          genode_build_helper.GenodeMkBuildHelper(self.build_env),
                          prog_mk_path)
 

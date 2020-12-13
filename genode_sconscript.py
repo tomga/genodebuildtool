@@ -12,6 +12,7 @@ import buildtool_tools
 import mkevaluator
 import mkparser
 import mklogparser
+import scmkevaluator
 
 import genode_lib
 import genode_prog
@@ -37,8 +38,8 @@ def process_builddir(build_dir, env):
     Mimics behavior of tool/builddir/build.mk
     """
 
-
-    build_env = mkevaluator.MkEnv(mkcache)
+    scmkcache = scmkevaluator.ScMkCache(env, mkcache)
+    build_env = mkevaluator.MkEnv(scmkcache)
 
 
     ### handle build.conf
@@ -59,6 +60,7 @@ def process_builddir(build_dir, env):
     genode_localization_pattern = re.compile('^%s/' % (env['GENODE_DIR']))
     env['fn_localize_path'] = lambda path: genode_localization_pattern.sub('', path)
     env['fn_sconsify_path'] = lambda path: '#' + env['fn_localize_path'](path) if not path.startswith('/') else path
+    env['fn_unsconsify_path'] = lambda path: path[1:] if path.startswith('#') else path
     genode_prettify_lib_pattern = re.compile('^%s/var/libcache/' % (build_dir))
     genode_prettify_prog_pattern = re.compile('^%s/' % (build_dir))
     def prettify_path(path):
@@ -85,6 +87,14 @@ def process_builddir(build_dir, env):
     env['OBJCPYCOMSTR'] = '${fn_msg(TARGET, SOURCES, " CONVERT ", "OBJCPYCOM", __env__)}'
     env['LINKCOMSTR']   = '${fn_msg(TARGET, SOURCES, " LINK    ", "LINKCOM",   __env__)}'
 
+    def format_custom_message_simple(tgt, cmd_pres, cmd_text):
+        return "%s %s" % (' ' + cmd_pres.ljust(8), prettify_path(tgt))
+
+    def format_custom_message_verbose(tgt, cmd_pres, cmd_text):
+        return "%s %s\n%s" % (' ' + cmd_pres.ljust(8), prettify_path(tgt), cmd_text)
+
+    env['fn_fmt_out'] = (format_custom_message_simple if not env['VERBOSE_OUTPUT']
+                         else format_custom_message_verbose)
 
     lib_info_dict = {}
     def register_lib_info(lib_name, lib_info):

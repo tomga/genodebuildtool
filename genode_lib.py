@@ -8,6 +8,7 @@ import pprint
 
 import mkevaluator
 import mkparser
+import scmkevaluator
 
 import genode_build_helper
 
@@ -18,15 +19,18 @@ class GenodeLib:
 
     def __init__(self, lib_name, env, build_helper):
         self.lib_name = lib_name
-        self.env = env.Clone()
+        self.env = env
 
         # for use in target_path
         self.relative_lib_cache_dir = self.sconsify_path(self.env['LIB_CACHE_DIR'])
 
         self.build_helper = build_helper
 
+        self.env['fn_current_target_type'] = lambda : 'lib'
         self.env['fn_target_path'] = lambda tgt: self.target_path(tgt)
 
+        self.post_process_actions = []
+        self.env['fn_add_post_process_action'] = lambda action: self.post_process_actions.append(action)
 
     def sconsify_path(self, path):
         return self.env['fn_sconsify_path'](path)
@@ -69,13 +73,18 @@ class GenodeMkLib(GenodeLib):
     def __init__(self, lib_name, env,
                  lib_mk_file, lib_mk_repo,
                  build_env):
-        self.build_env = mkevaluator.MkEnv(mk_cache=build_env.mk_cache,
-                                           parent_env=build_env)
+
+        lib_env = env.Clone()
+
+        self.build_env = scmkevaluator.ScMkEnv(lib_env,
+                                               mk_cache=build_env.mk_cache,
+                                               parent_env=build_env)
         self.lib_mk_file = lib_mk_file
         self.lib_mk_repo = lib_mk_repo
         self.build_env.var_set('REP_DIR', self.lib_mk_repo)
 
-        super().__init__(lib_name, env, genode_build_helper.GenodeMkBuildHelper(self.build_env))
+        super().__init__(lib_name, lib_env,
+                         genode_build_helper.GenodeMkBuildHelper(self.build_env))
 
 
     def process(self):
@@ -105,7 +114,8 @@ class GenodeMkLib(GenodeLib):
         self.build_env.var_set('called_from_lib_mk', 'yes')
 
         self.env['fn_info']("Parsing build rules for library '%s' from '%s'" % (self.lib_name, self.lib_mk_file))
-        lib_mk = mkcache.get_parsed_mk(self.lib_mk_file)
+        # overlays for <lib>.mk are already handled on a different level
+        lib_mk = mkcache.get_parsed_mk(self.lib_mk_file, no_overlay=True)
         #self.env['fn_debug'](pprint.pformat(lib_mk.debug_struct(), width=180))
         lib_mk.process(self.build_env)
         #self.env['fn_debug'](pprint.pformat(self.build_env.debug_struct('pretty'), width=200))
@@ -387,6 +397,10 @@ class GenodeMkLib(GenodeLib):
 
         self.env['fn_register_lib_info'](self.lib_name, { 'type': lib_type,
                                                           'lib_deps': lib_deps })
+
+        ## execute post_process_actions
+        for action in self.post_process_actions:
+            action()
 
         return self.env.Alias(self.env['fn_lib_alias_name'](self.lib_name), lib_targets)
 
