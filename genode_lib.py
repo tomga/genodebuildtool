@@ -188,6 +188,7 @@ class GenodeMkLib(GenodeLib):
         ## find <lib> symbols file with repo
         symbols_file = None
         symbols_repo = None
+        symbols_file_path = None
         for repository in repositories:
             for spec in specs:
                 test_symbols_file = 'lib/symbols/spec/%s/%s' % (spec, self.lib_name)
@@ -203,12 +204,18 @@ class GenodeMkLib(GenodeLib):
                 symbols_file = tools.file_path(test_symbols_file, repository)
                 symbols_repo = repository
                 break
+        if symbols_file is not None:
+            symbols_file_path = os.path.join(symbols_repo, symbols_file)
 
-        shared_lib = (symbols_file is not None
+        if self.build_env.check_var('SYMBOLS'):
+            symbols_full_path = self.build_env.var_value('SYMBOLS')
+            symbols_file_path = self.env['fn_localize_path'](symbols_full_path)
+
+        shared_lib = (symbols_file_path is not None
                       or self.build_env.var_value('SHARED_LIB') == 'yes')
 
-        #self.env['fn_debug']("SYMBOLS_FILE: %s" % (str(symbols_file)))
-        #self.env['fn_debug']("SHARED_LIB: %s" % (str(shared_lib)))
+        self.env['fn_debug']("SYMBOLS_FILE: %s" % (str(symbols_file_path)))
+        self.env['fn_debug']("SHARED_LIB: %s" % (str(shared_lib)))
 
 
         ### handle libgcc
@@ -281,13 +288,13 @@ class GenodeMkLib(GenodeLib):
 
         abi_so = None
 
-        if symbols_file is not None:
+        if symbols_file_path is not None:
 
             ### handle <lib>.abi.so generation
 
             abi_so = '%s.abi.so' % (self.lib_name)
 
-            symbols_file = self.sconsify_path(os.path.join(symbols_repo, symbols_file))
+            symbols_file = self.sconsify_path(symbols_file_path)
             #self.env['fn_debug']('SYMBOLS_FILE: %s' % (symbols_file))
             symbols_lnk = '%s.symbols' % (self.lib_name)
             #self.env['fn_debug']('SYMBOLS_LNK: %s' % (symbols_lnk))
