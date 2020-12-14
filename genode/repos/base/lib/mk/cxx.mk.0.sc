@@ -3,6 +3,20 @@ import genode_lib
 import SCons.Action
 
 class GenodeCxxMkLib(genode_lib.GenodeMkLib):
+
+    ## hardcoded to avoid error in cxx.mk has wrong: SRC_S = supc++.o
+    def get_s_sources(self):
+        #src_s = self.build_env.var_values('SRC_S')
+        src_s = []
+        src_files = self.get_sources(src_s)
+        return src_files
+    def get_c_sources(self):
+        #src_c = self.build_env.var_values('SRC_C')
+        src_c = ['unwind.c']
+        src_files = self.get_sources(src_c)
+        return src_files
+
+
     def build_o_objects(self):
         self.env['fn_debug']("build_o_objects")
         cxx_src = self.build_env.var_values('CXX_SRC')
@@ -10,7 +24,9 @@ class GenodeCxxMkLib(genode_lib.GenodeMkLib):
         cxx_internal_objs = self.build_helper.compile_cc_sources(self.env, cxx_src_files)
         self.env['fn_debug']("build_o_objects: %s" % (str(cxx_internal_objs)))
 
-        target_name = self.build_env.var_value('SRC_O')
+        ## hardcoded to avoid error in cxx.mk has wrong: SRC_S = supc++.o
+        #target_name = self.build_env.var_value('SRC_O')
+        target_name = 'supc++.o'
         target_file = self.target_path(target_name)
 
         for v in ['VERBOSE', 'MSG_MERGE', 'MSG_CONVERT',
