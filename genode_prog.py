@@ -117,12 +117,22 @@ class GenodeMkProg(GenodeProg):
         self.env['fn_debug']("archives: %s" % (str(archives)))
 
 
-        ### calculate list of shared library dependencies (recursively complete)
-        lib_so_deps = []
+        ### calculate list of library dependencies (recursively complete)
+        lib_deps = []
         for dep_lib in direct_dep_libs:
-            dep_lib_so_deps = self.env['fn_get_lib_info'](dep_lib)['so_deps']
-            lib_so_deps.extend(dep_lib_so_deps)
-        lib_so_deps = sorted(lib_so_deps)
+            dep_lib_deps = self.env['fn_get_lib_info'](dep_lib)['lib_deps']
+            lib_deps.extend(dep_lib_deps)
+        lib_deps = sorted(list(set(lib_deps)))
+        self.env['fn_debug']("direct_dep_libs: '%s'" % (str(direct_dep_libs)))
+        self.env['fn_debug']("lib_deps: '%s'" % (str(lib_deps)))
+
+        lib_so_deps = []
+        lib_a_deps = []
+        for lib in lib_deps:
+            if self.env['fn_get_lib_info'](lib)['type'] == 'a':
+                lib_a_deps.append(lib)
+            else:
+                lib_so_deps.append(lib)
 
         ### create links to shared library dependencies
         dep_shlib_links = self.build_helper.create_dep_lib_links(
@@ -309,33 +319,35 @@ class GenodeMkProg(GenodeProg):
 
         prog_targets = []
 
-        self.env['fn_debug']("ld_opt: %s" % (str(ld_opt)))
-        self.env['fn_debug']("cxx_link_opt: %s" % (str(cxx_link_opt)))
+        if len(objects) > 0:
 
-        ld_cxx_opt = [ '-Wl,%s' % (opt) for opt in ld_opt ] 
-        self.env['LINKFLAGS'] = cxx_link_opt + ld_cxx_opt
-        prog_name = self.build_env.var_value('TARGET')
-        ## $LINK -o $TARGET $LINKFLAGS $__RPATH $SOURCES $_LIBDIRFLAGS $_LIBFLAGS
-        self.env['LINKCOM'] = '$LINK -o $TARGET $LINKFLAGS $__RPATH -Wl,--whole-archive -Wl,--start-group $SOURCES -Wl,--no-whole-archive -Wl,--end-group $_LIBDIRFLAGS $_LIBFLAGS $LD_LIBGCC'
-        prog_tgt = self.env.Program(target=self.target_path(prog_name),
-                                    source=objects + dep_static_libs + dep_shlib_links)
-        prog_targets.append(prog_tgt)
+            self.env['fn_debug']("ld_opt: %s" % (str(ld_opt)))
+            self.env['fn_debug']("cxx_link_opt: %s" % (str(cxx_link_opt)))
 
-        strip_tgt = self.env.Strip(target=self.target_path('%s.stripped' % (prog_name)),
-                                   source=prog_tgt)
-        prog_targets.append(strip_tgt)
+            ld_cxx_opt = [ '-Wl,%s' % (opt) for opt in ld_opt ]
+            self.env['LINKFLAGS'] = cxx_link_opt + ld_cxx_opt
+            prog_name = self.build_env.var_value('TARGET')
+            ## $LINK -o $TARGET $LINKFLAGS $__RPATH $SOURCES $_LIBDIRFLAGS $_LIBFLAGS
+            self.env['LINKCOM'] = '$LINK -o $TARGET $LINKFLAGS $__RPATH -Wl,--whole-archive -Wl,--start-group $SOURCES -Wl,--no-whole-archive -Wl,--end-group $_LIBDIRFLAGS $_LIBFLAGS $LD_LIBGCC'
+            prog_tgt = self.env.Program(target=self.target_path(prog_name),
+                                        source=objects + dep_static_libs + dep_shlib_links)
+            prog_targets.append(prog_tgt)
 
-
-        # symlink to stripped version
-        inst_prog_tgt = self.env.SymLink(source = strip_tgt,
-                                         target = self.sconsify_path(os.path.join(self.env['INSTALL_DIR'], prog_name)))
-        prog_targets.append(inst_prog_tgt)
+            strip_tgt = self.env.Strip(target=self.target_path('%s.stripped' % (prog_name)),
+                                       source=prog_tgt)
+            prog_targets.append(strip_tgt)
 
 
-        # symlink to debug version
-        dbg_prog_tgt = self.env.SymLink(source = prog_tgt,
-                                        target = self.sconsify_path(os.path.join(self.env['DEBUG_DIR'], prog_name)))
-        prog_targets.append(dbg_prog_tgt)
+            # symlink to stripped version
+            inst_prog_tgt = self.env.SymLink(source = strip_tgt,
+                                             target = self.sconsify_path(os.path.join(self.env['INSTALL_DIR'], prog_name)))
+            prog_targets.append(inst_prog_tgt)
+
+
+            # symlink to debug version
+            dbg_prog_tgt = self.env.SymLink(source = prog_tgt,
+                                            target = self.sconsify_path(os.path.join(self.env['DEBUG_DIR'], prog_name)))
+            prog_targets.append(dbg_prog_tgt)
 
 
         # handle CONFIG_XSD
