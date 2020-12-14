@@ -65,9 +65,18 @@ class GenodeBuildHelper:
     def compile_binary_sources(self, env, src_files):
         objs = []
 
-        for src_file in src_files:
+        for src_file_info in src_files:
+            if isinstance(src_file_info, tuple):
+                src_file_path, src_file = src_file_info
+            else:
+                src_file_path, src_file = os.path.split(src_file_info)
             tgt_file = os.path.basename(src_file)
-            tgt_file = 'binary_%s.o' % (tgt_file)
+            tgt_subdir = os.path.dirname(src_file)
+            tgt_basename = os.path.splitext(tgt_file)[0]
+            tgt_file = 'binary_%s.o' % (tgt_basename)
+            if tgt_subdir != '':
+                tgt_file = os.path.join(tgt_subdir, tgt_file)
+            src_file = src_file_path + '/' + src_file
             env['fn_debug']("src_file: %s, tgt_file: %s" % (src_file, tgt_file))
 
             obj = env.BinaryObj(source = src_file,
@@ -83,10 +92,18 @@ class GenodeBuildHelper:
         if 'fn_get_target_opts' in env:
             target_opts_fun = env['fn_get_target_opts']
 
-        for src_file in src_files:
+        for src_file_info in src_files:
+            if isinstance(src_file_info, tuple):
+                src_file_path, src_file = src_file_info
+            else:
+                src_file_path, src_file = os.path.split(src_file_info)
             tgt_file = os.path.basename(src_file)
+            tgt_subdir = os.path.dirname(src_file)
             tgt_basename = os.path.splitext(tgt_file)[0]
             tgt_file = '%s.o' % (tgt_basename)
+            if tgt_subdir != '':
+                tgt_file = os.path.join(tgt_subdir, tgt_file)
+            src_file = src_file_path + '/' + src_file
             env['fn_debug']("src_file: %s, tgt_file: %s" % (src_file, tgt_file))
 
             kwargs = {}

@@ -436,9 +436,8 @@ class GenodeMkLib(GenodeLib):
             existing_file_paths = [ f for f in file_paths if os.path.isfile(os.path.join(f, src_file)) ]
             if len(existing_file_paths) != 1:
                 self.env['fn_notice']("expected exactly one vpath for %s but exist %s from %s found" % (src_file, str(existing_file_paths), str(file_paths)))
-            src_file = os.path.join(existing_file_paths[0], src_file)
-            src_file = self.sconsify_path(src_file)
-            src_files.append(src_file)
+            src_file_path = self.sconsify_path(existing_file_paths[0])
+            src_files.append((src_file_path, src_file))
         return src_files
 
 
