@@ -582,6 +582,8 @@ def arg_clean(args_string, run_dir, abs_dir, rel_dir):
         return arg_clean_ld_platform_symbol_map(args_tokenized, run_dir, abs_dir, rel_dir)
     elif (prg == 'printf' and args_tokenized[3] == 'dd'):
         return arg_clean_ld_elf_executable(args_tokenized, run_dir, abs_dir, rel_dir)
+    elif prg.endswith(':'): # compiler/linker errors and warnings
+        return (None, None, None)
 
     print("unsupported prog: %s" % prg)
     assert "unsupported prog: %s" % prg == None

@@ -20,6 +20,9 @@ def commands_clean(cmd_lines, run_dir, abs_dir, rel_dir):
 
         (cmd, src, tgt) = arg_cleaner.arg_clean(orig, run_dir, abs_dir, rel_dir)
 
+        if cmd is None:
+            continue
+
         result += [(cmd, src, tgt, orig)]
 
     return result
