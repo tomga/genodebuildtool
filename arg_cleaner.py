@@ -420,6 +420,11 @@ def arg_clean_strip(args_tokenized, run_dir, abs_dir, rel_dir):
 
 def arg_clean_check_abi(args_tokenized, run_dir, abs_dir, rel_dir):
 
+    ## extend original check_abi command with touching checked file
+    if len(args_tokenized) == 3:
+        checked_name = args_tokenized[1].replace('.so', '.checked')
+        args_tokenized.extend(['&&', 'touch', checked_name])
+
     assert len(args_tokenized) == 6
     assert args_tokenized[3] == '&&'
     assert args_tokenized[4] == 'touch'
