@@ -126,6 +126,8 @@ def process_builddir(build_dir, env):
     lib_cache_dir = build_env.var_value('LIB_CACHE_DIR')
     env['LIB_CACHE_DIR'] = lib_cache_dir
 
+    env['CHECK_ABI'] = env['fn_localize_path']('%s/../../tool/check_abi' % (base_dir))
+
     ### handle */etc/specs.conf files
     repositories_specs_conf_files = tools.find_files('%s/etc/specs.conf', repositories)
     specs_conf_files = repositories_specs_conf_files + ['%s/etc/specs.conf' % (build_dir)]

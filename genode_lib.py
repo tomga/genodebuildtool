@@ -288,6 +288,7 @@ class GenodeMkLib(GenodeLib):
 
         abi_so = None
 
+        symbols_file = None
         if symbols_file_path is not None:
 
             ### handle <lib>.abi.so generation
@@ -323,23 +324,15 @@ class GenodeMkLib(GenodeLib):
 
 
         lib_so = None
-        install_so = None
-        debug_so = None
-        lib_checked = None
         lib_a = None
 
         if shared_lib:
             if len(objects) + len(direct_dep_libs) != 0:
                 lib_so = "%s.lib.so" % (self.lib_name)
-                install_so = "%s/%s" % (self.build_env.var_value('INSTALL_DIR'), lib_so)
-                debug_so = "%s/%s" % (self.build_env.var_value('DEBUG_DIR'), lib_so)
                 lib_type = 'so'
         else:
             lib_a = "%s.lib.a" % (self.lib_name)
             lib_type = 'a'
-
-        if lib_so is not None and abi_so is not None:
-            lib_checked = "%s.lib.checked" % (self.lib_name)
 
         self.env['fn_debug']('LIB: %s %s' % (self.lib_name, 'shared' if shared_lib else 'static'))
 
@@ -354,7 +347,7 @@ class GenodeMkLib(GenodeLib):
 
         # NOTICE: LIB_SO_DEPS seems to be an artifact of the past
 
-
+        lib_so_tgt = None
         if lib_so is not None:
             # handle entry point
             entry_point_defined = self.build_env.check_var('ENTRY_POINT')
@@ -383,6 +376,28 @@ class GenodeMkLib(GenodeLib):
 
             lib_targets.append(lib_so_tgt)
 
+            # stripped shared library
+            strip_tgt = self.env.Strip(target=self.target_path('%s.stripped' % (lib_so)),
+                                       source=lib_so_tgt)
+            lib_targets.append(strip_tgt)
+
+            # symlink to stripped version
+            inst_lib_tgt = self.env.SymLink(source=strip_tgt,
+                                            target=self.sconsify_path(os.path.join(self.env['INSTALL_DIR'], lib_so)))
+            lib_targets.append(inst_lib_tgt)
+
+            # symlink to debug version
+            dbg_lib_tgt = self.env.SymLink(source = lib_so_tgt,
+                                           target = self.sconsify_path(os.path.join(self.env['DEBUG_DIR'], lib_so)))
+            lib_targets.append(dbg_lib_tgt)
+
+
+        if (lib_so_tgt is not None and symbols_file is not None):
+            lib_checked = "%s.lib.checked" % (self.lib_name)
+            check_abi_tgt = self.env.CheckAbi(target=self.target_path(lib_checked),
+                                              source=[ lib_so_tgt, symbols_file ])
+
+            lib_targets.append(check_abi_tgt)
 
 
         if lib_a is not None:

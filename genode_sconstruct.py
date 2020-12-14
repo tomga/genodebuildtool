@@ -44,13 +44,14 @@ def sconstruct():
     env['BUILDTOOL_DIR'] = buildtool_dir
     env['OVERLAYS_DIR'] = os.path.join(buildtool_dir, 'genode')
 
-    env.Tool('genode_symlink', toolpath = [os.path.join(env['BUILDTOOL_DIR'], 'tools')])
-    env.Tool('genode_symbols', toolpath = [os.path.join(env['BUILDTOOL_DIR'], 'tools')])
-    env.Tool('genode_abi_so',  toolpath = [os.path.join(env['BUILDTOOL_DIR'], 'tools')])
-    env.Tool('genode_lib_so',  toolpath = [os.path.join(env['BUILDTOOL_DIR'], 'tools')])
-    env.Tool('genode_lib_tag', toolpath = [os.path.join(env['BUILDTOOL_DIR'], 'tools')])
-    env.Tool('genode_strip',   toolpath = [os.path.join(env['BUILDTOOL_DIR'], 'tools')])
-    env.Tool('genode_binary',  toolpath = [os.path.join(env['BUILDTOOL_DIR'], 'tools')])
+    env.Tool('genode_symlink',   toolpath = [os.path.join(env['BUILDTOOL_DIR'], 'tools')])
+    env.Tool('genode_symbols',   toolpath = [os.path.join(env['BUILDTOOL_DIR'], 'tools')])
+    env.Tool('genode_abi_so',    toolpath = [os.path.join(env['BUILDTOOL_DIR'], 'tools')])
+    env.Tool('genode_lib_so',    toolpath = [os.path.join(env['BUILDTOOL_DIR'], 'tools')])
+    env.Tool('genode_check_abi', toolpath = [os.path.join(env['BUILDTOOL_DIR'], 'tools')])
+    env.Tool('genode_lib_tag',   toolpath = [os.path.join(env['BUILDTOOL_DIR'], 'tools')])
+    env.Tool('genode_strip',     toolpath = [os.path.join(env['BUILDTOOL_DIR'], 'tools')])
+    env.Tool('genode_binary',    toolpath = [os.path.join(env['BUILDTOOL_DIR'], 'tools')])
 
     SConscript('SConscript', exports = 'env')
 
