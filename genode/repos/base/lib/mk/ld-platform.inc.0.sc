@@ -24,7 +24,6 @@ def process_mk_overlay(mk_file, build_env):
         and env['fn_current_target_type']() == 'lib'):
 
         lib_so = env['fn_unsconsify_path'](env['fn_target_path']('ld-linux.lib.so'))
-        print('ADDPOSTACTION: %s' % (lib_so))
         exe_cmd = r"""printf "\x02" |
 	          dd of=%s bs=1 seek=16 count=1 conv=notrunc
 	          2> /dev/null""" % (lib_so)
