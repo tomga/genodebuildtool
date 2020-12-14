@@ -53,5 +53,7 @@ def sconstruct():
     env.Tool('genode_strip',     toolpath = [os.path.join(env['BUILDTOOL_DIR'], 'tools')])
     env.Tool('genode_binary',    toolpath = [os.path.join(env['BUILDTOOL_DIR'], 'tools')])
 
+    env.Decider('MD5-timestamp')
+
     SConscript('SConscript', exports = 'env')
 
