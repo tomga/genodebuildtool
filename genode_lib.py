@@ -126,6 +126,8 @@ class GenodeMkLib(GenodeLib):
         if len(direct_dep_libs) > 0:
             dep_lib_targets = self.env['fn_require_libs'](direct_dep_libs)
 
+        all_direct_dep_libs = direct_dep_libs + []
+
         ### add ldso_so_support as a dependency
         #
         # NOTE: in case of libraries such as ld (on linux) which are
@@ -135,15 +137,15 @@ class GenodeMkLib(GenodeLib):
         shared_lib_defined = self.build_env.check_var('SHARED_LIB')
         if shared_lib_defined:
             ldso_support_lib_target = self.env['fn_require_libs'](['ldso_so_support'])
-            direct_dep_libs.append('ldso_so_support')
+            all_direct_dep_libs.append('ldso_so_support')
 
         ### calculate list of library dependencies (recursively complete)
         lib_deps = []
-        for dep_lib in direct_dep_libs:
+        for dep_lib in all_direct_dep_libs:
             dep_lib_deps = self.env['fn_get_lib_info'](dep_lib)['lib_deps']
             lib_deps.extend(dep_lib_deps)
         lib_deps = sorted(list(set(lib_deps)))
-        self.env['fn_debug']("direct_dep_libs: '%s'" % (str(direct_dep_libs)))
+        self.env['fn_debug']("all_direct_dep_libs: '%s'" % (str(all_direct_dep_libs)))
         self.env['fn_debug']("lib_deps: '%s'" % (str(lib_deps)))
 
         lib_so_deps = []
@@ -155,12 +157,12 @@ class GenodeMkLib(GenodeLib):
                 lib_so_deps.append(lib)
 
         ### create links to shared library dependencies
-        dep_lib_links = self.build_helper.create_dep_lib_links(
+        dep_shlib_links = self.build_helper.create_dep_lib_links(
             self.env, self.target_path(None), lib_so_deps)
 
 
         ### handle include import-<lib>.mk files
-        for dep_lib in direct_dep_libs:
+        for dep_lib in all_direct_dep_libs:
             dep_lib_import_mk_file, dep_lib_import_mk_repo = tools.find_first(self.env['REPOSITORIES'], 'lib/import/import-%s.mk' % (dep_lib))
             if dep_lib_import_mk_file is not None:
                 self.env['fn_info']("processing import-%s file: %s" % (dep_lib, dep_lib_import_mk_file))
@@ -371,7 +373,7 @@ class GenodeMkLib(GenodeLib):
 
             for v in ['LD_OPT', 'LIB_SO_DEPS', 'LD_SCRIPT_SO']:
                 self.env[v] = self.build_env.var_value(v)
-            lib_so_tgt = self.env.LibSo(source = dep_lib_links + dep_archives + objects,
+            lib_so_tgt = self.env.LibSo(source = dep_shlib_links + dep_archives + objects,
                                         target = self.target_path(lib_so))
 
             lib_targets.append(lib_so_tgt)
