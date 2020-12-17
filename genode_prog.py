@@ -378,6 +378,9 @@ class GenodeMkProg(GenodeProg):
         src_files = []
         for src_file in files:
             file_paths = self.build_env.find_vpaths(src_file)
+            if src_file.startswith('/'):
+                file_paths = [ os.path.dirname(src_file) ]
+                src_file = os.path.basename(src_file)
             existing_file_paths = [ f for f in file_paths if os.path.isfile(os.path.join(f, src_file)) ]
 
             self.env['fn_debug']('get_sources: default %s' % (os.path.join(self.relative_src_dir, src_file)))
