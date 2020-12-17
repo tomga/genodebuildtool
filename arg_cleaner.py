@@ -43,7 +43,7 @@ def arguments_print(opts):
 def arg_parse_compiler(args_array):
 
     argparser = argparse.ArgumentParser('gcc/g++')
-    argparser.add_argument('SOURCES', action='append', default=[], nargs='+')
+    argparser.add_argument('SOURCES', action='append', default=[], nargs='*')
     argparser.add_argument('-c', action='store_true')
     argparser.add_argument('-g', action='store_true')
     argparser.add_argument('-O', action='append', default=[])
@@ -52,11 +52,14 @@ def arg_parse_compiler(args_array):
     argparser.add_argument('-mcmodel', action='append', default=[])
     argparser.add_argument('-nostdinc', action='store_true')
     argparser.add_argument('-nostdlib', action='store_true')
+    argparser.add_argument('-no-pie', action='store_true')
     argparser.add_argument('-o', dest='TARGETS', action='append', default=[], nargs=1)
     argparser.add_argument('-f', action='append', default=[])
     argparser.add_argument('-W', action='append', default=[])
     argparser.add_argument('-D', action='append', default=[])
     argparser.add_argument('-I', action='append', default=[])
+    argparser.add_argument('-L', action='append', default=[])
+    argparser.add_argument('-l', action='append', default=[])
     argparser.add_argument('-MMD', action='store_true')
     argparser.add_argument('-MP', action='store_true')
     argparser.add_argument('-MT', default=[])
@@ -128,11 +131,15 @@ def arg_clean_compiler(args_tokenized, run_dir, abs_dir, rel_dir):
     res += [ '-mcmodel=%s' % (v) for v in nodups(opts.mcmodel) ]
     if opts.nostdinc: res += ['-nostdinc']
     if opts.nostdlib: res += ['-nostdlib']
+    if opts.no_pie: res += ['-no-pie']
     res += [ '-f%s' % (v) for v in nodups(opts.f) ]
     res += [ '-W%s' % (v) for v in nodups(opts.W) ]
     res += [ '-D%s' % (v) for v in nodups(opts.D) ]
     res += [ '-I%s' % (path_clean(v, run_dir, abs_dir, rel_dir, False))
              for v in nodups(opts.I) ]
+    res += [ '-L%s' % (path_clean(v, run_dir, abs_dir, rel_dir, False))
+             for v in nodups(opts.L) ]
+    res += [ '-l%s' % (v) for v in nodups(opts.l) ]
     #ignore
     # -MMD
     # -MP
