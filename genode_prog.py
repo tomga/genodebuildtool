@@ -119,6 +119,18 @@ class GenodeMkProg(GenodeProg):
         #self.env['fn_debug'](pprint.pformat(self.build_env.debug_struct('pretty'), width=200))
 
 
+        specs = self.env['SPECS']
+        self.env['fn_debug']("SPECS: %s" % (str(specs)))
+
+
+        requires = self.build_env.var_values('REQUIRES')
+        missing_specs = [ req for req in requires if req not in specs ]
+        if len(missing_specs) > 0:
+            self.env['fn_info']("Skipping building program '%s' due to missing specs: %s"
+                                % (self.prog_name, ' '.join(missing_specs)))
+            return self.env.Alias(self.env['fn_prog_alias_name'](self.prog_name), [])
+
+
         ### register program dependencies
         direct_dep_libs = self.build_env.var_values('LIBS')
         if len(direct_dep_libs) > 0:
@@ -184,9 +196,7 @@ class GenodeMkProg(GenodeProg):
 
 
         repositories = self.env['REPOSITORIES']
-        specs = self.env['SPECS']
         self.env['fn_debug']("REPOSITORIES: %s" % (str(repositories)))
-        self.env['fn_debug']("SPECS: %s" % (str(specs)))
 
 
         self.env['fn_debug'](pprint.pformat(self.build_env.debug_struct('pretty'), width=200))

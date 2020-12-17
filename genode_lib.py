@@ -128,6 +128,18 @@ class GenodeMkLib(GenodeLib):
         #self.env['fn_debug'](pprint.pformat(self.build_env.debug_struct('pretty'), width=200))
 
 
+        specs = self.env['SPECS']
+        self.env['fn_debug']("SPECS: %s" % (str(specs)))
+
+
+        requires = self.build_env.var_values('REQUIRES')
+        missing_specs = [ req for req in requires if req not in specs ]
+        if len(missing_specs) > 0:
+            self.env['fn_info']("Skipping building library '%s' due to missing specs: %s"
+                                % (self.lib_name, ' '.join(missing_specs)))
+            return self.env.Alias(self.env['fn_lib_alias_name'](self.lib_name), [])
+
+
         ### register library dependencies
         direct_dep_libs = self.build_env.var_values('LIBS')
         if len(direct_dep_libs) > 0:
@@ -194,9 +206,7 @@ class GenodeMkLib(GenodeLib):
 
 
         repositories = self.env['REPOSITORIES']
-        specs = self.env['SPECS']
         self.env['fn_debug']("REPOSITORIES: %s" % (str(repositories)))
-        self.env['fn_debug']("SPECS: %s" % (str(specs)))
 
 
         ### handle shared library settings
