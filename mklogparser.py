@@ -24,6 +24,7 @@ def initialize():
                     lambda _, nodes: SimpleBuildCommand(None, None, nodes[0]),
                     lambda _, nodes: None,
                     lambda _, nodes: None,
+                    lambda _, nodes: None,
                     ],
         "EnteringDir": [lambda _, nodes: nodes[1] ],
         "LeavingDir": [lambda _, nodes: nodes[1] ],

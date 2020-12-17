@@ -7,6 +7,7 @@ Command: EnteringDir LibraryTitle CmdList LeavingDir |
          EnteringDir LeavingDir |
          BuildCommandTitle SimpleCommandList |
          SimpleCommandList |
+         SkipTarget |
          LINE_END |
          EMPTY;
 
@@ -14,6 +15,8 @@ SimpleCommandList: SimpleCommand | SimpleCommandList SimpleCommand;
 
 EnteringDir: ENTERING_DIR PATH QUOT LINE_END;
 LeavingDir: LEAVING_DIR PATH QUOT LINE_END;
+
+SkipTarget: SKIP_TARGET LINE_END;
 
 LibraryTitle: LIBRARY_TITLE PATH LINE_END;
 ProgramTitle: PROGRAM_TITLE PATH LINE_END;
@@ -38,6 +41,8 @@ PATH: /[.+\-a-zA-Z0-9_\/][.+\-a-zA-Z0-9_\/]*/;
 QUOT: /'/;
 ENTERING_DIR: /make(\[[0-9]+\])?: Entering directory '/;
 LEAVING_DIR: /make(\[[0-9]+\])?: Leaving directory '/;
+
+SKIP_TARGET: /Skip target .*/;
 
 LIBRARY_TITLE: /\x1b\[00;33m  Library \x1b\[0m/;
 PROGRAM_TITLE: /\x1b\[01;33m  Program \x1b\[0m/;
