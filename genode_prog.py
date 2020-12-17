@@ -57,6 +57,11 @@ class GenodeProg:
         return self.build_helper.compile_s_sources(self.env, src_files)
 
 
+    def build_binary_objects(self):
+        src_files = self.get_binary_sources()
+        return self.build_helper.compile_binary_sources(self.env, src_files)
+
+
     def build_o_objects(self):
         # requires custom builder
         return []
@@ -213,6 +218,9 @@ class GenodeMkProg(GenodeProg):
 
         s_objs = self.build_s_objects()
         objects += s_objs
+
+        binary_objs = self.build_binary_objects()
+        objects += binary_objs
 
         o_objs = self.build_o_objects()
         objects += o_objs
@@ -400,4 +408,10 @@ class GenodeMkProg(GenodeProg):
     def get_s_sources(self):
         src_s = self.build_env.var_values('SRC_S')
         src_files = self.get_sources(src_s)
+        return src_files
+
+
+    def get_binary_sources(self):
+        src_bin = self.build_env.var_values('SRC_BIN')
+        src_files = self.get_sources(src_bin)
         return src_files
