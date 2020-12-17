@@ -221,11 +221,13 @@ def process_builddir(build_dir, env):
     progs = []
     known_progs = set([])
     def require_progs(dep_progs):
+        env['fn_warning']('reqprog: %s' % (str(dep_progs)))
         dep_aliases = []
         for dep in dep_progs:
             if dep not in known_progs:
-                known_progs.add(dep)
-                progs.extend(process_progs(dep, env, build_env))
+                env['fn_warning']('reqprog: before %s %s' % (dep, str(known_progs)))
+                progs.extend(process_progs(dep, env, build_env, known_progs))
+                env['fn_warning']('reqprog:  after %s %s' % (dep, str(known_progs)))
             dep_aliases.append(env.Alias(prog_alias_name(dep)))
         return dep_aliases
     env['fn_require_progs'] = require_progs
@@ -366,7 +368,7 @@ def check_for_lib_mk_overlay(lib_name, env, lib_mk_file, lib_mk_repo):
     return overlay_file_path
 
 
-def process_progs(prog_name, env, build_env):
+def process_progs(prog_name, env, build_env, known_progs):
 
     repositories = env['REPOSITORIES']
     env['fn_debug']('process_progs: %s, repositories: %s' % (prog_name, repositories))
@@ -402,6 +404,11 @@ def process_progs(prog_name, env, build_env):
         prog_mk_repo = desc[2] if desc[0] == 'mk' else None
         prog_sc_file = desc[1] if desc[0] == 'sc' else None
         prog_sc_repo = desc[2] if desc[0] == 'sc' else None
+
+        if prog in known_progs:
+            continue
+        known_progs.add(prog)
+
         progs.extend(process_prog(prog,
                                   prog_mk_file, prog_mk_repo,
                                   prog_sc_file, prog_sc_repo,
