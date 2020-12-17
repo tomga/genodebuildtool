@@ -5,15 +5,32 @@ import arg_cleaner
 
 def commands_clean(cmd_lines, run_dir, abs_dir, rel_dir):
     result = []
-    for orig in cmd_lines:
-        orig = orig.strip()
+    for unstripped in cmd_lines:
+
+        orig = unstripped.strip()
+
+        # specially accpepted
+        special_accepted = False
+        if orig.startswith('sed '):
+            special_accepted = True
+
+        # unstripped negative checks
+        if (not special_accepted and
+            (unstripped.startswith(' ') and (unstripped.startswith('     ') or not unstripped.startswith('    ')))):
+            continue
+
+        # stripped negative checks
         if (orig.startswith('rm ') or
             (orig.startswith('echo ') and ' .incbin ' not in orig) or
             orig.startswith('for ') or
             orig.startswith('checking library dependencies') or
             orig.startswith('make ') or
             orig.startswith('mkdir ') or
-            orig.startswith('scons:')):
+            orig.startswith('scons:') or
+            orig.startswith('In file ') or
+            orig.startswith('compilation terminated.') or
+            orig.split()[0].endswith(':') or
+            False):
             continue
 
         #print('cmd: %s' % orig)
