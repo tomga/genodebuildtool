@@ -96,6 +96,13 @@ class GenodeMkLib(GenodeLib):
 
         mkcache = self.build_env.get_mk_cache()
 
+        ### # remember value of rep_inc_dir and reset it to empty; it is
+        ### # important to put those remembered values to end of list
+        ### # after processing locally imported makefiles to preserve
+        ### # sequence of include path like in mk build
+        ### global_rep_inc_dir = self.build_env.var_values('REP_INC_DIR')
+        ### self.build_env.var_set('REP_INC_DIR', '')
+
         ### handle base-libs.mk
         base_libs_mk_file = '%s/mk/base-libs.mk' % (self.env['BASE_DIR'])
         base_libs_mk = mkcache.get_parsed_mk(base_libs_mk_file)
@@ -170,6 +177,13 @@ class GenodeMkLib(GenodeLib):
                 dep_lib_import_mk.process(self.build_env)
 
 
+
+        ### # fix rep_inc_dir content - important to be before processing global.mk
+        ### current_rep_inc_dir = self.build_env.var_values('REP_INC_DIR')
+        ### full_rep_inc_dir = current_rep_inc_dir + global_rep_inc_dir
+        ### #self.env['fn_debug']('full_rep_inc_dir: %s' % (str(full_rep_inc_dir)))
+        ### self.build_env.var_set('REP_INC_DIR', ' '.join(full_rep_inc_dir))
+        ### #self.env['fn_debug']('REP_INC_DIR: %s' % (str(self.build_env.var_values('REP_INC_DIR'))))
 
 
         ### handle include global.mk

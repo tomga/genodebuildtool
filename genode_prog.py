@@ -96,6 +96,13 @@ class GenodeMkProg(GenodeProg):
 
         mkcache = self.build_env.get_mk_cache()
 
+        # remember value of rep_inc_dir and reset it to empty; it is
+        # important to put those remembered values to end of list
+        # after processing locally imported makefiles to preserve
+        # sequence of include path like in mk build
+        global_rep_inc_dir = self.build_env.var_values('REP_INC_DIR')
+        self.build_env.var_set('REP_INC_DIR', '')
+
         ### handle base-libs.mk
         base_libs_mk_file = '%s/mk/base-libs.mk' % (self.env['BASE_DIR'])
         base_libs_mk = mkcache.get_parsed_mk(base_libs_mk_file)
@@ -116,10 +123,6 @@ class GenodeMkProg(GenodeProg):
         direct_dep_libs = self.build_env.var_values('LIBS')
         if len(direct_dep_libs) > 0:
             dep_lib_targets = self.env['fn_require_libs'](direct_dep_libs)
-
-        ### calculate list of static library dependencies (directo only)
-        archives = [ lib for lib in direct_dep_libs if self.env['fn_get_lib_info'](lib)['type'] == 'a' ]
-        self.env['fn_debug']("archives: %s" % (str(archives)))
 
 
         ### calculate list of library dependencies (recursively complete)
@@ -163,6 +166,15 @@ class GenodeMkProg(GenodeProg):
         #       global.mk as LD_OPT is appended inside but it is
         #       processed here independently
         cxx_link_opt = self.build_env.var_values('CXX_LINK_OPT')
+
+
+        # fix rep_inc_dir content - important to be before processing global.mk
+        current_rep_inc_dir = self.build_env.var_values('REP_INC_DIR')
+        full_rep_inc_dir = current_rep_inc_dir + global_rep_inc_dir
+        #self.env['fn_debug']('full_rep_inc_dir: %s' % (str(full_rep_inc_dir)))
+        self.build_env.var_set('REP_INC_DIR', ' '.join(full_rep_inc_dir))
+        #self.env['fn_debug']('REP_INC_DIR: %s' % (str(self.build_env.var_values('REP_INC_DIR'))))
+
 
         ### handle include global.mk
         global_mk_file = '%s/mk/global.mk' % (self.env['BASE_DIR'])
