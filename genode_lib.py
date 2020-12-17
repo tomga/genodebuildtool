@@ -345,7 +345,9 @@ class GenodeMkLib(GenodeLib):
         if shared_lib:
             if len(objects) + len(direct_dep_libs) != 0:
                 lib_so = "%s.lib.so" % (self.lib_name)
-                lib_type = 'so'
+                if lib_type is None:
+                    # prefere announcing 'abi' over 'so'
+                    lib_type = 'so'
         else:
             lib_a = "%s.lib.a" % (self.lib_name)
             lib_type = 'a'
