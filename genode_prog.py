@@ -302,19 +302,19 @@ class GenodeMkProg(GenodeProg):
             cxx_link_opt.append('-Wl,-rpath-link=.')
 
             base_libs = self.build_env.var_values('BASE_LIBS')
-            archives = [ lib for lib in archives if lib not in base_libs ]
+            lib_a_deps = [ lib for lib in lib_a_deps if lib not in base_libs ]
 
         for lib in ld_scripts:
             cxx_link_opt += [ '-Wl,-T', '-Wl,%s' % (self.env['fn_localize_path'](lib)) ]
 
         lib_cache_dir = self.build_helper.get_lib_cache_dir(self.env)
-        dep_static_libs = []
-        for dep_lib in archives:
-            static_archive_name = '%s.lib.a' % (dep_lib)
-            static_archive_path = self.build_helper.target_lib_path(lib_cache_dir, dep_lib, static_archive_name)
-            dep_static_libs.append(static_archive_path)
-        dep_static_libs = sorted(dep_static_libs)
-        self.env['fn_debug']("dep_static_libs: %s" % (str(dep_static_libs)))
+        dep_archives = []
+        for dep_lib in lib_a_deps:
+            a_file_name = '%s.lib.a' % (dep_lib)
+            a_path = self.build_helper.target_lib_path(lib_cache_dir, dep_lib, a_file_name)
+            dep_archives.append(a_path)
+        dep_archives = list(sorted(dep_archives))
+        self.env['fn_debug']("dep_archives: %s" % (str(dep_archives)))
 
 
         ### handle LD_LIBGCC
@@ -338,7 +338,7 @@ class GenodeMkProg(GenodeProg):
             ## $LINK -o $TARGET $LINKFLAGS $__RPATH $SOURCES $_LIBDIRFLAGS $_LIBFLAGS
             self.env['LINKCOM'] = '$LINK -o $TARGET $LINKFLAGS $__RPATH -Wl,--whole-archive -Wl,--start-group $SOURCES -Wl,--no-whole-archive -Wl,--end-group $_LIBDIRFLAGS $_LIBFLAGS $LD_LIBGCC'
             prog_tgt = self.env.Program(target=self.target_path(prog_name),
-                                        source=objects + dep_static_libs + dep_shlib_links)
+                                        source=objects + dep_archives + dep_shlib_links)
             prog_targets.append(prog_tgt)
 
             strip_tgt = self.env.Strip(target=self.target_path('%s.stripped' % (prog_name)),
