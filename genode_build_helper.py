@@ -72,8 +72,7 @@ class GenodeBuildHelper:
                 src_file_path, src_file = os.path.split(src_file_info)
             tgt_file = os.path.basename(src_file)
             tgt_subdir = os.path.dirname(src_file)
-            tgt_basename = os.path.splitext(tgt_file)[0]
-            tgt_file = 'binary_%s.bin.o' % (tgt_basename)
+            tgt_file = 'binary_%s.o' % (tgt_file)
             if tgt_subdir != '':
                 tgt_file = os.path.join(tgt_subdir, tgt_file)
             src_file = src_file_path + '/' + src_file
