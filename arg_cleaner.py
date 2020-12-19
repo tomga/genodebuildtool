@@ -133,7 +133,7 @@ def arg_clean_compiler(args_tokenized, run_dir, abs_dir, rel_dir):
     if opts.nostdlib: res += ['-nostdlib']
     if opts.no_pie: res += ['-no-pie']
     res += [ '-f%s' % (v) for v in nodups(opts.f) ]
-    res += [ '-W%s' % (v) for v in nodups(opts.W) ]
+    res += [ '-W%s' % (v) for v in sorted(nodups(opts.W)) ]
     res += [ '-D%s' % (v) for v in nodups(opts.D) ]
     res += [ '-I%s' % (path_clean(v, run_dir, abs_dir, rel_dir, False))
              for v in nodups(opts.I) ]
