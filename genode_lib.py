@@ -180,16 +180,6 @@ class GenodeMkLib(GenodeLib):
             self.env, self.target_path(None), lib_so_deps)
 
 
-        ### handle include import-<lib>.mk files
-        for dep_lib in all_direct_dep_libs:
-            dep_lib_import_mk_file, dep_lib_import_mk_repo = tools.find_first(self.env['REPOSITORIES'], 'lib/import/import-%s.mk' % (dep_lib))
-            if dep_lib_import_mk_file is not None:
-                self.env['fn_info']("processing import-%s file: %s" % (dep_lib, dep_lib_import_mk_file))
-                dep_lib_import_mk = mkcache.get_parsed_mk(dep_lib_import_mk_file)
-                dep_lib_import_mk.process(self.build_env)
-
-
-
         ### # fix rep_inc_dir content - important to be before processing global.mk
         ### current_rep_inc_dir = self.build_env.var_values('REP_INC_DIR')
         ### full_rep_inc_dir = current_rep_inc_dir + global_rep_inc_dir
@@ -203,6 +193,26 @@ class GenodeMkLib(GenodeLib):
         global_mk = mkcache.get_parsed_mk(global_mk_file)
         global_mk.process(self.build_env)
         #self.env['fn_debug'](pprint.pformat(self.build_env.debug_struct('pretty'), width=200))
+
+
+        ### handle include import-<lib>.mk files
+        for dep_lib in all_direct_dep_libs:
+            dep_lib_import_mk_file, dep_lib_import_mk_repo = tools.find_first(self.env['REPOSITORIES'], 'lib/import/import-%s.mk' % (dep_lib))
+            if dep_lib_import_mk_file is not None:
+                self.env['fn_info']("processing import-%s file: %s" % (dep_lib, dep_lib_import_mk_file))
+                dep_lib_import_mk = mkcache.get_parsed_mk(dep_lib_import_mk_file)
+                dep_lib_import_mk.process(self.build_env)
+
+
+        ### handle include global.mk again
+        # global.mk has to be processed again due to handling of
+        # ALL_INC_DIR which is calculated using HOST_INC_DIR that can
+        # be modified in import-<lib>.mk files like in
+        # import-syscall-linux.mk. It cannot be processed only after
+        # inclusiono of import-<lib>.mk files as values set in it are
+        # required in some import-<lib>.mk files like CUSTOM_HOST_CC
+        # in import-lx_hybrid.mk
+        global_mk.process(self.build_env)
 
 
         repositories = self.env['REPOSITORIES']

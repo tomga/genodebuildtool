@@ -158,14 +158,6 @@ class GenodeMkProg(GenodeProg):
         dep_shlib_links = self.build_helper.create_dep_lib_links(
             self.env, self.target_path(None), lib_so_deps)
 
-        ### handle include import-<lib>.mk files
-        for dep_lib in direct_dep_libs:
-            dep_lib_import_mk_file, dep_lib_import_mk_repo = tools.find_first(self.env['REPOSITORIES'], 'lib/import/import-%s.mk' % (dep_lib))
-            if dep_lib_import_mk_file is not None:
-                self.env['fn_info']("processing import-%s file: %s" % (dep_lib, dep_lib_import_mk_file))
-                dep_lib_import_mk = mkcache.get_parsed_mk(dep_lib_import_mk_file)
-                dep_lib_import_mk.process(self.build_env)
-
 
         ### skipping $(SPEC_FILES) as they are already included
         #
@@ -180,6 +172,26 @@ class GenodeMkProg(GenodeProg):
         cxx_link_opt = self.build_env.var_values('CXX_LINK_OPT')
 
 
+        ### handle include global.mk
+        global_mk_file = '%s/mk/global.mk' % (self.env['BASE_DIR'])
+        global_mk = mkcache.get_parsed_mk(global_mk_file)
+        global_mk.process(self.build_env)
+        #self.env['fn_debug'](pprint.pformat(self.build_env.debug_struct('pretty'), width=200))
+
+
+        ### handle include import-<lib>.mk files
+        # reset CXX_LINK_OPT
+        self.build_env.var_set('CXX_LINK_OPT', '')
+        for dep_lib in direct_dep_libs:
+            dep_lib_import_mk_file, dep_lib_import_mk_repo = tools.find_first(self.env['REPOSITORIES'], 'lib/import/import-%s.mk' % (dep_lib))
+            if dep_lib_import_mk_file is not None:
+                self.env['fn_info']("processing import-%s file: %s" % (dep_lib, dep_lib_import_mk_file))
+                dep_lib_import_mk = mkcache.get_parsed_mk(dep_lib_import_mk_file)
+                dep_lib_import_mk.process(self.build_env)
+        cxx_link_opt_from_imports = self.build_env.var_values('CXX_LINK_OPT')
+        self.env['fn_debug']("cxx_link_opt_from_imports: %s" % (str(cxx_link_opt_from_imports)))
+
+
         # fix rep_inc_dir content - important to be before processing global.mk
         current_rep_inc_dir = self.build_env.var_values('REP_INC_DIR')
         full_rep_inc_dir = current_rep_inc_dir + global_rep_inc_dir
@@ -188,11 +200,15 @@ class GenodeMkProg(GenodeProg):
         #self.env['fn_debug']('REP_INC_DIR: %s' % (str(self.build_env.var_values('REP_INC_DIR'))))
 
 
-        ### handle include global.mk
-        global_mk_file = '%s/mk/global.mk' % (self.env['BASE_DIR'])
-        global_mk = mkcache.get_parsed_mk(global_mk_file)
+        ### handle include global.mk again
+        # global.mk has to be processed again due to handling of
+        # ALL_INC_DIR which is calculated using HOST_INC_DIR that can
+        # be modified in import-<lib>.mk files like in
+        # import-syscall-linux.mk. It cannot be processed only after
+        # inclusiono of import-<lib>.mk files as values set in it are
+        # required in some import-<lib>.mk files like CUSTOM_HOST_CC
+        # in import-lx_hybrid.mk
         global_mk.process(self.build_env)
-        #self.env['fn_debug'](pprint.pformat(self.build_env.debug_struct('pretty'), width=200))
 
 
         repositories = self.env['REPOSITORIES']
@@ -325,6 +341,8 @@ class GenodeMkProg(GenodeProg):
 
             base_libs = self.build_env.var_values('BASE_LIBS')
             lib_a_deps = [ lib for lib in lib_a_deps if lib not in base_libs ]
+
+        cxx_link_opt.extend(cxx_link_opt_from_imports)
 
         for lib in ld_scripts:
             cxx_link_opt += [ '-Wl,-T', '-Wl,%s' % (self.env['fn_localize_path'](lib)) ]
