@@ -340,11 +340,14 @@ class GenodeMkProg(GenodeProg):
 
 
         ### handle LD_LIBGCC
-        cmd = "%s %s -print-libgcc-file-name" % (self.env['CC'], ' '.join(cc_march)),
-        results = subprocess.run(cmd, stdout=subprocess.PIPE,
-                                 shell=True, universal_newlines=True, check=True)
-        ld_libgcc = results.stdout
-        self.env['LD_LIBGCC'] = ld_libgcc
+        if self.build_env.check_var('LD_LIBGCC'):
+            self.env['LD_LIBGCC'] = self.build_env.var_value('LD_LIBGCC')
+        else:
+            cmd = "%s %s -print-libgcc-file-name" % (self.env['CC'], ' '.join(cc_march)),
+            results = subprocess.run(cmd, stdout=subprocess.PIPE,
+                                     shell=True, universal_newlines=True, check=True)
+            ld_libgcc = results.stdout
+            self.env['LD_LIBGCC'] = ld_libgcc
 
 
         prog_targets = []
