@@ -50,6 +50,7 @@ def arguments_parse():
     argparser.add_argument('--log', nargs='+', default=[],
                            help='log files to process')
     argparser.add_argument('--test-database', action="store_true")
+    argparser.add_argument('--test-mkparser', action="store_true")
     argparser.add_argument('--test-mklogparser', action="store_true")
     argparser.add_argument('--test-sclogparser', action="store_true")
     argparser.add_argument('--test-mkdbstore', action="store_true")
@@ -306,6 +307,10 @@ build_db = database_connect(opts)
 
 if opts.test_database:
     database_connect(opts)
+    quit()
+
+if opts.test_mkparser:
+    test_mkparser()
     quit()
 
 if opts.test_mklogparser:
