@@ -1,5 +1,6 @@
 
 import copy
+import glob
 import os
 import re
 import subprocess
@@ -245,25 +246,49 @@ def mkfun_dir(mkenv, args):
     return [os.path.dirname(x) for x in args[0]]
 functionsDict['dir'] = mkfun_dir
 
+def mkfun_firstword(mkenv, args):
+    return [args[0][0]] if len(args[0]) > 0 else []
+functionsDict['firstword'] = mkfun_firstword
+
+def mkfun_lastword(mkenv, args):
+    return [args[0][-1]] if len(args[0]) > 0 else []
+functionsDict['lastword'] = mkfun_lastword
+
 def mkfun_shell(mkenv, args):
     assert len(args) == 1, "TODO: support shell commands with comma"
+    #print("SHELL_start: %s" % (' '.join(args[0])))
     results = subprocess.run(' '.join(args[0]),
                              stdout=subprocess.PIPE,
-                             shell=True, universal_newlines=True, check=True)
+                             shell=True, universal_newlines=True, check=True,
+                             executable='/bin/bash')
     output = results.stdout
-    #print("SHELL: %s" % (output))
+    #print("SHELL_end: %s" % (output))
     return output.split()
 functionsDict['shell'] = mkfun_shell
 
 def mkfun_sort(mkenv, args):
     assert len(args) == 1, "TODO: support sorting with comma"
-    return list(sorted(args[0]))
+    return list(sorted(list(set(args[0]))))
 functionsDict['sort'] = mkfun_sort
+
+def mkfun_wildcard(mkenv, args):
+    results = []
+    for pattern in args[0]:
+        assert pattern.startswith('/'), "TODO: support relative wildcard"
+        results.extend(glob.glob(pattern))
+    #print("WILDCARD: %s" % (str(results)))
+    return results
+functionsDict['wildcard'] = mkfun_wildcard
 
 # 2 args
 def mkfun_addprefix(mkenv, args):
-    assert len(args[0]) == 1, "addprefix: only one prefix allowed"
-    return [ args[0][0] + v for v in args[1] ]
+    results = []
+    for value in args[1]:
+        if len(args[0]) > 1:
+            results.extend(args[0][:-1])
+        results.append(args[0][-1] + value)
+    #print("ADDPREFIX: '%s' '%s' '%s'" % (str(args[0]), str(args[1]), str(results)))
+    return results
 functionsDict['addprefix'] = mkfun_addprefix
 
 def mkfun_addsuffix(mkenv, args):
@@ -280,6 +305,11 @@ def mkfun_filter_out(mkenv, args):
     assert '%' not in ''.join(args[0]), "TODO: implement real makefile patterns"
     return [ v for v in args[1] if v not in args[0] ]
 functionsDict['filter-out'] = mkfun_filter_out
+
+def mkfun_findstring(mkenv, args):
+    assert len(args[0]) == 1, "findstring: only one string to search for allowed"
+    return [ args[0][0] ] if args[0][0] in args[1] else []
+functionsDict['findstring'] = mkfun_findstring
 
 # 3 args
 def mkfun_patsubst(mkenv, args):
