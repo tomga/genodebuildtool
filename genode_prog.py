@@ -354,13 +354,16 @@ class GenodeMkProg(GenodeProg):
             self.env['fn_debug']("ld_opt: %s" % (str(ld_opt)))
             self.env['fn_debug']("cxx_link_opt: %s" % (str(cxx_link_opt)))
 
+            ext_objects = self.build_env.var_values('EXT_OBJECTS')
+            ext_objects = [ os.path.normpath(p) for p in ext_objects ]
+
             ld_cxx_opt = [ '-Wl,%s' % (opt) for opt in ld_opt ]
             self.env['LINKFLAGS'] = cxx_link_opt + ld_cxx_opt
             prog_name = self.build_env.var_value('TARGET')
             ## $LINK -o $TARGET $LINKFLAGS $__RPATH $SOURCES $_LIBDIRFLAGS $_LIBFLAGS
             self.env['LINKCOM'] = '$LINK -o $TARGET $LINKFLAGS $__RPATH -Wl,--whole-archive -Wl,--start-group $SOURCES -Wl,--no-whole-archive -Wl,--end-group $_LIBDIRFLAGS $_LIBFLAGS $LD_LIBGCC'
             prog_tgt = self.env.Program(target=self.target_path(prog_name),
-                                        source=objects + dep_archives + dep_shlib_links)
+                                        source=objects + dep_archives + dep_shlib_links + ext_objects)
             prog_targets.append(prog_tgt)
 
             strip_tgt = self.env.Strip(target=self.target_path('%s.stripped' % (prog_name)),
