@@ -220,6 +220,8 @@ class GenodeMkBuildHelper(GenodeBuildHelper):
         # NOTICE: following disables executing ranlib by scons
         env['RANLIBCOM'] = ""
         env['RANLIBCOMSTR'] = ""
+        if self.build_env.check_var('LD_CMD'):
+            env['LINK'] = self.build_env.var_value('LD_CMD')
 
 
     def prepare_strip_env(self, env):
