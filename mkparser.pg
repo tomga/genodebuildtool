@@ -92,6 +92,7 @@ VarName: VarIdent |
          VarIdent RValuePartExpr;
 
 RValuePartText: TEXT_CHAR |
+                SPECIAL_NOESCAPE |
 								VarIdentWithOptWs |
 							  VAR_IDENT_SECOND_ALLOWED |
                 COMMA |
@@ -100,6 +101,8 @@ RValuePartText: TEXT_CHAR |
 								LINE_CONTINUATION;
 
 ParamPartText: TEXT_CHAR |
+               SPECIAL_NOESCAPE |
+							 SPECIAL_ESCAPE |
 							 VarIdentWithOptWs |
 							 VAR_IDENT_SECOND_ALLOWED |
 							 CMD_RECURSIVE_EXPAND_ASSIGN |
@@ -145,8 +148,10 @@ VarIdentStd: VAR_IDENT_START |
              VarIdent VAR_IDENT_SECOND_ALLOWED;
 
 terminals
+SPECIAL_ESCAPE: /~~./;
+SPECIAL_NOESCAPE: /~[^~]/;
 LINE_END: /\n/;
-TEXT_CHAR: /[^#,:$\\\n\t ()A-Za-z0-9_@*]/;
+TEXT_CHAR: /[^~#,:$\\\n\t (){}A-Za-z0-9_@*]/;
 VAR_IDENT_START: /[A-Za-z_]/;
 VAR_IDENT_SECOND_ALLOWED: /[0-9]/;
 VAR_INDEX: /[0-9]/;
@@ -160,8 +165,8 @@ RULE_COMMAND: /\t.*/;
 DOLLAR: /\$/;
 COMMA: /,/;
 COLON: /[:]/;
-BRACE_OPEN: /\(/;
-BRACE_CLOSE: /\)/;
+BRACE_OPEN: /[({]/;
+BRACE_CLOSE: /[)}]/;
 CMD_APPEND: "+=";
 CMD_RECURSIVE_EXPAND_ASSIGN: "=";
 CMD_SIMPLE_EXPAND_ASSIGN: ":=";
