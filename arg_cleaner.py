@@ -271,7 +271,7 @@ def arg_output_ld(args_parsed, run_dir, abs_dir, rel_dir, opts_prefix=None):
     for v in nodups(opts.z):
         res1 += [ '-z', v ]
 
-    res1 += [ '-rpath-link=%s' % (v) for v in nodups(opts.rpath_link) ]
+    res1 += [ '-rpath-link=%s' % (os.path.normpath(v)) for v in nodups(opts.rpath_link) ]
     res1 += [ '--dynamic-list=%s' % (path_clean(v, run_dir, abs_dir, rel_dir, True)) for v in nodups(opts.dynamic_list) ]
     if opts.nostdlib: res1 += ['-nostdlib']
     res1 += [ '--dynamic-linker=%s' % (v) for v in nodups(opts.dynamic_linker) ]
