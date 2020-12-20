@@ -1,0 +1,33 @@
+@@ -8,8 +8,8 @@
+ # chain.
+ #
+ HOST_LIB_SEARCH_DIRS = $(shell $(CUSTOM_HOST_CC) $(CC_MARCH) -print-search-dirs | grep libraries |\
+-                               sed "s/.*=//"   | sed "s/:/ /g" |\
+-                               sed "s/\/ / /g" | sed "s/\/\$$//")
++                               sed "s/.*=//"   | sed "s/~~:/ /g" |\
++                               sed "s/\/ / /g" | sed "s/\/\~~$~~$//")
+ #
+ # Add search path for 'limits.h'
+ #
+@@ -17,9 +17,9 @@
+ # host include search paths over Genode search path. The variable HOST_INC_DIR
+ # is appended to the include directory list.
+ #
+-HOST_INC_DIR += $(shell echo "int main() {return 0;}" |\
++HOST_INC_DIR += $(shell echo "int main~~(~~) ~~{return 0;~~}" |\
+                         LANG=C $(CXX) -x c++ -v -E - 2>&1 |\
+-                        sed '/^\#include <\.\.\.> search starts here:/,/^End of search list/!d' |\
++                        sed '/^\#include <\.\.\.> search starts here~~:/~~,/^End of search list/!d' |\
+                         grep "include-fixed")
+ 
+ #
+@@ -115,7 +115,7 @@
+ # Ubuntu 16.10 or newer)
+ #
+ CXX_LINK_OPT_NO_PIE = $(shell \
+-	(echo "int main(){}" | $(CUSTOM_HOST_CXX) -no-pie -x c++ - -o /dev/null >& /dev/null \
+-	&& echo "-no-pie") || true)
++  ~~(echo "int main~~(~~)~~{~~}" | $(CUSTOM_HOST_CXX) -no-pie -x c++ - -o /dev/null >& /dev/null \
++  && echo "-no-pie"~~) || true)
+ CXX_LINK_OPT += $(CXX_LINK_OPT_NO_PIE)
+ 
