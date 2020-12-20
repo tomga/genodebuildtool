@@ -254,6 +254,10 @@ def mkfun_lastword(mkenv, args):
     return [args[0][-1]] if len(args[0]) > 0 else []
 functionsDict['lastword'] = mkfun_lastword
 
+def mkfun_notdir(mkenv, args):
+    return [x for x in args[0] if not os.path.isdir(x)]
+functionsDict['notdir'] = mkfun_notdir
+
 def mkfun_shell(mkenv, args):
     assert len(args) == 1, "TODO: support shell commands with comma"
     #print("SHELL_start: %s" % (' '.join(args[0])))
