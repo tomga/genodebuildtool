@@ -61,5 +61,6 @@ class GenodeCxxMkLib(genode_lib.GenodeMkLib):
 def process_lib_overlay(lib_name, env, lib_mk_file, lib_mk_repo, build_env):
     env['fn_debug']("process_lib_overlay start")
     lib = GenodeCxxMkLib(lib_name, env, lib_mk_file, lib_mk_repo, build_env)
+    lib.disable_overlay()
     return lib.process()
     env['fn_debug']("process_lib_overlay end")

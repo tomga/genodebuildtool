@@ -86,6 +86,12 @@ class GenodeMkLib(GenodeLib):
         super().__init__(lib_name, lib_env,
                          genode_build_helper.GenodeMkBuildHelper(self.build_env))
 
+        self.no_overlay = False
+
+
+    def disable_overlay(self):
+        self.no_overlay = True
+
 
     def process(self):
         #import rpdb2
@@ -122,7 +128,7 @@ class GenodeMkLib(GenodeLib):
 
         self.env['fn_info']("Parsing build rules for library '%s' from '%s'" % (self.lib_name, self.lib_mk_file))
         # overlays for <lib>.mk are already handled on a different level
-        lib_mk = mkcache.get_parsed_mk(self.lib_mk_file, no_overlay=True)
+        lib_mk = mkcache.get_parsed_mk(self.lib_mk_file, no_overlay=self.no_overlay)
         #self.env['fn_debug'](pprint.pformat(lib_mk.debug_struct(), width=180))
         lib_mk.process(self.build_env)
         #self.env['fn_debug'](pprint.pformat(self.build_env.debug_struct('pretty'), width=200))
