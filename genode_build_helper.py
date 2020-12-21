@@ -187,17 +187,25 @@ class GenodeMkBuildHelper(GenodeBuildHelper):
         env['ASCOM'] = ('$CC $ASFLAGS $CPPFLAGS $_CPPDEFFLAGS $_CPPINCFLAGS'
                          + ' -c -o $TARGET $SOURCES')
 
-        env.AppendUnique(ASPPFLAGS=['-D__ASSEMBLY__'])
+        env.Replace(ASPPFLAGS=['-D__ASSEMBLY__'])
 
         cc_def = self.build_env.var_values('CC_DEF')
         env.AppendUnique(ASFLAGS=cc_def)
         #env['fn_debug']('ASFLAGS: %s' % (env['ASFLAGS']))
+        env.AppendUnique(ASPPFLAGS=cc_def)
+        #env['fn_debug']('ASPPFLAGS: %s' % (env['ASPPFLAGS']))
+
+        cc_opt_dep_to_remove = self.build_env.var_value('CC_OPT_DEP')
+        cc_opt = self.build_env.var_value('CC_OPT')
+        cc_opt = cc_opt.replace(cc_opt_dep_to_remove, '')
+        env.AppendUnique(ASPPFLAGS=cc_opt.split())
+        env['fn_debug']('ASPPFLAGS: %s' % (env['ASPPFLAGS']))
 
         cc_opt_dep_to_remove = self.build_env.var_value('CC_OPT_DEP')
         cc_c_opt = self.build_env.var_value('CC_C_OPT')
         cc_c_opt = cc_c_opt.replace(cc_opt_dep_to_remove, '')
         env.AppendUnique(ASFLAGS=cc_c_opt.split())
-        #env['fn_debug']('ASFLAGS: %s' % (env['ASFLAGS']))
+        env['fn_debug']('ASFLAGS: %s' % (env['ASFLAGS']))
 
 
     def prepare_binary_env(self, env):
