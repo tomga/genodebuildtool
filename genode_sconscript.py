@@ -145,6 +145,9 @@ def process_builddir(build_dir, env):
     #       which is selected but currently just mimic behaviour from
     #       build.mk
     specs = build_env.var_values('SPECS')
+    if env['BOARD'] != '' and env['BOARD'] not in specs:
+        specs.append(env['BOARD'])
+        build_env.var_set('SPECS', ' '.join(specs))
     env['fn_debug']("SPECS: %s" % (specs))
     specs_mk_files = []
     for spec in specs:
