@@ -18,7 +18,7 @@ def store_build_info(build_db, build_info, build_name, build_tool, stamp_dt, arc
     result = c.fetchone()
     build_run_id, = result
 
-    def store_run_command(outputs, sources, command_text, canonical_text):
+    def store_run_command(outputs, sources, command_text, canonical_text, canonical_noincsort_text):
 
         output_num = 0
         for output in outputs:
@@ -27,10 +27,10 @@ def store_build_info(build_db, build_info, build_name, build_tool, stamp_dt, arc
                          VALUES (?, ?, ?)''', args)
             #print(str(args))
 
-            args = (build_run_id, output_num, command_text, output, canonical_text)
+            args = (build_run_id, output_num, command_text, output, canonical_text, canonical_noincsort_text)
             c.execute('''REPLACE INTO run_commands (run_id, command_num, command_text,
-                                                    target_path, canonical_text)
-                         VALUES (?, ?, ?, ?, ?)''', args)
+                                                    target_path, canonical_text, canonical_noincsort_text)
+                         VALUES (?, ?, ?, ?, ?, ?)''', args)
             args = (build_run_id, output)
             #print(str(args))
             c.execute('SELECT id FROM run_commands WHERE run_id = ? and target_path = ?', args)

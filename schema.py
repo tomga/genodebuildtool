@@ -100,6 +100,7 @@ def db_prepare_schema(build_db, schema_version):
                   command_text TEXT,
                   target_path TEXT,
                   canonical_text TEXT,
+                  canonical_noincsort_text TEXT,
                   FOREIGN KEY (run_id) REFERENCES build_runs,
                   FOREIGN KEY (target_path) REFERENCES build_targets)
               ''')

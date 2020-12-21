@@ -111,7 +111,7 @@ def arg_parse_compiler(args_array):
     return parsed_args
 
 
-def arg_clean_compiler(args_tokenized, run_dir, abs_dir, rel_dir):
+def arg_clean_compiler(args_tokenized, run_dir, abs_dir, rel_dir, options):
 
     opts = arg_parse_compiler(args_tokenized[1:])
     #arguments_print(opts)
@@ -135,8 +135,11 @@ def arg_clean_compiler(args_tokenized, run_dir, abs_dir, rel_dir):
     res += [ '-f%s' % (v) for v in nodups(opts.f) ]
     res += [ '-W%s' % (v) for v in sorted(nodups(opts.W)) ]
     res += [ '-D%s' % (v) for v in sorted(nodups(opts.D)) ]
-    res += [ '-I%s' % (path_clean(v, run_dir, abs_dir, rel_dir, False))
+    inc = [ '-I%s' % (path_clean(v, run_dir, abs_dir, rel_dir, False))
              for v in nodups(opts.I) ]
+    if 'noincsort' not in options:
+        inc = sorted(inc)
+    res += inc
     res += [ '-L%s' % (path_clean(v, run_dir, abs_dir, rel_dir, False))
              for v in nodups(opts.L) ]
     res += [ '-l%s' % (v) for v in nodups(opts.l) ]
@@ -566,7 +569,7 @@ def arg_tokenize(args_string):
     return args_tokenized
 
 
-def arg_clean(args_string, run_dir, abs_dir, rel_dir):
+def arg_clean(args_string, run_dir, abs_dir, rel_dir, options):
 
     #print(args_string)
     args_tokenized = arg_tokenize(args_string)
@@ -575,7 +578,7 @@ def arg_clean(args_string, run_dir, abs_dir, rel_dir):
     prg = args_tokenized[0]
 
     if (prg.endswith('gcc') or prg.endswith('g++')):
-        return arg_clean_compiler(args_tokenized, run_dir, abs_dir, rel_dir)
+        return arg_clean_compiler(args_tokenized, run_dir, abs_dir, rel_dir, options)
     elif (prg.endswith('ar')):
         return arg_clean_ar(args_tokenized, run_dir, abs_dir, rel_dir)
     elif (prg.endswith('ld')):

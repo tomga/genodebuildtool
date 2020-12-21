@@ -35,12 +35,13 @@ def commands_clean(cmd_lines, run_dir, abs_dir, rel_dir):
 
         #print('cmd: %s' % orig)
 
-        (cmd, src, tgt) = arg_cleaner.arg_clean(orig, run_dir, abs_dir, rel_dir)
+        (cmd_noincsort, src, tgt) = arg_cleaner.arg_clean(orig, run_dir, abs_dir, rel_dir, ['noincsort'])
+        (cmd, src, tgt) = arg_cleaner.arg_clean(orig, run_dir, abs_dir, rel_dir, [])
 
         if cmd is None:
             continue
 
-        result += [(cmd, src, tgt, orig)]
+        result += [(cmd, src, tgt, orig, cmd_noincsort)]
 
     return result
 

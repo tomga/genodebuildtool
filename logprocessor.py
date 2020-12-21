@@ -27,8 +27,8 @@ class SimpleBuildCommand(BuildCommand):
         clean_commands = cmd_cleaner.commands_clean(self.cmd_lines,
                                                     run_dir, abs_dir, rel_dir)
 
-        for cmd, src, tgt, orig in clean_commands:
-            save_fun(tgt, src, orig, cmd)
+        for cmd, src, tgt, orig, cmd_noincsort in clean_commands:
+            save_fun(tgt, src, orig, cmd, cmd_noincsort)
 
 
 
