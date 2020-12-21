@@ -186,14 +186,6 @@ class GenodeMkLib(GenodeLib):
             self.env, self.target_path(None), lib_so_deps)
 
 
-        ### # fix rep_inc_dir content - important to be before processing global.mk
-        ### current_rep_inc_dir = self.build_env.var_values('REP_INC_DIR')
-        ### full_rep_inc_dir = current_rep_inc_dir + global_rep_inc_dir
-        ### #self.env['fn_debug']('full_rep_inc_dir: %s' % (str(full_rep_inc_dir)))
-        ### self.build_env.var_set('REP_INC_DIR', ' '.join(full_rep_inc_dir))
-        ### #self.env['fn_debug']('REP_INC_DIR: %s' % (str(self.build_env.var_values('REP_INC_DIR'))))
-
-
         ### handle include global.mk
         global_mk_file = '%s/mk/global.mk' % (self.env['BASE_DIR'])
         global_mk = mkcache.get_parsed_mk(global_mk_file)
@@ -208,6 +200,17 @@ class GenodeMkLib(GenodeLib):
                 self.env['fn_info']("processing import-%s file: %s" % (dep_lib, dep_lib_import_mk_file))
                 dep_lib_import_mk = mkcache.get_parsed_mk(dep_lib_import_mk_file)
                 dep_lib_import_mk.process(self.build_env)
+
+
+        ### # fix rep_inc_dir content - important to be before processing global.mk
+        ### current_rep_inc_dir = self.build_env.var_values('REP_INC_DIR')
+        ### full_rep_inc_dir = current_rep_inc_dir + global_rep_inc_dir
+        ### #self.env['fn_debug']('--- %s' % self.lib_name)
+        ### #self.env['fn_debug']('global_rep_inc_dir: %s' % (str(global_rep_inc_dir)))
+        ### #self.env['fn_debug']('current_rep_inc_dir: %s' % (str(current_rep_inc_dir)))
+        ### #self.env['fn_debug']('full_rep_inc_dir: %s' % (str(full_rep_inc_dir)))
+        ### self.build_env.var_set('REP_INC_DIR', ' '.join(full_rep_inc_dir))
+        ### #self.env['fn_debug']('REP_INC_DIR: %s' % (str(self.build_env.var_values('REP_INC_DIR'))))
 
 
         ### handle include global.mk again
