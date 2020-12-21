@@ -398,6 +398,7 @@ def arg_clean_binary(args_tokenized, run_dir, abs_dir, rel_dir):
 def arg_parse_strip(args_array):
 
     argparser = argparse.ArgumentParser('strip')
+    argparser.add_argument('--strip-debug', action='store_true')
     argparser.add_argument('SOURCES', action='append', default=[], nargs=1)
     argparser.add_argument('-o', dest='TARGETS', action='append', default=[], nargs=1)
 
@@ -416,6 +417,7 @@ def arg_clean_strip(args_tokenized, run_dir, abs_dir, rel_dir):
     targets = [ '%s' % (path_clean(v, run_dir, abs_dir, rel_dir, True))
                 for v in nodups(opts.TARGETS[0]) ]
 
+    if opts.strip_debug: res += ['--strip-debug']
     res += [ '-o %s' % (v) for v in targets ]
     res += sources
 
