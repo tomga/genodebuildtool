@@ -25,11 +25,12 @@ def exists(env):
 def strip_generator(target, source, env, for_signature):
 
     d = { 'strip': env['STRIP'],
+          'strip_opts': env['STRIP_OPTIONS'] if 'STRIP_OPTIONS' in env else '',
           'target': target[0],
           'source': source[0],
           }
 
-    cmd = r"{strip} -o {target} {source}"
+    cmd = r"{strip} {strip_opts} -o {target} {source}"
 
     cmd = cmd.format(**d)
     cmd = cmd.replace('\n', ' ')
