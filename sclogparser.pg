@@ -4,7 +4,9 @@ FullLog: SCONS_INIT_START LINE_END
          SCONS_INIT_END LINE_END
          SCONS_BUILD_START LINE_END
          CmdList
-         SCONS_BUILD_END LINE_END;
+         SCONS_BUILD_END LINE_END
+         SimpleCommandList?
+         ;
 
 CmdList: Command | CmdList Command;
 
@@ -20,7 +22,8 @@ SimpleCommandList: SimpleCommand | SimpleCommandList SimpleCommand;
 SimpleCommand: SimpleCommandText LINE_END;
 
 SimpleCommandText: SimpleCommandPart |
-                   SimpleCommandText SimpleCommandPart;
+                   SimpleCommandText SimpleCommandPart |
+                   EMPTY;
 
 SimpleCommandPart: TEXT |
                    ESCAPED |

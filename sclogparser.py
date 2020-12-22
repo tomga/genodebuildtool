@@ -32,6 +32,7 @@ def initialize():
 
         "SimpleCommandText": [lambda _, nodes: nodes[0],
                               lambda _, nodes: nodes[0] + nodes[1],
+                              lambda _, nodes: '',
                     ],
         "SimpleCommandPart": [lambda _, nodes: nodes[0],
                               lambda _, nodes: nodes[0],
