@@ -30,6 +30,9 @@ class GenodeProg:
         self.env['fn_current_target_type'] = lambda : 'prog'
         self.env['fn_target_path'] = lambda tgt: self.target_path(tgt)
 
+        self.post_process_actions = []
+        self.env['fn_add_post_process_action'] = lambda action: self.post_process_actions.append(action)
+
 
     def sconsify_path(self, path):
         return self.env['fn_sconsify_path'](path)
@@ -418,6 +421,10 @@ class GenodeMkProg(GenodeProg):
                                               target=self.sconsify_path(os.path.join(self.env['INSTALL_DIR'], xsd_name)))
             prog_targets.append(config_xst_tgt)
 
+
+        ## execute post_process_actions
+        for action in self.post_process_actions:
+            action()
 
         self.env['fn_notice']('prog_targets: %s' % (str(list(map(str, prog_targets)))))
 
