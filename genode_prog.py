@@ -380,6 +380,13 @@ class GenodeMkProg(GenodeProg):
 
         prog_targets = []
 
+
+        ### publish LINK_ITEMS in current env
+        # needed e.g. in overlay for base/src/core/target.inc
+        self.env['PROG_LINK_ITEMS'] = list(map(str, objects + dep_archives + dep_shlib_links))
+        self.env['fn_debug']('PROG_LINK_ITEMS %s' % (str(self.env['PROG_LINK_ITEMS'])))
+
+
         if len(objects) > 0:
 
             self.env['fn_debug']("ld_opt: %s" % (str(ld_opt)))
