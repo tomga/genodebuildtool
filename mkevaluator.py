@@ -205,17 +205,26 @@ class MkRValueText(MkRValue):
 
 
 class MkRValueVar(MkRValue):
-    def __init__(self, var_ident, var_expr = None):
+    def __init__(self, var_ident, var_expr = None,
+                 brace_open=None, brace_close=None):
         self.var_ident = var_ident
         self.var_expr = var_expr
+        self.brace_open = brace_open
+        self.brace_close = brace_close
+        assert brace_open is None or brace_open == '('
+        assert brace_close is None or brace_close == ')'
 
     def type(self):
         return 'VAR'
 
     def get_var_name(self, mkenv):
         var_name = self.var_ident
+        if self.brace_open is not None:
+            var_name += self.brace_open
         if self.var_expr is not None:
-            var_name += ''.join(self.var_expr.calculate(mkenv))
+            var_name += ''.join(self.var_expr.values_list(mkenv))
+        if self.brace_close is not None:
+            var_name += self.brace_close
         return var_name
 
     def calculate(self, mkenv):

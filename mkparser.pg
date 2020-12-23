@@ -89,7 +89,8 @@ ParamPartExpr: DOLLAR VarName |
             	 DOLLAR BRACE_OPEN VarName COLON ParamExpr CMD_RECURSIVE_EXPAND_ASSIGN ParamExpr BRACE_CLOSE;
 
 VarName: VarIdent |
-         VarIdent RValuePartExpr;
+         VarIdent RValuePartExpr |
+         VarIdent BRACE_OPEN RValuePartExpr BRACE_CLOSE;
 
 RValuePartText: TEXT_CHAR |
                 SPECIAL_NOESCAPE |
