@@ -156,10 +156,13 @@ def process_builddir(build_dir, env):
             specs_mk_files += [specs_mk_file]
 
     base_specs_mk_files = tools.find_files(base_dir + '/mk/spec/%s.mk', specs)
-    specs_mk_files = list(set(specs_mk_files + base_specs_mk_files))
+    all_specs_mk_files = []
+    for specs_mk_file in specs_mk_files + base_specs_mk_files:
+        if specs_mk_file not in all_specs_mk_files:
+            all_specs_mk_files.append(specs_mk_file)
 
-    env['fn_info']("processing <spec>.mk files: %s" % (str(specs_mk_files)))
-    for specs_mk_file in specs_mk_files:
+    env['fn_info']("processing <spec>.mk files: %s" % (str(all_specs_mk_files)))
+    for specs_mk_file in all_specs_mk_files:
         specs_mk = mkcache.get_parsed_mk(specs_mk_file)
         specs_mk.process(build_env)
     #pprint.pprint(build_env.debug_struct('pretty'), width=200)
