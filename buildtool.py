@@ -9,6 +9,7 @@ import subprocess
 import sys
 
 import buildinfo_storer
+import db_utils
 import schema
 import mkevaluator
 import mkparser
@@ -46,6 +47,13 @@ def arguments_parse():
     argparser.add_argument('--log-level', default='none',
                            choices=['none', 'error', 'warning', 'notice', 'info', 'debug'],
                            help='scons helper code diagnostics log level')
+
+    argparser.add_argument('--db-reset-data', action='store_true')
+    argparser.add_argument('--db-compare-builds', action='store_true')
+
+    argparser.add_argument('--builddir-recreate', action='store_true')
+    argparser.add_argument('--builddir-enable-repos', nargs='+', default=[])
+
 
     argparser.add_argument('--log', nargs='+', default=[],
                            help='log files to process')
@@ -200,6 +208,10 @@ def do_builds(opts, build_db):
 
     for build in opts.build:
 
+        if opts.db_reset_data:
+            print('Clearing build db: %s' % (build))
+            db_utils.clear_build_info(build_db, build)
+
         arch = get_build_arch(build)
         abs_dir = os.getcwd()
         rel_dir = 'build/%s' % (build)
@@ -231,6 +243,11 @@ def do_builds(opts, build_db):
         else:
             print('Unknown build type: %s' % (build))
 
+    if opts.db_compare_builds:
+        if len(opts.build) != 2:
+            print('ERROR: cannot compare %s builds' % (str(len(opts.build))))
+        else:
+            db_utils.compare_builds(build_db, opts.build[0], opts.build[1])
 
 
 ###
