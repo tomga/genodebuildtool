@@ -62,5 +62,5 @@ def compare_builds(build_db, build_dir1, build_dir2):
             last_tgt_path = tgt_path
             last_cmd_num = cmd_num
 
-        print(" %s cano: %s" % (tool.ljust(5), can_text))
-        print(" %s orig: %s" % (tool.ljust(5), cmd_text))
+        print(" %s can: %s" % (tool.ljust(5), can_text))
+        print(" %s org: %s" % (tool.ljust(5), cmd_text))
