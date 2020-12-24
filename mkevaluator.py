@@ -241,7 +241,10 @@ class MkRValueVar(MkRValue):
         if self.var_expr is None:
             return '$' + self.var_ident
         else:
-            return [ '$' + self.var_ident, self.var_expr.debug_struct() ]
+            return ([ '$' + self.var_ident]
+                    + ([self.brace_open] if self.brace_open is not None else [])
+                    + [self.var_expr.debug_struct() ]
+                    + ([self.brace_close] if self.brace_close is not None else []))
 
 
 functionsDict = {}
