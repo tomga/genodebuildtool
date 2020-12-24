@@ -103,7 +103,7 @@ def initialize():
                     ],
         "VarName": [lambda _, nodes: mkevaluator.MkRValueVar(nodes[0]),
                     lambda _, nodes: mkevaluator.MkRValueVar(nodes[0], nodes[1]),
-                    lambda _, nodes: mkevaluator.MkRValueVar(nodes[0], nodes[2]),
+                    lambda _, nodes: mkevaluator.MkRValueVar(nodes[0], nodes[2], nodes[1], nodes[3]),
                    ],
         "RValuePartText": [lambda _, nodes: mkevaluator.MkRValueText(nodes[0]),
                            lambda _, nodes: mkevaluator.MkRValueText(nodes[0]),
