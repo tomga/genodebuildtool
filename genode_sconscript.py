@@ -229,13 +229,10 @@ def process_builddir(build_dir, env):
     progs = []
     known_progs = set([])
     def require_progs(dep_progs):
-        env['fn_warning']('reqprog: %s' % (str(dep_progs)))
         dep_aliases = []
         for dep in dep_progs:
             if dep not in known_progs:
-                env['fn_warning']('reqprog: before %s %s' % (dep, str(known_progs)))
                 progs.extend(process_progs(dep, env, build_env, known_progs))
-                env['fn_warning']('reqprog:  after %s %s' % (dep, str(known_progs)))
             dep_aliases.append(env.Alias(prog_alias_name(dep)))
         return dep_aliases
     env['fn_require_progs'] = require_progs
