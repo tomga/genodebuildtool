@@ -41,14 +41,16 @@ def process_builddir(build_dir, env):
     scmkcache = scmkevaluator.ScMkCache(env, mkcache)
     build_env = mkevaluator.MkEnv(scmkcache)
 
+    if 'BOARD' in env:
+        build_env.var_set('BOARD', env['BOARD'])
+    if 'KERNEL' in env:
+        build_env.var_set('KERNEL', env['KERNEL'])
 
     ### handle build.conf
     build_conf = mkcache.get_parsed_mk('%s/etc/build.conf' % (build_dir))
     build_conf.process(build_env)
     #pprint.pprint(build_env.debug_struct('pretty'), width=200)
 
-
-    build_env.var_set('BOARD', env['BOARD'])
     build_env.var_set('BUILD_BASE_DIR', '%s' % (build_dir))
     build_env.var_set('DEBUG_DIR', '%s/debug' % (build_dir))
     build_env.var_set('INSTALL_DIR', '%s/bin' % (build_dir))
