@@ -49,11 +49,11 @@ def arguments_parse():
                            help='scons helper code diagnostics log level')
 
     argparser.add_argument('--db-reset-data', action='store_true')
-    argparser.add_argument('--db-compare-builds', action='store_true')
 
     argparser.add_argument('--builddir-recreate', action='store_true')
     argparser.add_argument('--builddir-enable-repos', nargs='+', default=[])
 
+    argparser.add_argument('--check-builds', action='store_true')
 
     argparser.add_argument('--log', nargs='+', default=[],
                            help='log files to process')
@@ -166,10 +166,12 @@ def do_mk_build(build_name, opts, stamp_dt, log_file):
                                     '%s' % (board),
                                     'LIB=%s' % opts.lib[0] if len(opts.lib) > 0 else '',
                                     '%s' % ' '.join(opts.prog),
+                                    '%s' % ' '.join(opts.run),
                                     '2>&1 | tee %s' % (log_file)] if p != ''])
     print('Executing: %s' % command)
-    output = buildtool_utils.command_execute(command)
+    exit_code, output = buildtool_utils.command_execute(command)
 
+    return exit_code
 
     
 def do_sc_build(build_name, opts, stamp_dt, log_file):
@@ -191,8 +193,9 @@ def do_sc_build(build_name, opts, stamp_dt, log_file):
                                     '%s' % ' '.join(opts.prog),
                                     '2>&1 | tee %s' % (log_file)] if p != ''])
     print('Executing: %s' % command)
-    output = buildtool_utils.command_execute(command)
+    exit_code, output = buildtool_utils.command_execute(command)
 
+    return exit_code
 
     
 
@@ -205,6 +208,8 @@ def do_builds(opts, build_db):
 
     stamp_dt = datetime.datetime.now()
     tstamp = f"{stamp_dt:%Y%m%d_%H%M%S}"
+
+    build_exit_codes = {}
 
     for build in opts.build:
 
@@ -225,7 +230,7 @@ def do_builds(opts, build_db):
 
         if is_mk_build(build):
             print('Make type build: %s' % (build))
-            do_mk_build(build, opts, stamp_dt, log_file)
+            exit_code = do_mk_build(build, opts, stamp_dt, log_file)
             run_time = None
             build_info = parse_mk_log(log_file)
             buildinfo_storer.store_build_info(build_db, build_info, build, 'make',
@@ -233,7 +238,7 @@ def do_builds(opts, build_db):
                                               abs_dir, rel_dir)
         elif is_sc_build(build):
             print('SCons type build: %s' % (build))
-            do_sc_build(build, opts, stamp_dt, log_file)
+            exit_code = do_sc_build(build, opts, stamp_dt, log_file)
             run_time = None
             build_info = parse_sc_log(log_file)
             build_info.run_dir = abs_dir # this information is not in scons log
@@ -243,11 +248,22 @@ def do_builds(opts, build_db):
         else:
             print('Unknown build type: %s' % (build))
 
-    if opts.db_compare_builds:
+        build_exit_codes[build] = exit_code
+
+    if opts.check_builds:
         if len(opts.build) != 2:
             print('ERROR: cannot compare %s builds' % (str(len(opts.build))))
         else:
-            db_utils.compare_builds(build_db, opts.build[0], opts.build[1])
+            build0_name = opts.build[0]
+            build1_name = opts.build[1]
+            build0_ok = (build_exit_codes[build0_name] == 0)
+            build1_ok = (build_exit_codes[build1_name] == 0)
+            if build0_ok != build1_ok:
+                print('ERROR: build results differ: %s %s and %s %s'
+                      % (build0_name, 'SUCCEDED' if build0_ok else 'FAILED',
+                         build1_name, 'SUCCEDED' if build1_ok else 'FAILED'))
+
+            db_utils.compare_builds(build_db, build0_name, build1_name)
 
 
 ###

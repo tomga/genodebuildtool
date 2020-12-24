@@ -19,9 +19,10 @@ class Python2PrettyPrinter(pprint.PrettyPrinter):
 
 
 def command_execute(command):
-    process = subprocess.Popen(command,
+    process = subprocess.Popen('set -o pipefail; ' + command,
                                stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
-                               shell=True, universal_newlines=True)
+                               shell=True, universal_newlines=True,
+                               executable='/bin/bash')
 
     # Poll process for new output until finished
     while True:
@@ -32,9 +33,6 @@ def command_execute(command):
         sys.stdout.flush()
 
     output = process.communicate()[0]
-    exitCode = process.returncode
+    exit_code = process.wait()
 
-    if (exitCode == 0):
-        return output
-    else:
-        raise ProcessException(command, exitCode, output)
+    return exit_code, output
