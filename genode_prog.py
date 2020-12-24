@@ -455,6 +455,9 @@ class GenodeMkProg(GenodeProg):
                 and os.path.isfile(os.path.join(self.relative_src_dir, src_file))):
                 existing_file_paths += [self.relative_src_dir]
 
+            if len(existing_file_paths) == 0:
+                self.env['fn_error']("expected exactly one vpath for %s but none from %s found" % (src_file, str(file_paths)))
+                quit()
             if len(existing_file_paths) != 1:
                 self.env['fn_notice']("expected exactly one vpath for %s but exist %s from %s found" % (src_file, str(existing_file_paths), str(file_paths)))
 
