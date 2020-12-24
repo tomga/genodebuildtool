@@ -5,6 +5,8 @@ CmdList: Command | CmdList LINE_END Command;
 
 Command: VarIdentWithOptWs CmdAssign |
          ExportWithWs VarIdentWithOptWs CmdAssign? |
+         VarIdent BRACE_OPEN VarIdent BRACE_CLOSE WS? CmdAssign |
+         ExportWithWs VarIdent BRACE_OPEN VarIdent BRACE_CLOSE WS? CmdAssign? |
 				 CondCmd |
 				 IncludeCmd |
 				 VPathCmd |

@@ -23,6 +23,17 @@ def initialize():
                                       mkevaluator.MkCmdSimpleExpandAssign(nodes[1][0], nodes[2][3], export=True) if nodes[2][1] == ':=' else
                                       mkevaluator.MkCmdOptAssign(nodes[1][0], nodes[2][3], export=True) if nodes[2][1] == '?=' else
                                       "Invalid command oper %s" % (nodes[2][1])),
+                    lambda _, nodes: (mkevaluator.MkCmdAppend(nodes[0]+nodes[1]+nodes[2]+nodes[3], nodes[5][3], export=False) if nodes[5][1] == '+=' else
+                                      mkevaluator.MkCmdRecursiveExpandAssign(nodes[0]+nodes[1]+nodes[2]+nodes[3], nodes[5][3], export=False) if nodes[5][1] == '=' else
+                                      mkevaluator.MkCmdSimpleExpandAssign(nodes[0]+nodes[1]+nodes[2]+nodes[3], nodes[5][3], export=False) if nodes[5][1] == ':=' else
+                                      mkevaluator.MkCmdOptAssign(nodes[0]+nodes[1]+nodes[2]+nodes[3], nodes[5][3], export=False) if nodes[5][1] == '?=' else
+                                      "Invalid command oper %s" % (nodes[5][1])),
+                    lambda _, nodes: (mkevaluator.MkCmdExport(nodes[1]+nodes[2]+nodes[3]+nodes[4]) if nodes[6] is None else
+                                      mkevaluator.MkCmdAppend(nodes[1]+nodes[2]+nodes[3]+nodes[4], nodes[6][3], export=True) if nodes[6][1] == '+=' else
+                                      mkevaluator.MkCmdRecursiveExpandAssign(nodes[1]+nodes[2]+nodes[3]+nodes[4], nodes[6][3], export=True) if nodes[6][1] == '=' else
+                                      mkevaluator.MkCmdSimpleExpandAssign(nodes[1]+nodes[2]+nodes[3]+nodes[4], nodes[6][3], export=True) if nodes[6][1] == ':=' else
+                                      mkevaluator.MkCmdOptAssign(nodes[1]+nodes[2]+nodes[3]+nodes[4], nodes[6][3], export=True) if nodes[6][1] == '?=' else
+                                      "Invalid command oper %s" % (nodes[6][1])),
                     lambda _, nodes: nodes[0],
                     lambda _, nodes: nodes[0],
                     lambda _, nodes: nodes[0],
