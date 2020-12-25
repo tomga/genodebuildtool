@@ -1,6 +1,9 @@
 
+import fnmatch
+import glob
 import hashlib
 import os
+import re
 
 def is_file(file_path):
     return  os.path.isfile(file_path)
@@ -28,3 +31,82 @@ def is_repo_file(relative_repo_path, repo_path):
 def file_md5(file_path):
     with open(file_path, 'rb') as f:
         return hashlib.md5(f.read()).hexdigest()
+
+
+def expand_lib_targets(repositories, specs, lib_targets, lib_excludes):
+    lib_patterns = [ lib for lib in lib_targets if '*' in lib ]
+    if len(lib_patterns) == 0:
+        return lib_targets
+
+    found_libs = []
+    for repository in repositories:
+        mk_list = glob.glob('%s/lib/mk/*.mk' % (repository))
+        found_libs.extend([ os.path.splitext(os.path.basename(mk))[0] for mk in mk_list ])
+
+        mk_list = glob.glob('%s/lib/mk/spec/*/*.mk' % (repository))
+        # filter out those with spec not in specs
+        mk_list = [ mk for mk in mk_list if os.path.basename(os.path.dirname(mk)) in specs ]
+        found_libs.extend([ os.path.splitext(os.path.basename(mk))[0] for mk in mk_list ])
+
+    found_libs = sorted(list(set(found_libs)))
+
+    for excl in lib_excludes:
+        found_libs = [ lib for lib in found_libs if not fnmatch.fnmatch(lib, excl) ]
+
+    result = []
+    processed = set([])
+
+    for lib in lib_targets:
+        if '*' not in lib:
+            if lib not in processed:
+                result.append(lib)
+                processed.add(lib)
+            continue
+
+        all_matches = fnmatch.filter(found_libs, lib)
+        new_matches = [ lib for lib in all_matches if lib not in processed ]
+
+        result.extend(new_matches)
+        processed = processed | set(new_matches)
+
+    return result
+
+
+def expand_prog_targets(repositories, prog_targets, prog_excludes):
+    prog_patterns = [ prog for prog in prog_targets if '*' in prog ]
+    if len(prog_patterns) == 0:
+        return prog_targets
+
+    prog_excludes = ['lib'] + prog_excludes
+
+    specs_pattern = re.compile('/spec/.*')
+
+    found_progs = []
+    for repository in repositories:
+        mk_list = glob.glob('%s/src/**/target.mk' % (repository), recursive=True)
+        progs = [ mk[len(repository)+len('/src/'):-len('/target.mk')] for mk in mk_list ]
+        progs = [ specs_pattern.sub('', prog) for prog in progs ]
+        found_progs.extend(progs)
+
+    found_progs = sorted(list(set(found_progs)))
+
+    for excl in prog_excludes:
+        found_progs = [ prog for prog in found_progs if not fnmatch.fnmatch(prog, excl) ]
+
+    result = []
+    processed = set([])
+
+    for prog in prog_targets:
+        if '*' not in prog:
+            if prog not in processed:
+                result.append(prog)
+                processed.add(prog)
+            continue
+
+        all_matches = fnmatch.filter(found_progs, prog)
+        new_matches = [ prog for prog in all_matches if prog not in processed ]
+
+        result.extend(new_matches)
+        processed = processed | set(new_matches)
+
+    return result

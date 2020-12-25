@@ -12,7 +12,9 @@ def sconstruct():
     opts.Add('BUILD', 'Build directory (relative from genode root)')
     opts.Add('BOARD', 'Selected board')
     opts.Add('KERNEL', 'Selected kernel')
-    opts.Add('LIB', 'Space separated libraries list to build (named for conformance with mk build)')
+    opts.Add('LIB', 'Space separated libraries list to build', default='')
+    opts.Add('LIB_EXCLUDES', 'Space separated libraries list to not build', default='')
+    opts.Add('PROG_EXCLUDES', 'Space separated programs list to not build', default='')
     opts.Add(BoolVariable('VERBOSE_OUTPUT', 'Enable verbose output', default=False))
     opts.Add('LOG_LEVEL', 'Specify log output level', default='error',
              allowed_values=('none', 'error', 'warning', 'notice', 'info', 'debug'))
@@ -22,8 +24,10 @@ def sconstruct():
 
     env['SHELL'] = 'bash'
 
-    env['LIB_TARGETS'] = env['LIB'].split() if 'LIB' in env else []
+    env['LIB_TARGETS'] = env['LIB'].split()
     env['PROG_TARGETS'] = list(BUILD_TARGETS)  # TODO: filter when adding support for run scripts
+    env['LIB_EXCLUDES'] = env['LIB_EXCLUDES'].split()
+    env['PROG_EXCLUDES'] = env['PROG_EXCLUDES'].split()
     env['BUILD_TARGETS'] = BUILD_TARGETS
     BUILD_TARGETS.clear()
 

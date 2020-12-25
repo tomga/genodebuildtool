@@ -238,11 +238,26 @@ def process_builddir(build_dir, env):
     env['fn_require_progs'] = require_progs
 
 
+    # expand targets lib masks taking into account target excludes
+    exp_libs = tools.expand_lib_targets(env['REPOSITORIES'], env['SPECS'],
+                                        env['LIB_TARGETS'], env['LIB_EXCLUDES'])
+    env['LIB_TARGETS'] = exp_libs
+    env['fn_info']("libs: %s" % (' '.join(exp_libs)))
+
+    # expand targets prog masks taking into account target excludes
+    exp_progs = tools.expand_prog_targets(env['REPOSITORIES'],
+                                          env['PROG_TARGETS'], env['PROG_EXCLUDES'])
+    env['PROG_TARGETS'] = exp_progs
+    env['fn_info']("progs: %s" % (' '.join(exp_progs)))
+
+
     require_libs(env['LIB_TARGETS'])
     require_progs(env['PROG_TARGETS'])
 
+    env['fn_info']('BUILD_TARGETS: %s' % (str(env['BUILD_TARGETS'])))
     targets = libs + progs
     env['BUILD_TARGETS'] += targets
+    env['fn_info']('BUILD_TARGETS: %s' % (str(list(map(str, env['BUILD_TARGETS'])))))
 
     env['fn_debug'](env.Dump())
 
