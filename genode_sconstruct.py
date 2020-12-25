@@ -16,8 +16,8 @@ def sconstruct():
     opts.Add('LIB_EXCLUDES', 'Space separated libraries list to not build', default='')
     opts.Add('PROG_EXCLUDES', 'Space separated programs list to not build', default='')
     opts.Add(BoolVariable('VERBOSE_OUTPUT', 'Enable verbose output', default=False))
-    opts.Add('LOG_LEVEL', 'Specify log output level', default='error',
-             allowed_values=('none', 'error', 'warning', 'notice', 'info', 'debug'))
+    opts.Add('LOG_LEVEL', 'Specify log output level', default='info',
+             allowed_values=('none', 'error', 'warning', 'notice', 'info', 'debug', 'trace'))
 
     env = Environment(options = opts, ENV = os.environ)
     env.SConsignFile('%s/.sconsign' % (env['BUILD']))
@@ -38,11 +38,12 @@ def sconstruct():
             print('%s: %s' % (lvl, line))
 
     log_level = env['LOG_LEVEL']
-    env['fn_debug'] = partial(debug, 'DBG') if log_level in ['debug'] else nodebug
-    env['fn_info'] = partial(debug, 'INF') if log_level in ['debug', 'info'] else nodebug
-    env['fn_notice'] = partial(debug, 'NOT') if log_level in ['debug', 'info', 'notice'] else nodebug
-    env['fn_warning'] = partial(debug, 'WAR') if log_level in ['debug', 'info', 'notice', 'warning'] else nodebug
-    env['fn_error'] = partial(debug, 'ERR') if log_level in ['debug', 'info', 'notice', 'warning', 'error'] else nodebug
+    env['fn_trace'] = partial(debug, 'TRC') if log_level in ['trace'] else nodebug
+    env['fn_debug'] = partial(debug, 'DBG') if log_level in ['trace', 'debug'] else nodebug
+    env['fn_info'] = partial(debug, 'INF') if log_level in ['trace', 'debug', 'info'] else nodebug
+    env['fn_notice'] = partial(debug, 'NOT') if log_level in ['trace', 'debug', 'info', 'notice'] else nodebug
+    env['fn_warning'] = partial(debug, 'WAR') if log_level in ['trace', 'debug', 'info', 'notice', 'warning'] else nodebug
+    env['fn_error'] = partial(debug, 'ERR') if log_level in ['trace', 'debug', 'info', 'notice', 'warning', 'error'] else nodebug
 
 
     buildtool_dir = os.path.dirname(os.path.abspath(__file__))

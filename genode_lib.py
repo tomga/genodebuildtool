@@ -278,7 +278,7 @@ class GenodeMkLib(GenodeLib):
 
 
 
-        self.env['fn_debug'](pprint.pformat(self.build_env.debug_struct('pretty'), width=200))
+        self.env['fn_trace'](pprint.pformat(self.build_env.debug_struct('pretty'), width=200))
 
 
         ### handle include generic.mk functionality
@@ -484,10 +484,10 @@ class GenodeMkLib(GenodeLib):
                 src_file = os.path.basename(src_file)
             existing_file_paths = [ f for f in file_paths if os.path.isfile(os.path.join(f, src_file)) ]
             if len(existing_file_paths) == 0:
-                self.env['fn_error']("expected exactly one vpath for %s but none from %s found" % (src_file, str(file_paths)))
+                self.env['fn_error']("Expected exactly one vpath for %s but none from %s found" % (src_file, ' '.join(file_paths)))
                 quit()
             if len(existing_file_paths) != 1:
-                self.env['fn_notice']("expected exactly one vpath for %s but exist %s from %s found" % (src_file, str(existing_file_paths), str(file_paths)))
+                self.env['fn_notice']("Expected exactly one vpath for %s but exist %s from %s found" % (src_file, ' '.join(existing_file_paths), ' '.join(file_paths)))
             src_file_path = self.sconsify_path(existing_file_paths[0])
             src_files.append((src_file_path, src_file))
         return src_files

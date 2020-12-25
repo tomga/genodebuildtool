@@ -117,7 +117,6 @@ class GenodeBuildHelper:
         return objs
 
     def create_dep_lib_links(self, env, target_path, dep_libs):
-        env['fn_notice']('create_dep_lib_links: %s %s' % (target_path, str(dep_libs)))
         lib_cache_dir = self.get_lib_cache_dir(env)
 
         dep_lib_links = []

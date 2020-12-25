@@ -133,7 +133,7 @@ def process_builddir(build_dir, env):
     ### handle */etc/specs.conf files
     repositories_specs_conf_files = tools.find_files('%s/etc/specs.conf', repositories)
     specs_conf_files = repositories_specs_conf_files + ['%s/etc/specs.conf' % (build_dir)]
-    env['fn_info']("processing specs files: %s" % (str(specs_conf_files)))
+    env['fn_info']("Processing specs files: %s" % (' '.join(specs_conf_files)))
     for specs_conf_file in specs_conf_files:
         specs_conf = mkcache.get_parsed_mk(specs_conf_file)
         specs_conf.process(build_env)
@@ -163,14 +163,14 @@ def process_builddir(build_dir, env):
         if specs_mk_file not in all_specs_mk_files:
             all_specs_mk_files.append(specs_mk_file)
 
-    env['fn_info']("processing <spec>.mk files: %s" % (str(all_specs_mk_files)))
+    env['fn_info']("Processing <spec>.mk files: %s" % (' '.join(all_specs_mk_files)))
     for specs_mk_file in all_specs_mk_files:
         specs_mk = mkcache.get_parsed_mk(specs_mk_file)
         specs_mk.process(build_env)
     #pprint.pprint(build_env.debug_struct('pretty'), width=200)
 
     specs = build_env.var_values('SPECS')
-    env['fn_debug']("SPECS: %s" % (specs))
+    env['fn_info']("Effective specs: %s" % (' '.join(specs)))
     env['SPECS'] = specs
 
 
@@ -242,24 +242,24 @@ def process_builddir(build_dir, env):
     exp_libs = tools.expand_lib_targets(env['REPOSITORIES'], env['SPECS'],
                                         env['LIB_TARGETS'], env['LIB_EXCLUDES'])
     env['LIB_TARGETS'] = exp_libs
-    env['fn_info']("libs: %s" % (' '.join(exp_libs)))
+    env['fn_info']("Effective library targets: %s" % (' '.join(exp_libs)))
 
     # expand targets prog masks taking into account target excludes
     exp_progs = tools.expand_prog_targets(env['REPOSITORIES'],
                                           env['PROG_TARGETS'], env['PROG_EXCLUDES'])
     env['PROG_TARGETS'] = exp_progs
-    env['fn_info']("progs: %s" % (' '.join(exp_progs)))
+    env['fn_info']("Effective program targets: %s" % (' '.join(exp_progs)))
 
 
     require_libs(env['LIB_TARGETS'])
     require_progs(env['PROG_TARGETS'])
 
-    env['fn_info']('BUILD_TARGETS: %s' % (str(env['BUILD_TARGETS'])))
+    env['fn_debug']('BUILD_TARGETS: %s' % (str(env['BUILD_TARGETS'])))
     targets = libs + progs
     env['BUILD_TARGETS'] += targets
-    env['fn_info']('BUILD_TARGETS: %s' % (str(list(map(str, env['BUILD_TARGETS'])))))
+    env['fn_info']('Final build targets: %s' % (' '.join(list(map(str, env['BUILD_TARGETS'])))))
 
-    env['fn_debug'](env.Dump())
+    env['fn_trace'](env.Dump())
 
 
 
@@ -361,7 +361,7 @@ def check_for_lib_mk_overlay(lib_name, env, lib_mk_file, lib_mk_repo):
     env['fn_info']("Found overlays info file %s" % (overlay_info_file_path))
 
     mk_file_md5 = tools.file_md5(mk_file_path)
-    env['fn_info']("library mk '%s' hash: '%s'" % (mk_file_path, mk_file_md5))
+    env['fn_debug']("library mk '%s' hash: '%s'" % (mk_file_path, mk_file_md5))
 
     overlay_file_name = None
     with open(overlay_info_file_path, "r") as f:
@@ -369,22 +369,22 @@ def check_for_lib_mk_overlay(lib_name, env, lib_mk_file, lib_mk_repo):
             if line.startswith(mk_file_md5):
                 ovr_data = line.split()
                 if len(ovr_data) < 2:
-                    env['fn_error']("ERROR: invalid overlay entry in '%s':" % (overlay_info_file_path))
+                    env['fn_error']("Invalid overlay entry in '%s':" % (overlay_info_file_path))
                     print("     : %s" % (line))
                     quit()
                 overlay_file_name = ovr_data[1]
     if overlay_file_name is None:
-        env['fn_error']("ERROR: overlay not found in '%s' for hash '%s':" % (overlay_info_file_path, mk_file_md5))
+        env['fn_error']("Overlay not found in '%s' for hash '%s':" % (overlay_info_file_path, mk_file_md5))
         quit()
 
     overlay_file_path = os.path.join(os.path.dirname(overlay_info_file_path), overlay_file_name)
 
     env['fn_debug']("Checking overlay file %s" % (overlay_file_path))
     if not os.path.isfile(overlay_file_path):
-        env['fn_error']("ERROR: missing overlay file '%s' mentioned metioned  in '%s':" % (overlay_file_path, overlay_info_file_path))
+        env['fn_error']("Missing overlay file '%s' mentioned metioned  in '%s':" % (overlay_file_path, overlay_info_file_path))
         quit()
 
-    env['fn_notice']("Found overlay file '%s' for mk '%s'" % (overlay_file_path, mk_file_path))
+    env['fn_notice']("Using overlay file '%s' for mk '%s'" % (overlay_file_path, mk_file_path))
 
     overlay_type = os.path.splitext(overlay_file_path)[1]
     if overlay_type == '.mk':
@@ -492,7 +492,7 @@ def check_for_prog_mk_overlay(prog_name, env, prog_mk_file, prog_mk_repo):
     env['fn_info']("Found overlays info file %s" % (overlay_info_file_path))
 
     mk_file_md5 = tools.file_md5(mk_file_path)
-    env['fn_info']("program mk '%s' hash: '%s'" % (mk_file_path, mk_file_md5))
+    env['fn_debug']("program mk '%s' hash: '%s'" % (mk_file_path, mk_file_md5))
 
     overlay_file_name = None
     with open(overlay_info_file_path, "r") as f:
@@ -500,22 +500,22 @@ def check_for_prog_mk_overlay(prog_name, env, prog_mk_file, prog_mk_repo):
             if line.startswith(mk_file_md5):
                 ovr_data = line.split()
                 if len(ovr_data) < 2:
-                    env['fn_error']("ERROR: invalid overlay entry in '%s':" % (overlay_info_file_path))
+                    env['fn_error']("Invalid overlay entry in '%s':" % (overlay_info_file_path))
                     print("     : %s" % (line))
                     quit()
                 overlay_file_name = ovr_data[1]
     if overlay_file_name is None:
-        env['fn_error']("ERROR: overlay not found in '%s' for hash '%s':" % (overlay_info_file_path, mk_file_md5))
+        env['fn_error']("Overlay not found in '%s' for hash '%s':" % (overlay_info_file_path, mk_file_md5))
         quit()
 
     overlay_file_path = os.path.join(os.path.dirname(overlay_info_file_path), overlay_file_name)
 
     #print("Checking overlay file %s" % (overlay_file_path))
     if not os.path.isfile(overlay_file_path):
-        env['fn_error']("ERROR: missing overlay file '%s' mentioned metioned  in '%s':" % (overlay_file_path, overlay_info_file_path))
+        env['fn_error']("Missing overlay file '%s' mentioned metioned  in '%s':" % (overlay_file_path, overlay_info_file_path))
         quit()
 
-    env['fn_notice']("Found overlay file '%s' for mk '%s'" % (overlay_file_path, mk_file_path))
+    env['fn_notice']("Using overlay file '%s' for mk '%s'" % (overlay_file_path, mk_file_path))
 
     overlay_type = os.path.splitext(overlay_file_path)[1]
     if overlay_type == '.mk':

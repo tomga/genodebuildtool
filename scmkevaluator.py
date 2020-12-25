@@ -67,7 +67,7 @@ class ScMkCache:
         env['fn_info']("Found overlays info file %s" % (overlay_info_file_path))
 
         mk_file_md5 = tools.file_md5(mk_file_path)
-        env['fn_info']("program mk '%s' hash: '%s'" % (mk_file_path, mk_file_md5))
+        env['fn_debug']("program mk '%s' hash: '%s'" % (mk_file_path, mk_file_md5))
 
         overlay_file_name = None
         with open(overlay_info_file_path, "r") as f:
@@ -75,22 +75,22 @@ class ScMkCache:
                 if line.startswith(mk_file_md5):
                     ovr_data = line.split()
                     if len(ovr_data) < 2:
-                        env['fn_error']("ERROR: invalid overlay entry in '%s':" % (overlay_info_file_path))
+                        env['fn_error']("Invalid overlay entry in '%s':" % (overlay_info_file_path))
                         env['fn_error']("     : %s" % (line))
                         quit()
                     overlay_file_name = ovr_data[1]
         if overlay_file_name is None:
-            env['fn_error']("ERROR: overlay not found in '%s' for hash '%s':" % (overlay_info_file_path, mk_file_md5))
+            env['fn_error']("Overlay not found in '%s' for hash '%s':" % (overlay_info_file_path, mk_file_md5))
             quit()
 
         overlay_file_path = os.path.join(os.path.dirname(overlay_info_file_path), overlay_file_name)
 
         env['fn_debug']("Checking overlay file %s" % (overlay_file_path))
         if not os.path.isfile(overlay_file_path):
-            env['fn_error']("ERROR: missing overlay file '%s' mentioned metioned  in '%s':" % (overlay_file_path, overlay_info_file_path))
+            env['fn_error']("Missing overlay file '%s' mentioned metioned  in '%s':" % (overlay_file_path, overlay_info_file_path))
             quit()
 
-        env['fn_notice']("Found overlay file '%s' for mk '%s'" % (overlay_file_path, mk_file_path))
+        env['fn_notice']("Using overlay file '%s' for mk '%s'" % (overlay_file_path, mk_file_path))
 
         overlay_type = os.path.splitext(overlay_file_path)[1]
         if overlay_type == '.mk':
@@ -108,6 +108,6 @@ class ScMkCache:
                                              'overlay': mk_overlay }
             return mk_overlay
 
-        env['fn_error']("ERROR: unsupported overlay type: '%s' ('%s') for mk '%s'"
+        env['fn_error']("Unsupported overlay type: '%s' ('%s') for mk '%s'"
                         % (overlay_type, overlay_file_path, mk_file_path))
         quit()

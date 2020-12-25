@@ -225,7 +225,7 @@ class GenodeMkProg(GenodeProg):
         self.env['fn_debug']("REPOSITORIES: %s" % (str(repositories)))
 
 
-        self.env['fn_debug'](pprint.pformat(self.build_env.debug_struct('pretty'), width=200))
+        self.env['fn_trace'](pprint.pformat(self.build_env.debug_struct('pretty'), width=200))
 
 
         ### handle include generic.mk functionality
@@ -434,10 +434,10 @@ class GenodeMkProg(GenodeProg):
         for action in self.post_process_actions:
             action()
 
-        self.env['fn_notice']('prog_targets: %s' % (str(list(map(str, prog_targets)))))
+        self.env['fn_debug']('prog_targets: %s' % (str(list(map(str, prog_targets)))))
 
         retval = self.env.Alias(self.env['fn_prog_alias_name'](self.prog_name), prog_targets)
-        self.env['fn_notice']('retval: %s' % (str(list(map(str, retval)))))
+        self.env['fn_debug']('retval: %s' % (str(list(map(str, retval)))))
         return retval
 
 
@@ -456,10 +456,10 @@ class GenodeMkProg(GenodeProg):
                 existing_file_paths += [self.relative_src_dir]
 
             if len(existing_file_paths) == 0:
-                self.env['fn_error']("expected exactly one vpath for %s but none from %s found" % (src_file, str(file_paths)))
+                self.env['fn_error']("Expected exactly one vpath for %s but none from %s found" % (src_file, ' '.join(file_paths)))
                 quit()
             if len(existing_file_paths) != 1:
-                self.env['fn_notice']("expected exactly one vpath for %s but exist %s from %s found" % (src_file, str(existing_file_paths), str(file_paths)))
+                self.env['fn_notice']("Expected exactly one vpath for %s but exist %s from %s found" % (src_file, ' '.join(existing_file_paths), ' '.join(file_paths)))
 
             src_file_path = self.sconsify_path(existing_file_paths[0])
             src_files.append((src_file_path, src_file))
