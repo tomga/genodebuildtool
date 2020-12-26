@@ -492,6 +492,10 @@ def arg_clean_ln(args_tokenized, run_dir, abs_dir, rel_dir):
 
     res = args_tokenized
 
+    if res[-1].endswith('/'):
+        # handle case when directory is passed as target - heuristic
+        res[-1] += os.path.basename(res[-2])
+
     res[-2] = path_clean(res[-2], os.path.abspath(res[-1]), abs_dir, '.', True)
     res[-2] = path_clean(res[-2], abs_dir, abs_dir, rel_dir, True)
     sources = [res[-2]]
