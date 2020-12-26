@@ -29,6 +29,7 @@ class GenodeProg:
 
         self.env['fn_current_target_type'] = lambda : 'prog'
         self.env['fn_current_target_alias'] = lambda : self.env['fn_prog_alias_name'](self.prog_name)
+        self.env['fn_current_target_obj'] = lambda : self
         self.env['fn_target_path'] = lambda tgt: self.target_path(tgt)
 
         self.post_process_actions = []

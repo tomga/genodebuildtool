@@ -28,6 +28,7 @@ class GenodeLib:
 
         self.env['fn_current_target_type'] = lambda : 'lib'
         self.env['fn_current_target_alias'] = lambda : self.env['fn_lib_alias_name'](self.lib_name)
+        self.env['fn_current_target_obj'] = lambda : self
         self.env['fn_target_path'] = lambda tgt: self.target_path(tgt)
 
         self.post_process_actions = []
