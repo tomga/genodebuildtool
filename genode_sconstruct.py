@@ -19,6 +19,9 @@ def sconstruct():
     opts.Add('LOG_LEVEL', 'Specify log output level', default='info',
              allowed_values=('none', 'error', 'warning', 'notice', 'info', 'debug', 'trace'))
 
+    opts.Add(BoolVariable('DEV_ONLY_EXPAND_TARGETS',
+                          'Internal option to just print expanded targets lists', default=False))
+
     env = Environment(options = opts, ENV = os.environ)
     env.SConsignFile('%s/.sconsign' % (env['BUILD']))
 

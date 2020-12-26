@@ -32,8 +32,12 @@ def arguments_parse():
                            help='build directory')
     argparser.add_argument('-l', '--lib', nargs='+', default=[],
                            help='target libraries')
+    argparser.add_argument('-nl', '--no-lib', nargs='+', default=[],
+                           help='disabled target libraries')
     argparser.add_argument('-p', '--prog', nargs='+', default=[],
                            help='target executables')
+    argparser.add_argument('-np', '--no-prog', nargs='+', default=[],
+                           help='disabled target executables')
     argparser.add_argument('-r', '--run', nargs='+', default=[],
                            help='target run scripts')
     argparser.add_argument('--kernel',
@@ -149,6 +153,92 @@ def parse_sc_log(log_file):
 
 
 
+def targets_require_expanding(opts):
+    for tested_list in [opts.lib, opts.no_lib, opts.prog, opts.no_prog]:
+        patterns = [ pattern for pattern in tested_list if '*' in pattern ]
+        if len(patterns) > 0:
+            return True
+    return False
+
+
+def do_sc_expand_targets(build, opts):
+
+    stamp_dt = datetime.datetime.now()
+    tstamp = f"{stamp_dt:%Y%m%d_%H%M%S}"
+    arch = get_build_arch(build)
+
+    log_file = '%s/%s_%s_%s_%s.TARGETS' % (opts.logs,
+                                           tstamp,
+                                           arch,
+                                           opts.kernel if opts.kernel is not None else '',
+                                           opts.board if opts.board is not None else '')
+
+    kernel = 'KERNEL=%s' % (opts.kernel) if opts.kernel is not None else ''
+    board = 'BOARD=%s' % (opts.board) if opts.board is not None else ''
+
+    command = ' '.join([p for p in ['scons',
+                                    'DEV_ONLY_EXPAND_TARGETS=yes',
+                                    'BUILD=build/%s' % (build),
+                                    '%s' % (kernel),
+                                    '%s' % (board),
+                                    "LIB='%s'" % ' '.join(opts.lib) if len(opts.lib) > 0 else '',
+                                    '%s' % ' '.join(["'%s'" % (prog) for prog in opts.prog]),
+                                    "LIB_EXCLUDES='%s'" % ' '.join(opts.no_lib) if len(opts.no_lib) > 0 else '',
+                                    "PROG_EXCLUDES='%s'" % ' '.join(opts.no_prog) if len(opts.no_prog) > 0 else '',
+                                    '2>&1 | tee %s' % (log_file)] if p != ''])
+    print('Expanding targets: %s' % command)
+    exit_code, output = buildtool_utils.command_execute(command)
+
+    if exit_code != 0:
+        print("ERROR: expanding targets process failed")
+        quit()
+
+    target_libs = None
+    target_progs = None
+    with open(log_file, 'r') as log:
+        for line in log:
+            if line.startswith('LIBS: '):
+                target_libs = line[len('LIBS: '):].strip().split()
+            if line.startswith('PROGS: '):
+                target_progs = line[len('PROGS: '):].strip().split()
+
+    if target_libs is None or target_progs is None:
+        print("ERROR: expanding targets process did not produce expected LIBS: and PROGS:")
+        quit()
+
+    opts.lib = target_libs
+    opts.no_lib = []
+    opts.prog = target_progs
+    opts.no_prog = []
+
+
+def do_expand_targets(opts):
+
+    if not targets_require_expanding(opts):
+        return
+
+    arch = None
+    for build in opts.build:
+        current_arch = get_build_arch(build)
+        if arch is not None and arch != current_arch:
+            print("ERROR: targets with asterisks allowed only for builds with consistent archiecture")
+            print("       but detected at least two: %s and %s" % (arch, current_arch))
+            quit()
+        arch = current_arch
+
+    targets_expanded = False
+    for build in opts.build:
+        if is_sc_build(build):
+            targets_expanded = True
+            do_sc_expand_targets(build, opts)
+            break
+
+    if not targets_expanded:
+        print("ERROR: targets with asterisks provided and no scons build available")
+        quit()
+
+    #arguments_print(opts)
+
 
 def do_mk_build(build_name, opts, stamp_dt, log_file):
 
@@ -176,10 +266,6 @@ def do_mk_build(build_name, opts, stamp_dt, log_file):
     
 def do_sc_build(build_name, opts, stamp_dt, log_file):
 
-    if len(opts.lib) > 1:
-        print("ERROR: only single library allowed with make build but asked for '%s'" % (str(opts.lib)))
-        quit()
-
     kernel = 'KERNEL=%s' % (opts.kernel) if opts.kernel is not None else ''
     board = 'BOARD=%s' % (opts.board) if opts.board is not None else ''
 
@@ -189,7 +275,7 @@ def do_sc_build(build_name, opts, stamp_dt, log_file):
                                     'LOG_LEVEL=%s' % (opts.log_level) if opts.log_level != 'none' else '',
                                     '%s' % (kernel),
                                     '%s' % (board),
-                                    'LIB=%s' % opts.lib[0] if len(opts.lib) > 0 else '',
+                                    "LIB='%s'" % ' '.join(opts.lib) if len(opts.lib) > 0 else '',
                                     '%s' % ' '.join(opts.prog),
                                     '2>&1 | tee %s' % (log_file)] if p != ''])
     print('Executing: %s' % command)
@@ -381,4 +467,5 @@ if opts.test_scdbstore:
     quit()
 
 
+do_expand_targets(opts)
 do_builds(opts, build_db)

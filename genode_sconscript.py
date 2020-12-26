@@ -250,6 +250,10 @@ def process_builddir(build_dir, env):
     env['PROG_TARGETS'] = exp_progs
     env['fn_info']("Effective program targets: %s" % (' '.join(exp_progs)))
 
+    if env['DEV_ONLY_EXPAND_TARGETS']:
+        print('LIBS: %s' % (' '.join(exp_libs)))
+        print('PROGS: %s' % (' '.join(exp_progs)))
+        quit()
 
     require_libs(env['LIB_TARGETS'])
     require_progs(env['PROG_TARGETS'])
