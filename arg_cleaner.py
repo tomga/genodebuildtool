@@ -582,6 +582,15 @@ def arg_tokenize(args_string):
 
 
 def arg_clean(args_string, run_dir, abs_dir, rel_dir, options):
+    try:
+        return arg_clean_systemexit(args_string, run_dir, abs_dir, rel_dir, options)
+    except SystemExit as e:
+        print("Error during processing arguments of:")
+        print("%s" % (args_string))
+        raise e
+
+
+def arg_clean_systemexit(args_string, run_dir, abs_dir, rel_dir, options):
 
     #print(args_string)
     args_tokenized = arg_tokenize(args_string)
