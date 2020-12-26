@@ -198,7 +198,7 @@ def process_builddir(build_dir, env):
     cmd = "%s -print-libgcc-file-name" % (temp_build_env.var_value('CUSTOM_CXX_LIB')),
     results = subprocess.run(cmd, stdout=subprocess.PIPE,
                              shell=True, universal_newlines=True, check=True)
-    output = results.stdout
+    output = results.stdout.strip()
     build_env.var_set('LIBGCC_INC_DIR', '%s/include' % (os.path.dirname(output)))
     #pprint.pprint(build_env.debug_struct('pretty'), width=200)
 

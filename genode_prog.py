@@ -374,7 +374,7 @@ class GenodeMkProg(GenodeProg):
             cmd = "%s %s -print-libgcc-file-name" % (self.env['CC'], ' '.join(cc_march)),
             results = subprocess.run(cmd, stdout=subprocess.PIPE,
                                      shell=True, universal_newlines=True, check=True)
-            ld_libgcc = results.stdout
+            ld_libgcc = results.stdout.strip()
             self.env['LD_LIBGCC'] = ld_libgcc
 
 

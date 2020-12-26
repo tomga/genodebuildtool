@@ -272,7 +272,7 @@ class GenodeMkLib(GenodeLib):
                                                      self.build_env.var_value('CC_MARCH'))
             results = subprocess.run(cmd, stdout=subprocess.PIPE,
                                      shell=True, universal_newlines=True, check=True)
-            output = results.stdout
+            output = results.stdout.strip()
             self.build_env.var_set('LIBGCC', output)
             self.env['LIBGCC'] = output
 
