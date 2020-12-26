@@ -58,6 +58,7 @@ class ScMkCache:
         env['fn_debug']('get_parsed_mk: %s' % makefile)
         mk_file_path = env['fn_localize_path'](makefile)
         overlay_info_file_path = os.path.join(env['OVERLAYS_DIR'], '%s.ovr' % (mk_file_path))
+        overlay_info_file_path = os.path.normpath(overlay_info_file_path)
         env['fn_debug']("Checking overlays info file %s" % (overlay_info_file_path))
         if not os.path.isfile(overlay_info_file_path):
             # no overlays info file - fallback to default mk processing
