@@ -28,6 +28,7 @@ def commands_clean(cmd_lines, run_dir, abs_dir, rel_dir):
             orig.startswith('mkdir ') or
             orig.startswith('scons:') or
             orig.startswith('In file ') or
+            orig == 'true' or
             orig.startswith('compilation terminated.') or
             orig.split()[0].endswith(':') or
             False):
