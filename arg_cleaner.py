@@ -42,6 +42,8 @@ def arguments_print(opts):
 
 def arg_parse_compiler(args_array):
 
+    args_array = [ arg if arg != '-W' else '-W~' for arg in args_array ]
+
     argparser = argparse.ArgumentParser('gcc/g++')
     argparser.add_argument('SOURCES', action='append', default=[], nargs='*')
     argparser.add_argument('-c', action='store_true')
@@ -52,6 +54,7 @@ def arg_parse_compiler(args_array):
     argparser.add_argument('-mcmodel', action='append', default=[])
     argparser.add_argument('-nostdinc', action='store_true')
     argparser.add_argument('-nostdlib', action='store_true')
+    argparser.add_argument('-static', action='store_true')
     argparser.add_argument('-no-pie', action='store_true')
     argparser.add_argument('-o', dest='TARGETS', action='append', default=[], nargs=1)
     argparser.add_argument('-f', action='append', default=[])
@@ -131,9 +134,10 @@ def arg_clean_compiler(args_tokenized, run_dir, abs_dir, rel_dir, options):
     res += [ '-mcmodel=%s' % (v) for v in nodups(opts.mcmodel) ]
     if opts.nostdinc: res += ['-nostdinc']
     if opts.nostdlib: res += ['-nostdlib']
+    if opts.static: res += ['-static']
     if opts.no_pie: res += ['-no-pie']
     res += [ '-f%s' % (v) for v in nodups(opts.f) ]
-    res += [ '-W%s' % (v) for v in sorted(nodups(opts.W)) ]
+    res += [ '-W%s' % (v if v != '~' else '') for v in sorted(nodups(opts.W)) ]
     res += [ '-D%s' % (v) for v in sorted(nodups(opts.D)) ]
     inc = [ '-I%s' % (path_clean(v, run_dir, abs_dir, rel_dir, False))
              for v in nodups(opts.I) ]
@@ -203,6 +207,7 @@ def arg_parse_ld(args_array):
     argparser.add_argument('SOURCES', action='append', default=[], nargs='*')
     argparser.add_argument('-soname', action='append', default=[])
     argparser.add_argument('-shared', action='store_true')
+    argparser.add_argument('-O', action='append', default=[])
     argparser.add_argument('--eh-frame-hdr', action='store_true')
     argparser.add_argument('-Bsymbolic-functions', action='store_true')
     argparser.add_argument('--version-script', action='append', default=[])
@@ -218,6 +223,8 @@ def arg_parse_ld(args_array):
     argparser.add_argument('--dynamic-list', action='append', default=[])
     argparser.add_argument('-nostdlib', action='store_true')
     argparser.add_argument('--dynamic-linker', action='append', default=[])
+
+    argparser.add_argument('--as-needed', action='store_true')
 
     argparser.add_argument('--whole-archive', action='store_true')
     argparser.add_argument('--start-group', action='store_true')
@@ -255,6 +262,7 @@ def arg_output_ld(args_parsed, run_dir, abs_dir, rel_dir, opts_prefix=None):
         res1 += [ '-o', v ]
     res1 += [ '-soname%s' % (v) for v in nodups(opts.soname) ]
     if opts.shared: res1 += ['-shared']
+    res1 += [ '-O%s' % (v) for v in nodups(opts.O) ]
     if opts.eh_frame_hdr: res1 += ['--eh-frame-hdr']
     if opts.Bsymbolic_functions: res1 += ['-Bsymbolic-functions']
     for v in nodups(opts.version_script):
@@ -278,6 +286,8 @@ def arg_output_ld(args_parsed, run_dir, abs_dir, rel_dir, opts_prefix=None):
     res1 += [ '--dynamic-list=%s' % (path_clean(v, run_dir, abs_dir, rel_dir, True)) for v in nodups(opts.dynamic_list) ]
     if opts.nostdlib: res1 += ['-nostdlib']
     res1 += [ '--dynamic-linker=%s' % (v) for v in nodups(opts.dynamic_linker) ]
+
+    if opts.as_needed: res1 += ['--as-needed']
 
     if opts.whole_archive: res1 += ['--whole-archive']
     if opts.start_group: res1 += ['--start-group']
@@ -315,6 +325,7 @@ def arg_clean_ld(args_tokenized, run_dir, abs_dir, rel_dir):
 def arg_parse_objcopy(args_array):
 
     argparser = argparse.ArgumentParser('objcopy')
+    argparser.add_argument('-O', action='append', default=[])
     argparser.add_argument('--localize-symbol', action='append', default=[])
     argparser.add_argument('--redefine-sym', action='append', default=[])
     argparser.add_argument('SOURCES', action='append', default=[], nargs=1)
@@ -335,6 +346,7 @@ def arg_clean_objcopy(args_tokenized, run_dir, abs_dir, rel_dir):
     targets = [ '%s' % (path_clean(v, run_dir, abs_dir, rel_dir, True))
                 for v in nodups(opts.TARGETS[0]) ]
 
+    res += [ '-O %s' % (v) for v in nodups(opts.O) ]
     res += [ '--localize-symbol=%s' % (v) for v in nodups(opts.localize_symbol) ]
     res += [ '--redefine-sym %s' % (v) for v in nodups(opts.redefine_sym) ]
 
