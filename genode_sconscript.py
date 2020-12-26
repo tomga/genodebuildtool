@@ -88,6 +88,7 @@ def process_builddir(build_dir, env):
     env['MERGECOMSTR']  = '${fn_msg(TARGET, SOURCES, " MERGE   ", "MERGECOM",  __env__)}'
     env['OBJCPYCOMSTR'] = '${fn_msg(TARGET, SOURCES, " CONVERT ", "OBJCPYCOM", __env__)}'
     env['LINKCOMSTR']   = '${fn_msg(TARGET, SOURCES, " LINK    ", "LINKCOM",   __env__)}'
+    env['BUILDCOMSTR']  = '${fn_msg(TARGET, SOURCES, " BUILD   ", "BUILDCOM",  __env__)}'
 
     def format_custom_message_simple(tgt, cmd_pres, cmd_text):
         return "%s %s" % (' ' + cmd_pres.ljust(8), prettify_path(tgt))
