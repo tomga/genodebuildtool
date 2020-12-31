@@ -215,6 +215,11 @@ def do_sc_expand_targets(build, opts):
 
 def do_expand_targets(opts):
 
+    # check logs directory
+    if not os.path.isdir(opts.logs):
+        print("ERROR: logs directory '%s' does not exist" % (opts.logs))
+        quit()
+
     if not targets_require_expanding(opts):
         return
 
@@ -468,5 +473,13 @@ if opts.test_scdbstore:
     quit()
 
 
+def create_logs_directory_if_default(opts):
+    # check logs directory
+    if opts.logs == 'build/logs' and not os.path.isdir(opts.logs):
+        print("Creating default logs directory: %s" % (opts.logs))
+        os.mkdir(opts.logs)
+
+
+create_logs_directory_if_default(opts)
 do_expand_targets(opts)
 do_builds(opts, build_db)
