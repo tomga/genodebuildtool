@@ -46,7 +46,7 @@ def arguments_parse():
                            help='target run kernel')
     argparser.add_argument('--database', default='build/buildtool.db',
                            help='database location')
-    argparser.add_argument('--logs', default='../logs',
+    argparser.add_argument('--logs', default='build/logs',
                            help='target run kernel')
     argparser.add_argument('--log-level', default='none',
                            choices=['none', 'error', 'warning', 'notice', 'info', 'debug'],
