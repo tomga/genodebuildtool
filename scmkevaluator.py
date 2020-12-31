@@ -1,5 +1,6 @@
 
 import os
+import subprocess
 
 import mkevaluator
 
@@ -68,7 +69,7 @@ class ScMkCache:
         env['fn_info']("Found overlays info file %s" % (overlay_info_file_path))
 
         mk_file_md5 = tools.file_md5(mk_file_path)
-        env['fn_debug']("program mk '%s' hash: '%s'" % (mk_file_path, mk_file_md5))
+        env['fn_debug']("checked mk '%s' hash: '%s'" % (mk_file_path, mk_file_md5))
 
         overlay_file_name = None
         with open(overlay_info_file_path, "r") as f:
@@ -94,6 +95,20 @@ class ScMkCache:
         env['fn_notice']("Using overlay file '%s' for mk '%s'" % (overlay_file_path, mk_file_path))
 
         overlay_type = os.path.splitext(overlay_file_path)[1]
+        if overlay_type == '.patch':
+
+            cmd = 'cat %s | patch -s %s -o -' % (overlay_file_path, makefile)
+            env['fn_debug']('patch cmd: %s' % (cmd))
+            results = subprocess.run(cmd, stdout=subprocess.PIPE,
+                                     shell=True, universal_newlines=True, check=True)
+            output = results.stdout
+            parsed_makefile = self.mkcache.parser.parse(output)
+            self.mkcache.set_parsed_mk(overlay_file_path, parsed_makefile)
+            self.overlays_info[makefile] = { 'overlay_found': True,
+                                             'overlay_type': '.patch',
+                                             'overlay': parsed_makefile }
+            return parsed_makefile
+
         if overlay_type == '.mk':
             parsed_makefile = self.mkcache.get_parsed_mk(overlay_file_path)
             self.overlays_info[makefile] = { 'overlay_found': True,

@@ -392,7 +392,7 @@ def check_for_lib_mk_overlay(lib_name, env, lib_mk_file, lib_mk_repo):
     env['fn_notice']("Using overlay file '%s' for mk '%s'" % (overlay_file_path, mk_file_path))
 
     overlay_type = os.path.splitext(overlay_file_path)[1]
-    if overlay_type == '.mk':
+    if overlay_type in ['.mk', '.patch']:
         env['fn_notice']("Overlay type is mk so fallback to use standard mk processing")
         return
 
@@ -523,7 +523,7 @@ def check_for_prog_mk_overlay(prog_name, env, prog_mk_file, prog_mk_repo):
     env['fn_notice']("Using overlay file '%s' for mk '%s'" % (overlay_file_path, mk_file_path))
 
     overlay_type = os.path.splitext(overlay_file_path)[1]
-    if overlay_type == '.mk':
+    if overlay_type in ['.mk', '.patch']:
         env['fn_notice']("Overlay type is mk so fallback to use standard mk processing")
         return
 
