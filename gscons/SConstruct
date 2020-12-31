@@ -7,6 +7,6 @@ sconscript_file_path = os.path.realpath(sconscript_link_path)
 BUILDTOOL_PATH=os.path.dirname(os.path.dirname(sconscript_file_path))
 sys.path.insert(0, BUILDTOOL_PATH)
 
-from genode_sconstruct import sconstruct
+from gscons.genode_sconstruct import sconstruct
 
 sconstruct()

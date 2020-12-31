@@ -1,6 +1,6 @@
 
 import os
-import genode_prog
+from gscons import genode_prog
 import SCons.Action
 
 def process_prog_overlay(prog_name, env, prog_mk_file, prog_mk_repo, build_env):

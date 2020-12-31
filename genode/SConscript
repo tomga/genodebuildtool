@@ -1,6 +1,0 @@
-
-Import('env')
-
-from genode_sconscript import sconscript
-
-sconscript(env)

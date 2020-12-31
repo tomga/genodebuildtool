@@ -49,18 +49,18 @@ def sconstruct():
     env['fn_error'] = partial(debug, 'ERR') if log_level in ['trace', 'debug', 'info', 'notice', 'warning', 'error'] else nodebug
 
 
-    buildtool_dir = os.path.dirname(os.path.abspath(__file__))
+    buildtool_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     env['BUILDTOOL_DIR'] = buildtool_dir
     env['OVERLAYS_DIR'] = os.path.join(buildtool_dir, 'genode')
 
-    env.Tool('genode_symlink',   toolpath = [os.path.join(env['BUILDTOOL_DIR'], 'tools')])
-    env.Tool('genode_symbols',   toolpath = [os.path.join(env['BUILDTOOL_DIR'], 'tools')])
-    env.Tool('genode_abi_so',    toolpath = [os.path.join(env['BUILDTOOL_DIR'], 'tools')])
-    env.Tool('genode_lib_so',    toolpath = [os.path.join(env['BUILDTOOL_DIR'], 'tools')])
-    env.Tool('genode_check_abi', toolpath = [os.path.join(env['BUILDTOOL_DIR'], 'tools')])
-    env.Tool('genode_lib_tag',   toolpath = [os.path.join(env['BUILDTOOL_DIR'], 'tools')])
-    env.Tool('genode_strip',     toolpath = [os.path.join(env['BUILDTOOL_DIR'], 'tools')])
-    env.Tool('genode_binary',    toolpath = [os.path.join(env['BUILDTOOL_DIR'], 'tools')])
+    env.Tool('genode_symlink',   toolpath = [os.path.join(env['BUILDTOOL_DIR'], 'gscons/tools')])
+    env.Tool('genode_symbols',   toolpath = [os.path.join(env['BUILDTOOL_DIR'], 'gscons/tools')])
+    env.Tool('genode_abi_so',    toolpath = [os.path.join(env['BUILDTOOL_DIR'], 'gscons/tools')])
+    env.Tool('genode_lib_so',    toolpath = [os.path.join(env['BUILDTOOL_DIR'], 'gscons/tools')])
+    env.Tool('genode_check_abi', toolpath = [os.path.join(env['BUILDTOOL_DIR'], 'gscons/tools')])
+    env.Tool('genode_lib_tag',   toolpath = [os.path.join(env['BUILDTOOL_DIR'], 'gscons/tools')])
+    env.Tool('genode_strip',     toolpath = [os.path.join(env['BUILDTOOL_DIR'], 'gscons/tools')])
+    env.Tool('genode_binary',    toolpath = [os.path.join(env['BUILDTOOL_DIR'], 'gscons/tools')])
 
     env.Decider('MD5-timestamp')
 

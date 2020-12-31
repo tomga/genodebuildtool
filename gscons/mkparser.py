@@ -1,11 +1,13 @@
 
 import parglare
 import pprint
+import os
 
-import mkevaluator
+from gscons import mkevaluator
 
 def initialize():
-    file_name = '/projects/genode/buildtool/mkparser.pg'
+    parser_dir = os.path.dirname(os.path.abspath(__file__))
+    file_name = '%s/mkparser.pg' % (parser_dir)
     grammar = parglare.Grammar.from_file(file_name)
 
     actions = {

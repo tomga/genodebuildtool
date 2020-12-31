@@ -1,0 +1,6 @@
+
+Import('env')
+
+from gscons.genode_sconscript import sconscript
+
+sconscript(env)

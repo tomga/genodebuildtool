@@ -1,6 +1,6 @@
 
 
-import cmd_cleaner
+from gbuildtool import cmd_cleaner
 
 class BuildCommand:
     def __init__(self, tgt_type, tgt_descr):

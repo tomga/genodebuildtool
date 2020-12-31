@@ -8,17 +8,16 @@ import subprocess
 import pprint
 
 # buildtool packages
-import buildtool_tools
-import mkevaluator
-import mkparser
-import mklogparser
-import scmkevaluator
+from gscons import buildtool_tools
+from gscons import mkevaluator
+from gscons import mkparser
+from gscons import scmkevaluator
 
-import genode_lib
-import genode_prog
-import genode_tools as tools
+from gscons import genode_lib
+from gscons import genode_prog
+from gscons import genode_tools as tools
 
-import genode_util_mk_functions
+from gscons import genode_util_mk_functions
 genode_util_mk_functions.register_mk_functions(mkevaluator.functionsDict)
 
 

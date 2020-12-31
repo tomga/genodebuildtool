@@ -6,13 +6,13 @@ import subprocess
 # debug support
 import pprint
 
-import mkevaluator
-import mkparser
-import scmkevaluator
+from gscons import mkevaluator
+from gscons import mkparser
+from gscons import scmkevaluator
 
-import genode_build_helper
+from gscons import genode_build_helper
 
-import genode_tools as tools
+from gscons import genode_tools as tools
 
 
 class GenodeProg:

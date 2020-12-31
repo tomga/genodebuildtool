@@ -2,10 +2,10 @@
 import os
 import subprocess
 
-import mkevaluator
+from gscons import mkevaluator
 
-import buildtool_tools
-import genode_tools as tools
+from gscons import buildtool_tools
+from gscons import genode_tools as tools
 
 
 # wrappers for mkevaluator.MkEnv and mkevaluator.MkCache that allow

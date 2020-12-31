@@ -1,5 +1,5 @@
 
-import genode_lib
+from gscons import genode_lib
 import SCons.Action
 
 class GenodeCxxMkLib(genode_lib.GenodeMkLib):
