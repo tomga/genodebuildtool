@@ -23,6 +23,11 @@ def sconstruct():
                           'Internal option to just print expanded targets lists', default=False))
 
     env = Environment(options = opts, ENV = os.environ)
+
+    Help(opts.GenerateHelpText(env))
+    if GetOption('help'):
+        return
+
     if 'BUILD' not in env:
         print("Required parameter BUILD is not specified. Quit.")
         quit()
