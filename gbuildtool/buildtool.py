@@ -1,12 +1,17 @@
 
+import os
+import sys
+
+buildtool_file_path = os.path.abspath(__file__)
+BUILDTOOL_PATH=os.path.dirname(os.path.dirname(buildtool_file_path))
+sys.path.insert(0, BUILDTOOL_PATH)
+
 import argparse
 import datetime
-import os
 import parglare
 import pprint
 import sqlite3
 import subprocess
-import sys
 
 from gbuildtool import buildinfo_storer
 from gbuildtool import db_utils
