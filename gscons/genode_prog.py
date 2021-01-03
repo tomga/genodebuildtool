@@ -122,7 +122,8 @@ class GenodeMkProg(GenodeProg):
 
         ### handle include <prog>.mk
 
-        self.env['fn_info']("Parsing build rules for program '%s' from '%s'" % (self.prog_name, self.prog_mk_file))
+        self.env['fn_info']("Parsing build rules for program '%s' from '%s'" %
+                            (self.prog_name, self.env['fn_localize_path'](self.prog_mk_file)))
         # overlays for <prog_mk> are already handled on a different level
         prog_mk = mkcache.get_parsed_mk(self.prog_mk_file, no_overlay=self.no_overlay)
         #self.env['fn_debug'](pprint.pformat(prog_mk.debug_struct(), width=180))

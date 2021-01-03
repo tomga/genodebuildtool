@@ -137,7 +137,7 @@ def process_builddir(build_dir, env):
     ### handle */etc/specs.conf files
     repositories_specs_conf_files = tools.find_files('%s/etc/specs.conf', repositories)
     specs_conf_files = repositories_specs_conf_files + ['%s/etc/specs.conf' % (build_dir)]
-    env['fn_info']("Processing specs files: %s" % (' '.join(specs_conf_files)))
+    env['fn_info']("Processing specs files: %s" % (' '.join(list(map(env['fn_localize_path'], specs_conf_files)))))
     for specs_conf_file in specs_conf_files:
         specs_conf = mkcache.get_parsed_mk(specs_conf_file)
         specs_conf.process(build_env)
@@ -167,7 +167,7 @@ def process_builddir(build_dir, env):
         if specs_mk_file not in all_specs_mk_files:
             all_specs_mk_files.append(specs_mk_file)
 
-    env['fn_info']("Processing <spec>.mk files: %s" % (' '.join(all_specs_mk_files)))
+    env['fn_info']("Processing <spec>.mk files: %s" % (' '.join(list(map(env['fn_localize_path'], all_specs_mk_files)))))
     for specs_mk_file in all_specs_mk_files:
         specs_mk = mkcache.get_parsed_mk(specs_mk_file)
         specs_mk.process(build_env)

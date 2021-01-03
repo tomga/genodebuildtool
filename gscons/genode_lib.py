@@ -128,7 +128,8 @@ class GenodeMkLib(GenodeLib):
         ### handle include <lib>.mk
         self.build_env.var_set('called_from_lib_mk', 'yes')
 
-        self.env['fn_info']("Parsing build rules for library '%s' from '%s'" % (self.lib_name, self.lib_mk_file))
+        self.env['fn_info']("Parsing build rules for library '%s' from '%s'" %
+                            (self.lib_name, self.env['fn_localize_path'](self.lib_mk_file)))
         # overlays for <lib>.mk are already handled on a different level
         lib_mk = mkcache.get_parsed_mk(self.lib_mk_file, no_overlay=self.no_overlay)
         #self.env['fn_debug'](pprint.pformat(lib_mk.debug_struct(), width=180))
