@@ -37,6 +37,10 @@ def process_builddir(build_dir, env):
     Mimics behavior of tool/builddir/build.mk
     """
 
+    if not os.path.isfile(os.path.join(build_dir, 'SCons')):
+        print("Specified build directory: '%s' is not marked to be used used by SCons (missing SCons file). Quit." % (build_dir))
+        quit()
+
     scmkcache = scmkevaluator.ScMkCache(env, mkcache)
     build_env = mkevaluator.MkEnv(scmkcache)
 
