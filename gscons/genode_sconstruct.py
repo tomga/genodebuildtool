@@ -23,6 +23,10 @@ def sconstruct():
                           'Internal option to just print expanded targets lists', default=False))
 
     env = Environment(options = opts, ENV = os.environ)
+    if 'BUILD' not in env:
+        print("Required parameter BUILD is not specified. Quit.")
+        quit()
+
     env.SConsignFile('%s/.sconsign' % (env['BUILD']))
 
     env['SHELL'] = 'bash'
