@@ -200,7 +200,8 @@ class GenodeMkLib(GenodeLib):
         for dep_lib in all_direct_dep_libs:
             dep_lib_import_mk_file, dep_lib_import_mk_repo = tools.find_first(self.env['REPOSITORIES'], 'lib/import/import-%s.mk' % (dep_lib))
             if dep_lib_import_mk_file is not None:
-                self.env['fn_info']("processing import-%s file: %s" % (dep_lib, dep_lib_import_mk_file))
+                self.env['fn_info']("Processing import-%s file: %s" %
+                                    (dep_lib, self.env['fn_localize_path'](dep_lib_import_mk_file)))
                 dep_lib_import_mk = mkcache.get_parsed_mk(dep_lib_import_mk_file)
                 dep_lib_import_mk.process(self.build_env)
 

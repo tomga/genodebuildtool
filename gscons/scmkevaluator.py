@@ -66,7 +66,8 @@ class ScMkCache:
             self.overlays_info[makefile] = { 'overlay_found': False }
             return self.mkcache.get_parsed_mk(makefile)
 
-        env['fn_info']("Found overlays info file %s" % (overlay_info_file_path))
+        env['fn_info']("Found overlays info file %s" %
+                       (env['fn_localize_ovr'](overlay_info_file_path)))
 
         mk_file_md5 = tools.file_md5(mk_file_path)
         env['fn_debug']("checked mk '%s' hash: '%s'" % (mk_file_path, mk_file_md5))
@@ -77,26 +78,37 @@ class ScMkCache:
                 if line.startswith(mk_file_md5):
                     ovr_data = line.split()
                     if len(ovr_data) < 2:
-                        env['fn_error']("Invalid overlay entry in '%s':" % (overlay_info_file_path))
+                        env['fn_error']("Invalid overlay entry in '%s':" %
+                                        (env['fn_localize_ovr'](overlay_info_file_path)))
                         env['fn_error']("     : %s" % (line))
                         quit()
                     overlay_file_name = ovr_data[1]
         if overlay_file_name is None:
-            env['fn_error']("Overlay not found in '%s' for hash '%s':" % (overlay_info_file_path, mk_file_md5))
+            env['fn_error']("Overlay not found in '%s' for hash '%s':" %
+                            (env['fn_localize_ovr'](overlay_info_file_path), mk_file_md5))
             quit()
 
         overlay_file_path = os.path.join(os.path.dirname(overlay_info_file_path), overlay_file_name)
+        overlay_type = os.path.splitext(overlay_file_path)[1]
 
         env['fn_debug']("Checking overlay file %s" % (overlay_file_path))
-        if not os.path.isfile(overlay_file_path):
-            env['fn_error']("Missing overlay file '%s' mentioned metioned  in '%s':" % (overlay_file_path, overlay_info_file_path))
+        if overlay_type != '.orig' and not os.path.isfile(overlay_file_path):
+            env['fn_error']("Missing overlay file '%s' mentioned metioned  in '%s':" %
+                            (env['fn_localize_ovr'](overlay_file_path),
+                             env['fn_localize_ovr'](overlay_info_file_path)))
             quit()
 
-        env['fn_notice']("Using overlay file '%s' for mk '%s'" % (overlay_file_path, mk_file_path))
+        env['fn_notice']("Using overlay file '%s' for mk '%s'" %
+                         (env['fn_localize_ovr'](overlay_file_path), mk_file_path))
 
-        overlay_type = os.path.splitext(overlay_file_path)[1]
+        if overlay_type == '.orig':
+            parsed_makefile = self.mkcache.get_parsed_mk(makefile)
+            self.overlays_info[makefile] = { 'overlay_found': True,
+                                             'overlay_type': '.orig',
+                                             'overlay': parsed_makefile }
+            return parsed_makefile
+
         if overlay_type == '.patch':
-
             cmd = 'cat %s | patch -s %s -o -' % (overlay_file_path, makefile)
             env['fn_debug']('patch cmd: %s' % (cmd))
             results = subprocess.run(cmd, stdout=subprocess.PIPE,
@@ -125,5 +137,5 @@ class ScMkCache:
             return mk_overlay
 
         env['fn_error']("Unsupported overlay type: '%s' ('%s') for mk '%s'"
-                        % (overlay_type, overlay_file_path, mk_file_path))
+                        % (overlay_type, env['fn_localize_ovr'](overlay_file_path), mk_file_path))
         quit()
