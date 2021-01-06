@@ -28,6 +28,7 @@ def clear_build_info(build_db, build_dir):
 
 def compare_builds(build_db, build_dir1, build_dir2):
     
+    print("Comparing builds: %s %s" % (build_dir1, build_dir2))
     c = build_db.cursor()
     #cmp_mode = ''
     cmp_mode = '_noincsort'
@@ -64,3 +65,6 @@ def compare_builds(build_db, build_dir1, build_dir2):
 
         print(" %s can: %s" % (tool.ljust(5), can_text))
         print(" %s org: %s" % (tool.ljust(5), cmd_text))
+
+    if last_arch == '':
+        print("No inconsistencies.")
