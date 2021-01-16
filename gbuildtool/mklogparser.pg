@@ -8,6 +8,7 @@ Command: EnteringDir LibraryTitle CmdList LeavingDir |
          BuildCommandTitle SimpleCommandList |
          SimpleCommandList |
          SkipTarget |
+         LibDescrMissing |
          LINE_END |
          EMPTY;
 
@@ -17,6 +18,7 @@ EnteringDir: ENTERING_DIR PATH QUOT LINE_END;
 LeavingDir: LEAVING_DIR PATH QUOT LINE_END;
 
 SkipTarget: SKIP_TARGET LINE_END;
+LibDescrMissing: LIB_DESCR_MISSING LINE_END;
 
 LibraryTitle: LIBRARY_TITLE PATH LINE_END;
 ProgramTitle: PROGRAM_TITLE PATH LINE_END;
@@ -43,6 +45,7 @@ ENTERING_DIR: /make(\[[0-9]+\])?: Entering directory '/;
 LEAVING_DIR: /make(\[[0-9]+\])?: Leaving directory '/;
 
 SKIP_TARGET: /Skip target .*/;
+LIB_DESCR_MISSING: /Library-description file .* is missing/;
 
 LIBRARY_TITLE: /\x1b\[00;33m  Library \x1b\[0m/;
 PROGRAM_TITLE: /\x1b\[01;33m  Program \x1b\[0m/;
