@@ -160,7 +160,7 @@ VAR_IDENT_SECOND_ALLOWED: /[0-9]/;
 VAR_INDEX: /[0-9]/;
 VAR_SPECIAL: /[@*]/;
 ESCAPED: /\\./;
-LINE_CONTINUATION: /\\\n/;
+LINE_CONTINUATION: /\\\n\t*/;
 WS: /[ ]+/;
 TAB: /[\t]/;
 COMMENT: /#.*/;
