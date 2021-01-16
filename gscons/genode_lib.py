@@ -96,13 +96,9 @@ class GenodeMkLib(GenodeLib):
 
 
     def process(self):
-        #import rpdb2
-        #rpdb2.start_embedded_debugger('password')
-
-        ### TODO calculate SYMBOLS
-        # SYMBOLS_DIRS = $(foreach REP,$(REPOSITORIES),$(addprefix $(REP)/lib/symbols/spec/,$(SPECS)) $(REP)/lib/symbols)
 
         mkcache = self.build_env.get_mk_cache()
+
 
         ### # remember value of rep_inc_dir and reset it to empty; it is
         ### # important to put those remembered values to end of list
@@ -110,6 +106,7 @@ class GenodeMkLib(GenodeLib):
         ### # sequence of include path like in mk build
         ### global_rep_inc_dir = self.build_env.var_values('REP_INC_DIR')
         ### self.build_env.var_set('REP_INC_DIR', '')
+
 
         ### handle base-libs.mk
         base_libs_mk_file = '%s/mk/base-libs.mk' % (self.env['BASE_DIR'])
@@ -132,9 +129,7 @@ class GenodeMkLib(GenodeLib):
                             (self.lib_name, self.env['fn_localize_path'](self.lib_mk_file)))
         # overlays for <lib>.mk are already handled on a different level
         lib_mk = mkcache.get_parsed_mk(self.lib_mk_file, no_overlay=self.no_overlay)
-        #self.env['fn_debug'](pprint.pformat(lib_mk.debug_struct(), width=180))
         lib_mk.process(self.build_env)
-        #self.env['fn_debug'](pprint.pformat(self.build_env.debug_struct('pretty'), width=200))
 
 
         specs = self.env['SPECS']
@@ -150,11 +145,11 @@ class GenodeMkLib(GenodeLib):
 
 
         ### register library dependencies
-        direct_dep_libs = self.build_env.var_values('LIBS')
-        if len(direct_dep_libs) > 0:
-            dep_lib_targets = self.env['fn_require_libs'](direct_dep_libs)
+        orig_dep_libs = self.build_env.var_values('LIBS')
+        if len(orig_dep_libs) > 0:
+            dep_lib_targets = self.env['fn_require_libs'](orig_dep_libs)
+        direct_dep_libs = orig_dep_libs + []
 
-        all_direct_dep_libs = direct_dep_libs + []
 
         ### add ldso_so_support as a dependency
         #
@@ -165,17 +160,20 @@ class GenodeMkLib(GenodeLib):
         shared_lib_defined = self.build_env.check_var('SHARED_LIB')
         if shared_lib_defined:
             ldso_support_lib_target = self.env['fn_require_libs'](['ldso_so_support'])
-            all_direct_dep_libs.append('ldso_so_support')
+            direct_dep_libs.append('ldso_so_support')
+
 
         ### calculate list of library dependencies (recursively complete)
         lib_deps = []
-        for dep_lib in all_direct_dep_libs:
+        for dep_lib in direct_dep_libs:
             dep_lib_deps = self.env['fn_get_lib_info'](dep_lib)['lib_deps']
             lib_deps.extend(dep_lib_deps)
         lib_deps = sorted(list(set(lib_deps)))
-        self.env['fn_debug']("all_direct_dep_libs: '%s'" % (str(all_direct_dep_libs)))
+        self.env['fn_debug']("direct_dep_libs: '%s'" % (str(direct_dep_libs)))
         self.env['fn_debug']("lib_deps: '%s'" % (str(lib_deps)))
 
+
+        ### calculate library deps
         lib_so_deps = []
         lib_a_deps = []
         for lib in lib_deps:
@@ -183,6 +181,7 @@ class GenodeMkLib(GenodeLib):
                 lib_a_deps.append(lib)
             else:
                 lib_so_deps.append(lib)
+
 
         ### create links to shared library dependencies
         dep_shlib_links = self.build_helper.create_dep_lib_links(
@@ -193,11 +192,10 @@ class GenodeMkLib(GenodeLib):
         global_mk_file = '%s/mk/global.mk' % (self.env['BASE_DIR'])
         global_mk = mkcache.get_parsed_mk(global_mk_file)
         global_mk.process(self.build_env)
-        #self.env['fn_debug'](pprint.pformat(self.build_env.debug_struct('pretty'), width=200))
 
 
         ### handle include import-<lib>.mk files
-        for dep_lib in all_direct_dep_libs:
+        for dep_lib in direct_dep_libs:
             dep_lib_import_mk_file, dep_lib_import_mk_repo = tools.find_first(self.env['REPOSITORIES'], 'lib/import/import-%s.mk' % (dep_lib))
             if dep_lib_import_mk_file is not None:
                 self.env['fn_info']("Processing import-%s file: %s" %
@@ -209,9 +207,6 @@ class GenodeMkLib(GenodeLib):
         ### # fix rep_inc_dir content - important to be before processing global.mk
         ### current_rep_inc_dir = self.build_env.var_values('REP_INC_DIR')
         ### full_rep_inc_dir = current_rep_inc_dir + global_rep_inc_dir
-        ### #self.env['fn_debug']('--- %s' % self.lib_name)
-        ### #self.env['fn_debug']('global_rep_inc_dir: %s' % (str(global_rep_inc_dir)))
-        ### #self.env['fn_debug']('current_rep_inc_dir: %s' % (str(current_rep_inc_dir)))
         ### #self.env['fn_debug']('full_rep_inc_dir: %s' % (str(full_rep_inc_dir)))
         ### self.build_env.var_set('REP_INC_DIR', ' '.join(full_rep_inc_dir))
         ### #self.env['fn_debug']('REP_INC_DIR: %s' % (str(self.build_env.var_values('REP_INC_DIR'))))
@@ -231,8 +226,6 @@ class GenodeMkLib(GenodeLib):
         repositories = self.env['REPOSITORIES']
         self.env['fn_debug']("REPOSITORIES: %s" % (str(repositories)))
 
-
-        ### handle shared library settings
 
         ## find <lib> symbols file with repo
         symbols_file = None
@@ -280,11 +273,7 @@ class GenodeMkLib(GenodeLib):
             self.env['LIBGCC'] = output
 
 
-
         self.env['fn_trace'](pprint.pformat(self.build_env.debug_struct('pretty'), width=200))
-
-
-        ### handle include generic.mk functionality
 
 
 
@@ -327,6 +316,8 @@ class GenodeMkLib(GenodeLib):
         # cases like: a.cpp a.bbb.cpp as in make sources are sorted
         # but here object files
         objects = list(sorted(objects, key=lambda x: str(x)))
+
+
 
         lib_targets = []
 
@@ -376,7 +367,7 @@ class GenodeMkLib(GenodeLib):
         lib_a = None
 
         if shared_lib:
-            if len(objects) + len(direct_dep_libs) != 0:
+            if len(objects) + len(orig_dep_libs) != 0:
                 lib_so = "%s.lib.so" % (self.lib_name)
                 if lib_type is None:
                     # prefere announcing 'abi' over 'so'
@@ -393,10 +384,11 @@ class GenodeMkLib(GenodeLib):
             pass
 
         # TODO: LIB_IS_DYNAMIC_LINKER
+        # currently not implemented in any way but no inconsistencies found
 
-        # TODO: STATIC_LIBS
 
         # NOTICE: LIB_SO_DEPS seems to be an artifact of the past
+
 
         lib_so_tgt = None
         if lib_so is not None:

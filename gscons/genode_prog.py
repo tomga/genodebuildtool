@@ -102,10 +102,9 @@ class GenodeMkProg(GenodeProg):
 
 
     def process(self):
-        #import rpdb2
-        #rpdb2.start_embedded_debugger('password')
 
         mkcache = self.build_env.get_mk_cache()
+
 
         # remember value of rep_inc_dir and reset it to empty; it is
         # important to put those remembered values to end of list
@@ -114,6 +113,7 @@ class GenodeMkProg(GenodeProg):
         global_rep_inc_dir = self.build_env.var_values('REP_INC_DIR')
         self.build_env.var_set('REP_INC_DIR', '')
 
+
         ### handle base-libs.mk
         base_libs_mk_file = '%s/mk/base-libs.mk' % (self.env['BASE_DIR'])
         base_libs_mk = mkcache.get_parsed_mk(base_libs_mk_file)
@@ -121,14 +121,11 @@ class GenodeMkProg(GenodeProg):
 
 
         ### handle include <prog>.mk
-
         self.env['fn_info']("Parsing build rules for program '%s' from '%s'" %
                             (self.prog_name, self.env['fn_localize_path'](self.prog_mk_file)))
         # overlays for <prog_mk> are already handled on a different level
         prog_mk = mkcache.get_parsed_mk(self.prog_mk_file, no_overlay=self.no_overlay)
-        #self.env['fn_debug'](pprint.pformat(prog_mk.debug_struct(), width=180))
         prog_mk.process(self.build_env)
-        #self.env['fn_debug'](pprint.pformat(self.build_env.debug_struct('pretty'), width=200))
 
 
         specs = self.env['SPECS']
@@ -144,9 +141,10 @@ class GenodeMkProg(GenodeProg):
 
 
         ### register program dependencies
-        direct_dep_libs = self.build_env.var_values('LIBS')
-        if len(direct_dep_libs) > 0:
-            dep_lib_targets = self.env['fn_require_libs'](direct_dep_libs)
+        orig_dep_libs = self.build_env.var_values('LIBS')
+        if len(orig_dep_libs) > 0:
+            dep_lib_targets = self.env['fn_require_libs'](orig_dep_libs)
+        direct_dep_libs = orig_dep_libs + []
 
 
         ### calculate list of library dependencies (recursively complete)
@@ -158,6 +156,8 @@ class GenodeMkProg(GenodeProg):
         self.env['fn_debug']("direct_dep_libs: '%s'" % (str(direct_dep_libs)))
         self.env['fn_debug']("lib_deps: '%s'" % (str(lib_deps)))
 
+
+        ### calculate library deps
         lib_so_deps = []
         lib_a_deps = []
         for lib in lib_deps:
@@ -166,14 +166,10 @@ class GenodeMkProg(GenodeProg):
             else:
                 lib_so_deps.append(lib)
 
+
         ### create links to shared library dependencies
         dep_shlib_links = self.build_helper.create_dep_lib_links(
             self.env, self.target_path(None), lib_so_deps)
-
-
-        ### skipping $(SPEC_FILES) as they are already included
-        #
-        # NOTE: passing this option is not documented
 
 
         ### initial cxx_link_opt
@@ -188,7 +184,6 @@ class GenodeMkProg(GenodeProg):
         global_mk_file = '%s/mk/global.mk' % (self.env['BASE_DIR'])
         global_mk = mkcache.get_parsed_mk(global_mk_file)
         global_mk.process(self.build_env)
-        #self.env['fn_debug'](pprint.pformat(self.build_env.debug_struct('pretty'), width=200))
 
 
         ### handle include import-<lib>.mk files
@@ -231,12 +226,9 @@ class GenodeMkProg(GenodeProg):
         self.env['fn_trace'](pprint.pformat(self.build_env.debug_struct('pretty'), width=200))
 
 
-        ### handle include generic.mk functionality
-
-        ### handle cc_march
+        ### handle ld_opt_nostdlib
         ld_opt_nostdlib = self.build_env.var_values('LD_OPT_NOSTDLIB')
         cxx_link_opt += ld_opt_nostdlib
-
 
 
 
@@ -281,6 +273,8 @@ class GenodeMkProg(GenodeProg):
         # but here object files
         objects = list(sorted(objects, key=lambda x: str(x)))
 
+
+
         ### ld_text_addr
         ld_text_addr = '0x01000000'
         if self.build_env.check_var('LD_TEXT_ADDR'):
@@ -288,9 +282,11 @@ class GenodeMkProg(GenodeProg):
         if ld_text_addr != '':
             cxx_link_opt.append('-Wl,-Ttext=%s' % (ld_text_addr))
 
+
         ### cc_march
         cc_march = self.build_env.var_values('CC_MARCH')
         cxx_link_opt.extend(cc_march)
+
 
         ### ld_script_static
         ld_script_static = None
