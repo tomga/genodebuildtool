@@ -53,12 +53,14 @@ def compare_builds(build_db, build_dir1, build_dir2):
     last_arch = ''
     last_tgt_path = ''
     last_cmd_num = ''
+    inconsistencies_count = 0
     for arch, tool, tgt_path, can_text, cmd_text, cmd_num in c:
         if (arch != last_arch
             or tgt_path != last_tgt_path
             or cmd_num != last_cmd_num):
 
             print("Inconsistency: %s %s" % (arch, tgt_path))
+            inconsistencies_count += 1
             last_arch = arch
             last_tgt_path = tgt_path
             last_cmd_num = cmd_num
@@ -66,5 +68,9 @@ def compare_builds(build_db, build_dir1, build_dir2):
         print(" %s can: %s" % (tool.ljust(5), can_text))
         print(" %s org: %s" % (tool.ljust(5), cmd_text))
 
-    if last_arch == '':
+    if inconsistencies_count == 0:
         print("No inconsistencies.")
+    else:
+        print("Found %s inconsistencies." % (str(inconsistencies_count)))
+
+    return (inconsistencies_count == 0)

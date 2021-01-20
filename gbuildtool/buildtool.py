@@ -360,7 +360,9 @@ def do_builds(opts, build_db):
                       % (build0_name, 'SUCCEDED' if build0_ok else 'FAILED',
                          build1_name, 'SUCCEDED' if build1_ok else 'FAILED'))
 
-            db_utils.compare_builds(build_db, build0_name, build1_name)
+            check_result = db_utils.compare_builds(build_db, build0_name, build1_name)
+            if not check_result:
+                quit(1)
 
 
 ###
