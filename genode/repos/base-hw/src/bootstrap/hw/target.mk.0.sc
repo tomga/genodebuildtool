@@ -22,7 +22,7 @@ def process_prog_overlay(prog_name, env, prog_mk_file, prog_mk_repo, build_env):
     env['fn_debug']("%s: %s" % ('LD_MARCH', env['LD_MARCH']))
 
     bootstrap_obj_basename = build_env.var_value('BOOTSTRAP_OBJ')
-    bootstrap_obj = env['fn_target_path'](bootstrap_obj_basename)
+    bootstrap_obj = env['fn_sc_tgt_path'](bootstrap_obj_basename)
     env['fn_debug']("%s: %s" % ('bootstrap_obj', str(bootstrap_obj)))
 
     prog_targets = []
@@ -39,7 +39,7 @@ def process_prog_overlay(prog_name, env, prog_mk_file, prog_mk_repo, build_env):
     # they are always defined
 
     # stripped version
-    strip_tgt = env.Strip(target=env['fn_target_path']('%s.stripped' % (bootstrap_obj_basename)),
+    strip_tgt = env.Strip(target=env['fn_sc_tgt_path']('%s.stripped' % (bootstrap_obj_basename)),
                           STRIP_OPTIONS='--strip-debug',
                           source=bootstrap_obj_o)
     prog_targets.append(strip_tgt)

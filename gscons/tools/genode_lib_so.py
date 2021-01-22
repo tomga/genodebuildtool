@@ -39,7 +39,7 @@ def process_file_options(ld_opts, env, option, optsep):
         if script.startswith('/'):
             script = env['fn_localize_path'](script)
         else:
-            script = env['fn_unsconsify_path'](env['fn_target_path'](script))
+            script = env['fn_norm_tgt_path'](script)
         scripts.append(script)
         return option + optsep + script
 

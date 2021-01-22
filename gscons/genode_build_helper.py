@@ -79,7 +79,7 @@ class GenodeBuildHelper:
             env['fn_debug']("src_file: %s, tgt_file: %s" % (src_file, tgt_file))
 
             obj = env.BinaryObj(source = src_file,
-                                target = env['fn_target_path'](tgt_file))
+                                target = env['fn_sc_tgt_path'](tgt_file))
             objs += obj
         return objs
 
@@ -111,12 +111,12 @@ class GenodeBuildHelper:
                 kwargs[flags_var] = target_opts + env[flags_var]
 
             obj = env.SharedObject(source = src_file,
-                                   target = env['fn_target_path'](tgt_file),
+                                   target = env['fn_sc_tgt_path'](tgt_file),
                                    **kwargs)
             objs += obj
         return objs
 
-    def create_dep_lib_links(self, env, target_path, dep_libs):
+    def create_dep_lib_links(self, env, sc_tgt_path, dep_libs):
         lib_cache_dir = self.get_lib_cache_dir(env)
 
         dep_lib_links = []
@@ -129,7 +129,7 @@ class GenodeBuildHelper:
 
             dep_lib_lnk_tgt = env.SymLink(
                 source = self.target_lib_path(lib_cache_dir, dep_lib, dep_lib_so_file_name),
-                target = '%s/%s' % (target_path, dep_lib_file_name))
+                target = '%s/%s' % (sc_tgt_path, dep_lib_file_name))
             dep_lib_links.append(dep_lib_lnk_tgt)
 
         return dep_lib_links

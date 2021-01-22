@@ -27,7 +27,7 @@ class GenodeCxxMkLib(genode_lib.GenodeMkLib):
         ## hardcoded to avoid error in cxx.mk has wrong: SRC_S = supc++.o
         #target_name = self.build_env.var_value('SRC_O')
         target_name = 'supc++.o'
-        target_file = self.target_path(target_name)
+        target_file = self.sc_tgt_path(target_name)
 
         for v in ['VERBOSE', 'MSG_MERGE', 'MSG_CONVERT',
                   'LD_MARCH', 'LIBCXX_GCC',

@@ -21,28 +21,34 @@ class GenodeLib:
         self.lib_name = lib_name
         self.env = env
 
-        # for use in target_path
-        self.relative_lib_cache_dir = self.sconsify_path(self.env['LIB_CACHE_DIR'])
+        # for use in sc_tgt_path
+        self.relative_lib_cache_dir = self.env['fn_localize_path'](self.env['LIB_CACHE_DIR'])
 
         self.build_helper = build_helper
 
         self.env['fn_current_target_type'] = lambda : 'lib'
         self.env['fn_current_target_alias'] = lambda : self.env['fn_lib_alias_name'](self.lib_name)
         self.env['fn_current_target_obj'] = lambda : self
-        self.env['fn_target_path'] = lambda tgt: self.target_path(tgt)
+        self.env['fn_norm_tgt_path'] = lambda tgt: self.norm_tgt_path(tgt)
+        self.env['fn_sc_tgt_path'] = lambda tgt: self.sc_tgt_path(tgt)
 
         self.post_process_actions = []
         self.env['fn_add_post_process_action'] = lambda action: self.post_process_actions.append(action)
+
 
     def sconsify_path(self, path):
         return self.env['fn_sconsify_path'](path)
 
 
-    def target_path(self, target):
+    def norm_tgt_path(self, target):
         if target is not None:
             return '%s/%s/%s' % (self.relative_lib_cache_dir, self.lib_name, target)
         else:
             return '%s/%s' % (self.relative_lib_cache_dir, self.lib_name)
+
+
+    def sc_tgt_path(self, target):
+        return self.sconsify_path(self.norm_tgt_path(target))
 
 
     def build_c_objects(self):
@@ -185,7 +191,7 @@ class GenodeMkLib(GenodeLib):
 
         ### create links to shared library dependencies
         dep_shlib_links = self.build_helper.create_dep_lib_links(
-            self.env, self.target_path(None), lib_so_deps)
+            self.env, self.sc_tgt_path(None), lib_so_deps)
 
 
         ### handle include global.mk
@@ -342,12 +348,12 @@ class GenodeMkLib(GenodeLib):
 
             # TODO: test correctness of changes of this link
             symbols_lnk_tgt = self.env.SymLink(source = symbols_file,
-                                               target = self.target_path(symbols_lnk))
+                                               target = self.sc_tgt_path(symbols_lnk))
 
             ### handle <lib>.symbols.s
             symbols_asm = '%s.symbols.s' % (self.lib_name)
             symbols_asm_tgt = self.env.Symbols(source = symbols_lnk_tgt,
-                                               target = self.target_path(symbols_asm))
+                                               target = self.sc_tgt_path(symbols_asm))
 
             ### handle <lib>.symbols.o
             # assumes prepare_s_env() was already executed
@@ -357,7 +363,7 @@ class GenodeMkLib(GenodeLib):
             for v in ['LD_OPT', 'LIB_SO_DEPS', 'LD_SCRIPT_SO']:
                 self.env[v] = self.build_env.var_value(v)
             abi_so_tgt = self.env.LibAbiSo(source = symbols_obj_tgt,
-                                           target = self.target_path(abi_so))
+                                           target = self.sc_tgt_path(abi_so))
 
             lib_targets.append(abi_so_tgt)
             lib_type = 'abi'
@@ -415,12 +421,12 @@ class GenodeMkLib(GenodeLib):
             for v in ['LD_OPT', 'LIB_SO_DEPS', 'LD_SCRIPT_SO']:
                 self.env[v] = self.build_env.var_value(v)
             lib_so_tgt = self.env.LibSo(source = dep_shlib_links + dep_archives + objects,
-                                        target = self.target_path(lib_so))
+                                        target = self.sc_tgt_path(lib_so))
 
             lib_targets.append(lib_so_tgt)
 
             # stripped shared library
-            strip_tgt = self.env.Strip(target=self.target_path('%s.stripped' % (lib_so)),
+            strip_tgt = self.env.Strip(target=self.sc_tgt_path('%s.stripped' % (lib_so)),
                                        source=lib_so_tgt)
             lib_targets.append(strip_tgt)
 
@@ -437,21 +443,21 @@ class GenodeMkLib(GenodeLib):
 
         if (lib_so_tgt is not None and symbols_file is not None):
             lib_checked = "%s.lib.checked" % (self.lib_name)
-            check_abi_tgt = self.env.CheckAbi(target=self.target_path(lib_checked),
+            check_abi_tgt = self.env.CheckAbi(target=self.sc_tgt_path(lib_checked),
                                               source=[ lib_so_tgt, symbols_file ])
 
             lib_targets.append(check_abi_tgt)
 
 
         if lib_a is not None:
-            lib_targets.append(self.env.StaticLibrary(target=self.target_path(lib_a),
+            lib_targets.append(self.env.StaticLibrary(target=self.sc_tgt_path(lib_a),
                                                       source=objects))
             lib_type = 'a'
 
 
         lib_tag = "%s.lib.tag" % (self.lib_name)
         lib_tag_tgt = self.env.LibTag(source = lib_targets,
-                                      target = self.target_path(lib_tag))
+                                      target = self.sc_tgt_path(lib_tag))
         lib_targets.append(lib_tag_tgt)
 
 

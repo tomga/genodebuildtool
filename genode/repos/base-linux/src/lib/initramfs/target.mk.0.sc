@@ -21,7 +21,7 @@ def process_prog_overlay(prog_name, env, prog_mk_file, prog_mk_repo, build_env):
     src_files = [env['fn_sconsify_path'](path) for path in src_files]
 
     initramfs_basename = build_env.var_value('INITRAMFS')
-    initramfs = env['fn_target_path'](initramfs_basename)
+    initramfs = env['fn_sc_tgt_path'](initramfs_basename)
 
     env['BUILDCOM'] = ("gcc ${SOURCES} -O0 %s  -Wall -W -Wextra -Werror -std=gnu99"
                        + " -o ${TARGET} -Wl,-O3 -Wl,--as-needed -static") % (cc_march)

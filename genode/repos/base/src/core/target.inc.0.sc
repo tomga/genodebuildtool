@@ -31,7 +31,7 @@ def create_targets(mk_file, build_env):
     env['fn_debug']("%s: %s" % ('LD_MARCH', env['LD_MARCH']))
 
     core_obj_basename = build_env.var_value('CORE_OBJ')
-    core_obj = env['fn_target_path'](core_obj_basename)
+    core_obj = env['fn_sc_tgt_path'](core_obj_basename)
     env['fn_debug']("%s: %s" % ('core_obj', str(core_obj)))
 
     prog_targets = []
@@ -48,7 +48,7 @@ def create_targets(mk_file, build_env):
     # they are always defined
 
     # stripped version
-    strip_tgt = env.Strip(target=env['fn_target_path']('%s.stripped' % (core_obj_basename)),
+    strip_tgt = env.Strip(target=env['fn_sc_tgt_path']('%s.stripped' % (core_obj_basename)),
                           STRIP_OPTIONS='--strip-debug',
                           source=core_obj_o)
     prog_targets.append(strip_tgt)

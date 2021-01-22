@@ -39,7 +39,7 @@ def create_targets(mk_file, build_env):
     env['fn_debug']("%s: %s" % ('LD_MARCH', env['LD_MARCH']))
 
     target_policy_basename = build_env.var_value('TARGET_POLICY')
-    target_policy = env['fn_target_path'](target_policy_basename + '.elf')
+    target_policy = env['fn_sc_tgt_path'](target_policy_basename + '.elf')
     env['fn_debug']("%s: %s" % ('target_policy', str(target_policy)))
 
     prog_targets = []

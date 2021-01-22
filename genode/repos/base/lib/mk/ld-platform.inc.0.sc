@@ -9,7 +9,7 @@ def process_mk_overlay(mk_file, build_env):
     include_mk.process(build_env)
 
     ld_file = env['fn_localize_path']('%s/lib/symbols/ld' % (env['BASE_DIR']))
-    map_file = env['fn_unsconsify_path'](env['fn_target_path']('symbol.map'))
+    map_file = env['fn_norm_tgt_path']('symbol.map')
     map_cmd = r"""(echo -e "{\n\tglobal:";
                    sed -n "s/^\(\w\+\) .*/\t\t\1;/p" %s;
                    echo -e "\tlocal: *;\n};") > %s""" % (ld_file, map_file)
@@ -23,7 +23,7 @@ def process_mk_overlay(mk_file, build_env):
     if ('linux' in build_env.var_values('SPECS')
         and env['fn_current_target_type']() == 'lib'):
 
-        lib_so = env['fn_unsconsify_path'](env['fn_target_path']('ld-linux.lib.so'))
+        lib_so = env['fn_norm_tgt_path']('ld-linux.lib.so')
         exe_cmd = r"""printf "\x02" |
 	          dd of=%s bs=1 seek=16 count=1 conv=notrunc
 	          2> /dev/null""" % (lib_so)

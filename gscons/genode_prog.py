@@ -21,16 +21,17 @@ class GenodeProg:
         self.prog_name = prog_name
         self.env = env
 
-        # for use in target_path
+        # for use in sc_tgt_path
         self.relative_src_dir = self.env['fn_localize_path'](prog_base_path)
-        self.relative_prog_dir = self.sconsify_path(os.path.join(env['BUILD'], prog_name))
+        self.relative_prog_dir = self.env['fn_localize_path'](os.path.join(env['BUILD'], prog_name))
 
         self.build_helper = build_helper
 
         self.env['fn_current_target_type'] = lambda : 'prog'
         self.env['fn_current_target_alias'] = lambda : self.env['fn_prog_alias_name'](self.prog_name)
         self.env['fn_current_target_obj'] = lambda : self
-        self.env['fn_target_path'] = lambda tgt: self.target_path(tgt)
+        self.env['fn_norm_tgt_path'] = lambda tgt: self.norm_tgt_path(tgt)
+        self.env['fn_sc_tgt_path'] = lambda tgt: self.sc_tgt_path(tgt)
 
         self.post_process_actions = []
         self.env['fn_add_post_process_action'] = lambda action: self.post_process_actions.append(action)
@@ -40,11 +41,15 @@ class GenodeProg:
         return self.env['fn_sconsify_path'](path)
 
 
-    def target_path(self, target):
+    def norm_tgt_path(self, target):
         if target is not None:
             return '%s/%s' % (self.relative_prog_dir, target)
         else:
             return self.relative_prog_dir
+
+
+    def sc_tgt_path(self, target):
+        return self.sconsify_path(self.norm_tgt_path(target))
 
 
     def build_c_objects(self):
@@ -169,7 +174,7 @@ class GenodeMkProg(GenodeProg):
 
         ### create links to shared library dependencies
         dep_shlib_links = self.build_helper.create_dep_lib_links(
-            self.env, self.target_path(None), lib_so_deps)
+            self.env, self.sc_tgt_path(None), lib_so_deps)
 
 
         ### initial cxx_link_opt
@@ -399,11 +404,11 @@ class GenodeMkProg(GenodeProg):
             prog_name = self.build_env.var_value('TARGET')
             ## $LINK -o $TARGET $LINKFLAGS $__RPATH $SOURCES $_LIBDIRFLAGS $_LIBFLAGS
             self.env['LINKCOM'] = '$LINK -o $TARGET $LINKFLAGS $__RPATH -Wl,--whole-archive -Wl,--start-group $SOURCES -Wl,--no-whole-archive -Wl,--end-group $_LIBDIRFLAGS $_LIBFLAGS $LD_LIBGCC'
-            prog_tgt = self.env.Program(target=self.target_path(prog_name),
+            prog_tgt = self.env.Program(target=self.sc_tgt_path(prog_name),
                                         source=objects + dep_archives + dep_shlib_links + ext_objects)
             prog_targets.append(prog_tgt)
 
-            strip_tgt = self.env.Strip(target=self.target_path('%s.stripped' % (prog_name)),
+            strip_tgt = self.env.Strip(target=self.sc_tgt_path('%s.stripped' % (prog_name)),
                                        source=prog_tgt)
             prog_targets.append(strip_tgt)
 
