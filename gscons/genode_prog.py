@@ -52,6 +52,11 @@ class GenodeProg:
         return self.sconsify_path(self.norm_tgt_path(target))
 
 
+    def process(self):
+        self.process_load()
+        return self.process_target()
+
+
     def build_c_objects(self):
         src_files = self.get_c_sources()
         return self.build_helper.compile_c_sources(self.env, src_files)
@@ -106,7 +111,7 @@ class GenodeMkProg(GenodeProg):
         self.no_overlay = True
 
 
-    def process(self):
+    def process_load(self):
 
         mkcache = self.build_env.get_mk_cache()
 
@@ -138,11 +143,11 @@ class GenodeMkProg(GenodeProg):
 
 
         requires = self.build_env.var_values('REQUIRES')
-        missing_specs = [ req for req in requires if req not in specs ]
-        if len(missing_specs) > 0:
-            self.env['fn_info']("Skipping building program '%s' due to missing specs: %s"
-                                % (self.prog_name, ' '.join(missing_specs)))
-            return self.env.Alias(self.env['fn_prog_alias_name'](self.prog_name), [])
+        self.missing_specs = [ req for req in requires if req not in specs ]
+        if len(self.missing_specs) > 0:
+            self.env['fn_debug']("Skipping loading dependencies of program '%s' due to missing specs: %s"
+                                 % (self.prog_name, ' '.join(self.missing_specs)))
+            return
 
 
         ### register program dependencies
@@ -163,18 +168,13 @@ class GenodeMkProg(GenodeProg):
 
 
         ### calculate library deps
-        lib_so_deps = []
-        lib_a_deps = []
+        self.lib_so_deps = []
+        self.lib_a_deps = []
         for lib in lib_deps:
             if self.env['fn_get_lib_info'](lib)['type'] == 'a':
-                lib_a_deps.append(lib)
+                self.lib_a_deps.append(lib)
             else:
-                lib_so_deps.append(lib)
-
-
-        ### create links to shared library dependencies
-        dep_shlib_links = self.build_helper.create_dep_lib_links(
-            self.env, self.sc_tgt_path(None), lib_so_deps)
+                self.lib_so_deps.append(lib)
 
 
         ### initial cxx_link_opt
@@ -182,7 +182,7 @@ class GenodeMkProg(GenodeProg):
         # NOTE: important to retrieve this value before processing
         #       global.mk as LD_OPT is appended inside but it is
         #       processed here independently
-        cxx_link_opt = self.build_env.var_values('CXX_LINK_OPT')
+        self.cxx_link_opt = self.build_env.var_values('CXX_LINK_OPT')
 
 
         ### handle include global.mk
@@ -201,8 +201,8 @@ class GenodeMkProg(GenodeProg):
                                     (dep_lib, self.env['fn_localize_path'](dep_lib_import_mk_file)))
                 dep_lib_import_mk = mkcache.get_parsed_mk(dep_lib_import_mk_file)
                 dep_lib_import_mk.process(self.build_env)
-        cxx_link_opt_from_imports = self.build_env.var_values('CXX_LINK_OPT')
-        self.env['fn_debug']("cxx_link_opt_from_imports: %s" % (str(cxx_link_opt_from_imports)))
+        self.cxx_link_opt_from_imports = self.build_env.var_values('CXX_LINK_OPT')
+        self.env['fn_debug']("cxx_link_opt_from_imports: %s" % (str(self.cxx_link_opt_from_imports)))
 
 
         # fix rep_inc_dir content - important to be before processing global.mk
@@ -231,10 +231,26 @@ class GenodeMkProg(GenodeProg):
         self.env['fn_trace'](pprint.pformat(self.build_env.debug_struct('pretty'), width=200))
 
 
+
+    def process_target(self):
+
+        if len(self.missing_specs) > 0:
+            self.env['fn_info']("Skipping building program '%s' due to missing specs: %s"
+                                % (self.prog_name, ' '.join(self.missing_specs)))
+            return self.env.Alias(self.env['fn_prog_alias_name'](self.prog_name), [])
+
+
+        repositories = self.env['REPOSITORIES']
+        specs = self.env['SPECS']
+
+        ### create links to shared library dependencies
+        dep_shlib_links = self.build_helper.create_dep_lib_links(
+            self.env, self.sc_tgt_path(None), self.lib_so_deps)
+
+
         ### handle ld_opt_nostdlib
         ld_opt_nostdlib = self.build_env.var_values('LD_OPT_NOSTDLIB')
-        cxx_link_opt += ld_opt_nostdlib
-
+        self.cxx_link_opt += ld_opt_nostdlib
 
 
         ### common code
@@ -286,12 +302,12 @@ class GenodeMkProg(GenodeProg):
         if self.build_env.check_var('LD_TEXT_ADDR'):
             ld_text_addr = self.build_env.var_value('LD_TEXT_ADDR')
         if ld_text_addr != '':
-            cxx_link_opt.append('-Wl,-Ttext=%s' % (ld_text_addr))
+            self.cxx_link_opt.append('-Wl,-Ttext=%s' % (ld_text_addr))
 
 
         ### cc_march
         cc_march = self.build_env.var_values('CC_MARCH')
-        cxx_link_opt.extend(cc_march)
+        self.cxx_link_opt.extend(cc_march)
 
 
         ### ld_script_static
@@ -340,7 +356,7 @@ class GenodeMkProg(GenodeProg):
         ld_opt = self.build_env.var_values('LD_OPT')
 
         ld_scripts = []
-        if len(lib_so_deps) == 0:
+        if len(self.lib_so_deps) == 0:
             ld_scripts = self.build_env.var_values('LD_SCRIPT_STATIC')
             pass
         else:
@@ -350,21 +366,21 @@ class GenodeMkProg(GenodeProg):
             self.env['fn_debug']('ld_opt: %s' % (str(ld_opt)))
             ld_scripts = self.build_env.var_values('LD_SCRIPT_DYN')
 
-            cxx_link_opt.append('-Wl,--dynamic-linker=%s.lib.so' % (self.build_env.var_value('DYNAMIC_LINKER')))
-            cxx_link_opt.append('-Wl,--eh-frame-hdr')
-            cxx_link_opt.append('-Wl,-rpath-link=.')
+            self.cxx_link_opt.append('-Wl,--dynamic-linker=%s.lib.so' % (self.build_env.var_value('DYNAMIC_LINKER')))
+            self.cxx_link_opt.append('-Wl,--eh-frame-hdr')
+            self.cxx_link_opt.append('-Wl,-rpath-link=.')
 
             base_libs = self.build_env.var_values('BASE_LIBS')
-            lib_a_deps = [ lib for lib in lib_a_deps if lib not in base_libs ]
+            self.lib_a_deps = [ lib for lib in self.lib_a_deps if lib not in base_libs ]
 
-        cxx_link_opt.extend(cxx_link_opt_from_imports)
+        self.cxx_link_opt.extend(self.cxx_link_opt_from_imports)
 
         for lib in ld_scripts:
-            cxx_link_opt += [ '-Wl,-T', '-Wl,%s' % (self.env['fn_localize_path'](lib)) ]
+            self.cxx_link_opt += [ '-Wl,-T', '-Wl,%s' % (self.env['fn_localize_path'](lib)) ]
 
         lib_cache_dir = self.build_helper.get_lib_cache_dir(self.env)
         dep_archives = []
-        for dep_lib in lib_a_deps:
+        for dep_lib in self.lib_a_deps:
             a_file_name = '%s.lib.a' % (dep_lib)
             a_path = self.build_helper.target_lib_path(lib_cache_dir, dep_lib, a_file_name)
             dep_archives.append(a_path)
@@ -395,13 +411,13 @@ class GenodeMkProg(GenodeProg):
         if len(objects) > 0:
 
             self.env['fn_debug']("ld_opt: %s" % (str(ld_opt)))
-            self.env['fn_debug']("cxx_link_opt: %s" % (str(cxx_link_opt)))
+            self.env['fn_debug']("cxx_link_opt: %s" % (str(self.cxx_link_opt)))
 
             ext_objects = self.build_env.var_values('EXT_OBJECTS')
             ext_objects = [ os.path.normpath(p) for p in ext_objects ]
 
             ld_cxx_opt = [ '-Wl,%s' % (opt) for opt in ld_opt ]
-            self.env['LINKFLAGS'] = cxx_link_opt + ld_cxx_opt
+            self.env['LINKFLAGS'] = self.cxx_link_opt + ld_cxx_opt
             prog_name = self.build_env.var_value('TARGET')
             ## $LINK -o $TARGET $LINKFLAGS $__RPATH $SOURCES $_LIBDIRFLAGS $_LIBFLAGS
             self.env['LINKCOM'] = '$LINK -o $TARGET $LINKFLAGS $__RPATH -Wl,--whole-archive -Wl,--start-group $SOURCES -Wl,--no-whole-archive -Wl,--end-group $_LIBDIRFLAGS $_LIBFLAGS $LD_LIBGCC'

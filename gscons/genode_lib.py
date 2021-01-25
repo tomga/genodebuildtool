@@ -51,6 +51,11 @@ class GenodeLib:
         return self.sconsify_path(self.norm_tgt_path(target))
 
 
+    def process(self):
+        self.process_load()
+        return self.process_target()
+
+
     def build_c_objects(self):
         src_files = self.get_c_sources()
         return self.build_helper.compile_c_sources(self.env, src_files)
@@ -101,7 +106,7 @@ class GenodeMkLib(GenodeLib):
         self.no_overlay = True
 
 
-    def process(self):
+    def process_load(self):
 
         mkcache = self.build_env.get_mk_cache()
 
@@ -143,18 +148,18 @@ class GenodeMkLib(GenodeLib):
 
 
         requires = self.build_env.var_values('REQUIRES')
-        missing_specs = [ req for req in requires if req not in specs ]
-        if len(missing_specs) > 0:
-            self.env['fn_info']("Skipping building library '%s' due to missing specs: %s"
-                                % (self.lib_name, ' '.join(missing_specs)))
-            return self.env.Alias(self.env['fn_lib_alias_name'](self.lib_name), [])
+        self.missing_specs = [ req for req in requires if req not in specs ]
+        if len(self.missing_specs) > 0:
+            self.env['fn_debug']("Skipping loading dependencies of library '%s' due to missing specs: %s"
+                                 % (self.lib_name, ' '.join(self.missing_specs)))
+            return
 
 
         ### register library dependencies
-        orig_dep_libs = self.build_env.var_values('LIBS')
-        if len(orig_dep_libs) > 0:
-            dep_lib_targets = self.env['fn_require_libs'](orig_dep_libs)
-        direct_dep_libs = orig_dep_libs + []
+        self.orig_dep_libs = self.build_env.var_values('LIBS')
+        if len(self.orig_dep_libs) > 0:
+            dep_lib_targets = self.env['fn_require_libs'](self.orig_dep_libs)
+        direct_dep_libs = self.orig_dep_libs + []
 
 
         ### add ldso_so_support as a dependency
@@ -180,18 +185,13 @@ class GenodeMkLib(GenodeLib):
 
 
         ### calculate library deps
-        lib_so_deps = []
-        lib_a_deps = []
+        self.lib_so_deps = []
+        self.lib_a_deps = []
         for lib in lib_deps:
             if self.env['fn_get_lib_info'](lib)['type'] == 'a':
-                lib_a_deps.append(lib)
+                self.lib_a_deps.append(lib)
             else:
-                lib_so_deps.append(lib)
-
-
-        ### create links to shared library dependencies
-        dep_shlib_links = self.build_helper.create_dep_lib_links(
-            self.env, self.sc_tgt_path(None), lib_so_deps)
+                self.lib_so_deps.append(lib)
 
 
         ### handle include global.mk
@@ -236,7 +236,7 @@ class GenodeMkLib(GenodeLib):
         ## find <lib> symbols file with repo
         symbols_file = None
         symbols_repo = None
-        symbols_file_path = None
+        self.symbols_file_path = None
         for repository in repositories:
             for spec in specs:
                 test_symbols_file = 'lib/symbols/spec/%s/%s' % (spec, self.lib_name)
@@ -253,22 +253,60 @@ class GenodeMkLib(GenodeLib):
                 symbols_repo = repository
                 break
         if symbols_file is not None:
-            symbols_file_path = os.path.join(symbols_repo, symbols_file)
+            self.symbols_file_path = os.path.join(symbols_repo, symbols_file)
 
         if self.build_env.check_var('SYMBOLS'):
             symbols_full_path = self.build_env.var_value('SYMBOLS')
-            symbols_file_path = self.env['fn_localize_path'](symbols_full_path)
+            self.symbols_file_path = self.env['fn_localize_path'](symbols_full_path)
 
-        shared_lib = (symbols_file_path is not None
-                      or self.build_env.var_value('SHARED_LIB') == 'yes')
+        self.shared_lib = (self.symbols_file_path is not None
+                           or self.build_env.var_value('SHARED_LIB') == 'yes')
 
-        self.env['fn_debug']("SYMBOLS_FILE: %s" % (str(symbols_file_path)))
-        self.env['fn_debug']("SHARED_LIB: %s" % (str(shared_lib)))
+        self.env['fn_debug']("SYMBOLS_FILE: %s" % (str(self.symbols_file_path)))
+        self.env['fn_debug']("SHARED_LIB: %s" % (str(self.shared_lib)))
+
+
+        # lib_type as abi/so/a information is put into libraries info
+        # registry for use by other libraries and programs that depend
+        # on it
+        lib_type = None
+        if self.symbols_file_path is not None:
+            lib_type = 'abi'
+        if self.shared_lib:
+            if self.has_any_sources() or len(self.orig_dep_libs) != 0:
+                if lib_type is None:
+                    # prefere announcing 'abi' over 'so'
+                    lib_type = 'so'
+        else:
+            lib_type = 'a'
+
+
+        if self.shared_lib:
+            lib_deps = [self.lib_name]
+        else:
+            lib_deps.append(self.lib_name)
+
+        self.env['fn_register_lib_info'](self.lib_name, { 'type': lib_type,
+                                                          'lib_deps': lib_deps })
+
+
+
+    def process_target(self):
+
+        if len(self.missing_specs) > 0:
+            self.env['fn_info']("Skipping building library '%s' due to missing specs: %s"
+                                % (self.lib_name, ' '.join(self.missing_specs)))
+            return self.env.Alias(self.env['fn_lib_alias_name'](self.lib_name), [])
+
+
+        ### create links to shared library dependencies
+        dep_shlib_links = self.build_helper.create_dep_lib_links(
+            self.env, self.sc_tgt_path(None), self.lib_so_deps)
 
 
         ### handle libgcc
         # TODO cache results or maybe set unconditionally
-        if shared_lib:
+        if self.shared_lib:
             ##LIBGCC = $(shell $(CC) $(CC_MARCH) -print-libgcc-file-name)
             cmd = "%s %s -print-libgcc-file-name" % (self.build_env.var_value('CC'),
                                                      self.build_env.var_value('CC_MARCH'))
@@ -325,24 +363,18 @@ class GenodeMkLib(GenodeLib):
         objects = list(sorted(objects, key=lambda x: str(x)))
 
 
-
         lib_targets = []
-
-        # lib_type as abi/so/a information is put into libraries info
-        # registry for use by other libraries and programs that depend
-        # on it
-        lib_type = None
 
         abi_so = None
 
         symbols_file = None
-        if symbols_file_path is not None:
+        if self.symbols_file_path is not None:
 
             ### handle <lib>.abi.so generation
 
             abi_so = '%s.abi.so' % (self.lib_name)
 
-            symbols_file = self.sconsify_path(symbols_file_path)
+            symbols_file = self.sconsify_path(self.symbols_file_path)
             #self.env['fn_debug']('SYMBOLS_FILE: %s' % (symbols_file))
             symbols_lnk = '%s.symbols' % (self.lib_name)
             #self.env['fn_debug']('SYMBOLS_LNK: %s' % (symbols_lnk))
@@ -367,23 +399,21 @@ class GenodeMkLib(GenodeLib):
                                            target = self.sc_tgt_path(abi_so))
 
             lib_targets.append(abi_so_tgt)
-            lib_type = 'abi'
 
 
         lib_so = None
         lib_a = None
 
-        if shared_lib:
-            if len(objects) + len(orig_dep_libs) != 0:
+        if self.shared_lib:
+            assert (len(objects) > 0) == self.has_any_sources()
+            if len(objects) + len(self.orig_dep_libs) != 0:
                 lib_so = "%s.lib.so" % (self.lib_name)
-                if lib_type is None:
-                    # prefere announcing 'abi' over 'so'
-                    lib_type = 'so'
         else:
             lib_a = "%s.lib.a" % (self.lib_name)
-            lib_type = 'a'
 
-        self.env['fn_debug']('LIB: %s %s' % (self.lib_name, 'shared' if shared_lib else 'static'))
+        self.env['fn_debug']('LIB: %s %s' %
+                             (self.lib_name,
+                              'shared' if self.shared_lib else 'static'))
 
 
         if lib_so is not None:
@@ -410,7 +440,7 @@ class GenodeMkLib(GenodeLib):
 
             lib_cache_dir = self.build_helper.get_lib_cache_dir(self.env)
             dep_archives = []
-            for dep_lib in lib_a_deps:
+            for dep_lib in self.lib_a_deps:
                 a_file_name = '%s.lib.a' % (dep_lib)
                 a_path = self.build_helper.target_lib_path(lib_cache_dir, dep_lib, a_file_name)
                 dep_archives.append(a_path)
@@ -453,7 +483,6 @@ class GenodeMkLib(GenodeLib):
         if lib_a is not None:
             lib_targets.append(self.env.StaticLibrary(target=self.sc_tgt_path(lib_a),
                                                       source=objects))
-            lib_type = 'a'
 
 
         lib_tag = "%s.lib.tag" % (self.lib_name)
@@ -461,14 +490,6 @@ class GenodeMkLib(GenodeLib):
                                       target = self.sc_tgt_path(lib_tag))
         lib_targets.append(lib_tag_tgt)
 
-
-        if shared_lib:
-            lib_deps = [self.lib_name]
-        else:
-            lib_deps.append(self.lib_name)
-
-        self.env['fn_register_lib_info'](self.lib_name, { 'type': lib_type,
-                                                          'lib_deps': lib_deps })
 
         ## execute post_process_actions
         for action in self.post_process_actions:
@@ -493,6 +514,26 @@ class GenodeMkLib(GenodeLib):
             src_file_path = self.sconsify_path(existing_file_paths[0])
             src_files.append((src_file_path, src_file))
         return src_files
+
+
+    def has_any_sources(self):
+        src_c = self.build_env.var_values('SRC_C')
+        if len(src_c) > 0:
+            return True
+
+        src_cc = self.build_env.var_values('SRC_CC')
+        if len(src_cc) > 0:
+            return True
+
+        src_s = self.build_env.var_values('SRC_S')
+        if len(src_s) > 0:
+            return True
+
+        src_bin = self.build_env.var_values('SRC_BIN')
+        if len(src_bin) > 0:
+            return True
+
+        return False
 
 
     def get_c_sources(self):
