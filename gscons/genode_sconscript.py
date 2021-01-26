@@ -218,14 +218,14 @@ def process_builddir(build_dir, env):
         return 'LIB:%s:%s' % (build_dir, lib_name)
     env['fn_lib_alias_name'] = lib_alias_name
 
-    libs = []
+    lib_objs = []
     known_libs = set([])
     def require_libs(dep_libs):
         dep_aliases = []
         for dep in dep_libs:
             if dep not in known_libs:
                 known_libs.add(dep)
-                libs.extend(process_lib(dep, env, build_env))
+                lib_objs.append(process_lib(dep, env, build_env))
             dep_aliases.append(env.Alias(lib_alias_name(dep)))
         return dep_aliases
     env['fn_require_libs'] = require_libs
@@ -236,13 +236,13 @@ def process_builddir(build_dir, env):
         return 'PRG:%s:%s' % (build_dir, prog_name)
     env['fn_prog_alias_name'] = prog_alias_name
 
-    progs = []
+    prog_objs = []
     known_progs = set([])
     def require_progs(dep_progs):
         dep_aliases = []
         for dep in dep_progs:
             if dep not in known_progs:
-                progs.extend(process_progs(dep, env, build_env, known_progs))
+                prog_objs.extend(process_progs(dep, env, build_env, known_progs))
             dep_aliases.append(env.Alias(prog_alias_name(dep)))
         return dep_aliases
     env['fn_require_progs'] = require_progs
@@ -268,8 +268,21 @@ def process_builddir(build_dir, env):
     require_libs(env['LIB_TARGETS'])
     require_progs(env['PROG_TARGETS'])
 
+
+    lib_targets = []
+    for lib_obj in lib_objs:
+        env['fn_debug']("Processing lib target: %s" % (lib_obj.lib_name))
+        lib_targets.extend(lib_obj.process_target())
+
+
+    prog_targets = []
+    for prog_obj in prog_objs:
+        env['fn_debug']("Processing prog target: %s" % (prog_obj.prog_name))
+        prog_targets.extend(prog_obj.process_target())
+
+
     env['fn_debug']('BUILD_TARGETS: %s' % (str(env['BUILD_TARGETS'])))
-    targets = libs + progs
+    targets = lib_targets + prog_targets
     env['BUILD_TARGETS'] += targets
     env['fn_info']('Final build targets: %s' % (' '.join(list(map(str, env['BUILD_TARGETS'])))))
 
@@ -347,20 +360,17 @@ def process_lib(lib_name, env, build_env):
         env['fn_debug']("lib_mk_file: %s" % (lib_mk_file))
         overlay_file_path = check_for_lib_mk_overlay(lib_name, env, lib_mk_file, lib_mk_repo)
         if overlay_file_path is None:
-            lib = genode_lib.GenodeMkLib(lib_name, env,
-                                         lib_mk_file, lib_mk_repo,
-                                         build_env)
-            return lib.process()
+            lib_obj = genode_lib.GenodeMkLib(lib_name, env,
+                                             lib_mk_file, lib_mk_repo,
+                                             build_env)
+            lib_obj.process_load()
         else:
             process_lib_overlay_fun = buildtool_tools.get_process_lib_overlay_fun(overlay_file_path)
 
-            # processload
+            # process load
             lib_obj = process_lib_overlay_fun(lib_name, env, lib_mk_file, lib_mk_repo, build_env)
 
-            # process target
-            lib_target = lib_obj.process_target()
-
-            return lib_target
+        return lib_obj
 
 
 def check_for_lib_mk_overlay(lib_name, env, lib_mk_file, lib_mk_repo):
@@ -458,7 +468,7 @@ def process_progs(prog_name, env, build_env, known_progs):
             continue
         known_progs.add(prog)
 
-        progs.extend(process_prog(prog,
+        progs.append(process_prog(prog,
                                   prog_mk_file, prog_mk_repo,
                                   prog_sc_file, prog_sc_repo,
                                   env, build_env))
@@ -491,20 +501,17 @@ def process_prog(prog_name,
         env['fn_debug']("prog_mk_file: %s" % (prog_mk_file))
         overlay_file_path = check_for_prog_mk_overlay(prog_name, env, prog_mk_file, prog_mk_repo)
         if overlay_file_path is None:
-            prog = genode_prog.GenodeMkProg(prog_name, env,
-                                            prog_mk_file, prog_mk_repo,
-                                            build_env)
-            return prog.process()
+            prog_obj = genode_prog.GenodeMkProg(prog_name, env,
+                                                prog_mk_file, prog_mk_repo,
+                                                build_env)
+            prog_obj.process_load()
         else:
             process_prog_overlay_fun = buildtool_tools.get_process_prog_overlay_fun(overlay_file_path)
 
             # process load
             prog_obj = process_prog_overlay_fun(prog_name, env, prog_mk_file, prog_mk_repo, build_env)
 
-            # process target
-            prog_target = prog_obj.process_target()
-
-            return prog_target
+        return prog_obj
 
 
 def check_for_prog_mk_overlay(prog_name, env, prog_mk_file, prog_mk_repo):
