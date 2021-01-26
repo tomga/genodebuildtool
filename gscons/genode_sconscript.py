@@ -353,11 +353,14 @@ def process_lib(lib_name, env, build_env):
             return lib.process()
         else:
             process_lib_overlay_fun = buildtool_tools.get_process_lib_overlay_fun(overlay_file_path)
-            return process_lib_overlay_fun(lib_name, env, lib_mk_file, lib_mk_repo, build_env)
-            #from genode.repos.base.lib.mk.cxx0 import process_lib_overlay
-            #process_lib_overlay(lib_name, env, lib_mk_file, lib_mk_repo, build_env)
 
-            #process_lib_overlay(lib_name, env, lib_mk_file, lib_mk_repo, build_env)
+            # processload
+            lib_obj = process_lib_overlay_fun(lib_name, env, lib_mk_file, lib_mk_repo, build_env)
+
+            # process target
+            lib_target = lib_obj.process_target()
+
+            return lib_target
 
 
 def check_for_lib_mk_overlay(lib_name, env, lib_mk_file, lib_mk_repo):
@@ -494,7 +497,14 @@ def process_prog(prog_name,
             return prog.process()
         else:
             process_prog_overlay_fun = buildtool_tools.get_process_prog_overlay_fun(overlay_file_path)
-            return process_prog_overlay_fun(prog_name, env, prog_mk_file, prog_mk_repo, build_env)
+
+            # process load
+            prog_obj = process_prog_overlay_fun(prog_name, env, prog_mk_file, prog_mk_repo, build_env)
+
+            # process target
+            prog_target = prog_obj.process_target()
+
+            return prog_target
 
 
 def check_for_prog_mk_overlay(prog_name, env, prog_mk_file, prog_mk_repo):
