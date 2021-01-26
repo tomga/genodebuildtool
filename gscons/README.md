@@ -37,7 +37,7 @@ controlling build rules by using Python to control build.
 
  * possibly some builds can be slower (I did not measure it yet - I
    expect gains on typical work when changing source, compiling and
-   testing but probably)
+   testing)
 
 
 ## Implementation
@@ -53,6 +53,7 @@ Python.
 
 Those two functinalities combined together allow to create build a
 working replacement of make based build system.
+
 
 ## Installation
 
@@ -189,6 +190,7 @@ releases *20.08*, *20.11* and *master* from end of the 2020.
 
 More about testing methodology in [gbuildtool](../gbuildtool).
 
+
 ## TODO
 
 Here is a list of things planned to do in short term:
@@ -199,14 +201,11 @@ Here is a list of things planned to do in short term:
 
  * code refactoring:
    * merge common parts of programs and library processing
-   * paths handling functions cleanup
    * cleanup of existing overlays and possible create some common api
      for them
 
 
 ## Some implementation details
-
-
 
 
 ### Overlays - handling of hard or special cases

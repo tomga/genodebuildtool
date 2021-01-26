@@ -32,15 +32,15 @@ results:
 
     tool/create_builddir arm_v6 BUILD_DIR=build/arm6_s; touch build/arm6_s/SCons; rm build/arm6_s/Makefile
     tool/create_builddir arm_v6 BUILD_DIR=build/arm6_m # makefile based build
-    python ../genodebuildtool/buildtool/buildtool.py --check-builds --board rpi -b arm6_m -b arm6_s -p '*' PROG_EXCLUDES='bbl kernel test/sanitizer test/xml_generator'
+    python ../genodebuildtool/buildtool/buildtool.py --check-builds --board rpi -b arm6_m -b arm6_s -p '*' -np bbl kernel test/sanitizer test/xml_generator
 
     tool/create_builddir arm_v7a BUILD_DIR=build/arm7_s; touch build/arm7_s/SCons; rm build/arm7_s/Makefile
     tool/create_builddir arm_v7a BUILD_DIR=build/arm7_m # makefile based build
-    python ../genodebuildtool/buildtool/buildtool.py --check-builds --kernel hw --board pbxa9 -b arm7_m -b arm7_s -p '*' PROG_EXCLUDES='bbl bootstrap/hw kernel test/sanitizer test/xml_generator'
+    python ../genodebuildtool/buildtool/buildtool.py --check-builds --kernel hw --board pbxa9 -b arm7_m -b arm7_s -p '*' -np bbl bootstrap/hw kernel test/sanitizer test/xml_generator
 
     tool/create_builddir arm_v8a BUILD_DIR=build/arm8_s; touch build/arm8_s/SCons; rm build/arm8_s/Makefile
     tool/create_builddir arm_v8a BUILD_DIR=build/arm8_m # makefile based build
-    python ../genodebuildtool/buildtool/buildtool.py --check-builds --kernel hw --board rpi3 -b arm8_m -b arm8_s -p '*' PROG_EXCLUDES='bbl bootstrap/hw kernel test/sanitizer test/xml_generator'
+    python ../genodebuildtool/buildtool/buildtool.py --check-builds --kernel hw --board rpi3 -b arm8_m -b arm8_s -p '*' -np bbl bootstrap/hw kernel test/sanitizer test/xml_generator
 
 
 ## TODO
