@@ -303,6 +303,11 @@ def do_builds(opts, build_db):
         print("ERROR: logs directory '%s' does not exist" % (opts.logs))
         quit()
 
+    # refuse build if no targets specified
+    if len(opts.lib) + len(opts.prog) == 0:
+        print("ERROR: empty effective targets list")
+        quit()
+
     stamp_dt = datetime.datetime.now()
     tstamp = f"{stamp_dt:%Y%m%d_%H%M%S}"
 
