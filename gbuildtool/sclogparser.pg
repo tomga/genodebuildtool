@@ -2,11 +2,14 @@
 FullLog: SCONS_INIT_START LINE_END
          SimpleCommandList?
          SCONS_INIT_END LINE_END
-         SCONS_BUILD_START LINE_END
-         CmdList
-         SCONS_BUILD_END LINE_END
+         BuildCommandsList?
          SimpleCommandList?
          ;
+
+BuildCommandsList: SCONS_BUILD_START LINE_END
+                   CmdList
+                   SCONS_BUILD_END LINE_END
+                   ;
 
 CmdList: Command | CmdList Command;
 

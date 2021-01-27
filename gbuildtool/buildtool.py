@@ -343,10 +343,14 @@ def do_builds(opts, build_db):
             exit_code = do_sc_build(build, opts, stamp_dt, log_file)
             run_time = None
             build_info = parse_sc_log(log_file)
-            build_info.run_dir = abs_dir # this information is not in scons log
-            buildinfo_storer.store_build_info(build_db, build_info, build, 'scons',
-                                              stamp_dt, arch, log_file, run_time,
-                                              abs_dir, rel_dir)
+            if build_info is None:
+                # print('NOTICE: log did not contain any build commands')
+                pass
+            else:
+                build_info.run_dir = abs_dir # this information is not in scons log
+                buildinfo_storer.store_build_info(build_db, build_info, build, 'scons',
+                                                  stamp_dt, arch, log_file, run_time,
+                                                  abs_dir, rel_dir)
         else:
             print('Unknown build type: %s' % (build))
 

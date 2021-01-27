@@ -12,7 +12,8 @@ def initialize():
     grammar = parglare.Grammar.from_file(file_name)
 
     actions = {
-        "FullLog": [lambda _, nodes: nodes[7] ],
+        "FullLog": [lambda _, nodes: nodes[5] ],
+        "BuildCommandsList": [ lambda _, nodes: nodes[2] ],
         "CmdList": [lambda _, nodes: BuildCommandGroup(None, None, '.',
                                                        [ nodes[0] ]  if nodes[0] is not None else []),
                     lambda _, nodes: nodes[0].append(nodes[1]) if nodes[1] is not None else nodes[0],
