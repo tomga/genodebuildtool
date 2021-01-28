@@ -17,9 +17,59 @@ from gscons import genode_tools as tools
 
 class GenodeProg:
 
-    def __init__(self, prog_name, env, build_helper, prog_base_path):
+    def __init__(self, prog_name, env):
         self.prog_name = prog_name
         self.env = env
+
+        self.disabled_message = None
+
+
+    def is_disabled(self):
+        return self.disabled_message is not None
+
+
+    def process_load(self):
+        raise Exception("GenodeProg::process_load should be overridden")
+
+
+    def process_target(self):
+        ### handle case if target is disabled
+        if self.is_disabled():
+            self.env['fn_info']("Skipping building program '%s' due to %s"
+                                % (self.prog_name, self.disabled_message))
+            return None
+
+        return self.do_process_target()
+
+
+    def do_process_target(self):
+        raise Exception("GenodeProg::do_process_target should be overridden")
+
+
+
+class GenodeDisabledProg(GenodeProg):
+
+    def __init__(self, prog_name, env, disabled_message):
+
+        super().__init__(prog_name, env)
+
+        self.disabled_message = disabled_message
+
+
+    def is_disabled(self):
+        return self.disabled_message is not None
+
+
+    def process_load(self):
+        return
+
+
+
+class GenodeBaseProg(GenodeProg):
+
+    def __init__(self, prog_name, env, build_helper, prog_base_path):
+
+        super().__init__(prog_name, env)
 
         # for use in sc_tgt_path
         self.relative_src_dir = self.env['fn_localize_path'](prog_base_path)
@@ -52,11 +102,6 @@ class GenodeProg:
         return self.sconsify_path(self.norm_tgt_path(target))
 
 
-    def process(self):
-        self.process_load()
-        return self.process_target()
-
-
     def build_c_objects(self):
         src_files = self.get_c_sources()
         return self.build_helper.compile_c_sources(self.env, src_files)
@@ -83,7 +128,7 @@ class GenodeProg:
 
 
 
-class GenodeMkProg(GenodeProg):
+class GenodeMkProg(GenodeBaseProg):
     def __init__(self, prog_name, env,
                  prog_mk_file, prog_mk_repo,
                  build_env):
@@ -143,18 +188,47 @@ class GenodeMkProg(GenodeProg):
 
 
         requires = self.build_env.var_values('REQUIRES')
-        self.missing_specs = [ req for req in requires if req not in specs ]
-        if len(self.missing_specs) > 0:
+        missing_specs = [ req for req in requires if req not in specs ]
+        if len(missing_specs) > 0:
             self.env['fn_debug']("Skipping loading dependencies of program '%s' due to missing specs: %s"
-                                 % (self.prog_name, ' '.join(self.missing_specs)))
+                                 % (self.prog_name, ' '.join(missing_specs)))
+            self.disabled_message = ("missing specs: %s" % ' '.join(missing_specs))
             return
 
+
+        ### direct dependency lib objects
+        direct_dep_lib_objs = []
 
         ### register program dependencies
         orig_dep_libs = self.build_env.var_values('LIBS')
         if len(orig_dep_libs) > 0:
-            dep_lib_targets = self.env['fn_require_libs'](orig_dep_libs)
+            direct_dep_lib_objs += self.env['fn_require_libs'](orig_dep_libs)
         direct_dep_libs = orig_dep_libs + []
+
+
+        ### add dependencies for code coverage
+        coverage_enabled = (self.build_env.var_value('COVERAGE') == 'yes')
+        if coverage_enabled:
+            coverage_dep_libs = ['libgcov']
+            direct_dep_lib_objs += self.env['fn_require_libs'](coverage_dep_libs)
+            direct_dep_libs.extend(coverage_dep_libs)
+
+
+        ### add dependencies for sanitizer
+        sanitizer_enabled = (self.build_env.var_value('SANITIZE_UNDEFINED') == 'yes')
+        if sanitizer_enabled:
+            sanitizer_dep_libs = ['libubsan', 'libsanitizer_common']
+            direct_dep_lib_objs += self.env['fn_require_libs'](sanitizer_dep_libs)
+            direct_dep_libs.extend(sanitizer_dep_libs)
+
+
+        ### check if dependencies are not disabled
+        disabled_dep_libs = [ lib_obj.lib_name for lib_obj in direct_dep_lib_objs if lib_obj.is_disabled() ]
+        if len(disabled_dep_libs) > 0:
+            self.env['fn_debug']("Skipping processing program '%s' due to disabled dependencies: %s"
+                                 % (self.prog_name, ' '.join(disabled_dep_libs)))
+            self.disabled_message = ("disabled dependency libs: %s" % ' '.join(disabled_dep_libs))
+            return
 
 
         ### calculate list of library dependencies (recursively complete)
@@ -232,13 +306,7 @@ class GenodeMkProg(GenodeProg):
 
 
 
-    def process_target(self):
-
-        if len(self.missing_specs) > 0:
-            self.env['fn_info']("Skipping building program '%s' due to missing specs: %s"
-                                % (self.prog_name, ' '.join(self.missing_specs)))
-            return self.env.Alias(self.env['fn_prog_alias_name'](self.prog_name), [])
-
+    def do_process_target(self):
 
         repositories = self.env['REPOSITORIES']
         specs = self.env['SPECS']

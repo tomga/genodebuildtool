@@ -17,9 +17,59 @@ from gscons import genode_tools as tools
 
 class GenodeLib:
 
-    def __init__(self, lib_name, env, build_helper):
+    def __init__(self, lib_name, env):
         self.lib_name = lib_name
         self.env = env
+
+        self.disabled_message = None
+
+
+    def is_disabled(self):
+        return self.disabled_message is not None
+
+
+    def process_load(self):
+        raise Exception("GenodeLib::process_load should be overridden")
+
+
+    def process_target(self):
+        ### handle case if target is disabled
+        if self.is_disabled():
+            self.env['fn_info']("Skipping building library '%s' due to %s"
+                                % (self.lib_name, self.disabled_message))
+            return None
+
+        return self.do_process_target()
+
+
+    def do_process_target(self):
+        raise Exception("GenodeLib::do_process_target should be overridden")
+
+
+
+class GenodeDisabledLib(GenodeLib):
+
+    def __init__(self, lib_name, env, disabled_message):
+
+        super().__init__(lib_name, env)
+
+        self.disabled_message = disabled_message
+
+
+    def is_disabled(self):
+        return self.disabled_message is not None
+
+
+    def process_load(self):
+        return
+
+
+
+class GenodeBaseLib(GenodeLib):
+
+    def __init__(self, lib_name, env, build_helper):
+
+        super().__init__(lib_name, env)
 
         # for use in sc_tgt_path
         self.relative_lib_cache_dir = self.env['fn_localize_path'](self.env['LIB_CACHE_DIR'])
@@ -51,11 +101,6 @@ class GenodeLib:
         return self.sconsify_path(self.norm_tgt_path(target))
 
 
-    def process(self):
-        self.process_load()
-        return self.process_target()
-
-
     def build_c_objects(self):
         src_files = self.get_c_sources()
         return self.build_helper.compile_c_sources(self.env, src_files)
@@ -82,7 +127,7 @@ class GenodeLib:
 
 
 
-class GenodeMkLib(GenodeLib):
+class GenodeMkLib(GenodeBaseLib):
     def __init__(self, lib_name, env,
                  lib_mk_file, lib_mk_repo,
                  build_env):
@@ -148,17 +193,21 @@ class GenodeMkLib(GenodeLib):
 
 
         requires = self.build_env.var_values('REQUIRES')
-        self.missing_specs = [ req for req in requires if req not in specs ]
-        if len(self.missing_specs) > 0:
+        missing_specs = [ req for req in requires if req not in specs ]
+        if len(missing_specs) > 0:
             self.env['fn_debug']("Skipping loading dependencies of library '%s' due to missing specs: %s"
-                                 % (self.lib_name, ' '.join(self.missing_specs)))
+                                 % (self.lib_name, ' '.join(missing_specs)))
+            self.disabled_message = ("missing specs: %s" % ' '.join(missing_specs))
             return
 
+
+        ### direct dependency lib objects
+        direct_dep_lib_objs = []
 
         ### register library dependencies
         self.orig_dep_libs = self.build_env.var_values('LIBS')
         if len(self.orig_dep_libs) > 0:
-            dep_lib_targets = self.env['fn_require_libs'](self.orig_dep_libs)
+            direct_dep_lib_objs += self.env['fn_require_libs'](self.orig_dep_libs)
         direct_dep_libs = self.orig_dep_libs + []
 
 
@@ -170,8 +219,17 @@ class GenodeMkLib(GenodeLib):
         #       compatibility
         shared_lib_defined = self.build_env.check_var('SHARED_LIB')
         if shared_lib_defined:
-            ldso_support_lib_target = self.env['fn_require_libs'](['ldso_so_support'])
+            direct_dep_lib_objs += self.env['fn_require_libs'](['ldso_so_support'])
             direct_dep_libs.append('ldso_so_support')
+
+
+        ### check if dependencies are not disabled
+        disabled_dep_libs = [ lib_obj.lib_name for lib_obj in direct_dep_lib_objs if lib_obj.is_disabled() ]
+        if len(disabled_dep_libs) > 0:
+            self.env['fn_debug']("Skipping processing library '%s' due to disabled dependencies: %s"
+                                 % (self.lib_name, ' '.join(disabled_dep_libs)))
+            self.disabled_message = ("disabled dependency libs: %s" % ' '.join(disabled_dep_libs))
+            return
 
 
         ### calculate list of library dependencies (recursively complete)
@@ -291,13 +349,7 @@ class GenodeMkLib(GenodeLib):
 
 
 
-    def process_target(self):
-
-        if len(self.missing_specs) > 0:
-            self.env['fn_info']("Skipping building library '%s' due to missing specs: %s"
-                                % (self.lib_name, ' '.join(self.missing_specs)))
-            return self.env.Alias(self.env['fn_lib_alias_name'](self.lib_name), [])
-
+    def do_process_target(self):
 
         ### create links to shared library dependencies
         dep_shlib_links = self.build_helper.create_dep_lib_links(

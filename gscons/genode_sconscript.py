@@ -219,15 +219,23 @@ def process_builddir(build_dir, env):
     env['fn_lib_alias_name'] = lib_alias_name
 
     lib_objs = []
-    known_libs = set([])
+    known_libs = {}
     def require_libs(dep_libs):
-        dep_aliases = []
+        dep_lib_objs = []
         for dep in dep_libs:
             if dep not in known_libs:
-                known_libs.add(dep)
-                lib_objs.append(process_lib(dep, env, build_env))
-            dep_aliases.append(env.Alias(lib_alias_name(dep)))
-        return dep_aliases
+                known_libs[dep] = None
+                lib_obj = process_lib(dep, env, build_env)
+                known_libs[dep] = lib_obj
+                lib_objs.append(lib_obj)
+            else:
+                lib_obj = known_libs[dep]
+                if lib_obj is None:
+                    env['fn_error']("Circular library dependency detected when processing '%s'"
+                                    % (dep))
+                    quit()
+            dep_lib_objs.append(lib_obj)
+        return dep_lib_objs
     env['fn_require_libs'] = require_libs
 
 
@@ -272,13 +280,17 @@ def process_builddir(build_dir, env):
     lib_targets = []
     for lib_obj in lib_objs:
         env['fn_debug']("Processing lib target: %s" % (lib_obj.lib_name))
-        lib_targets.extend(lib_obj.process_target())
+        lib_obj_targets = lib_obj.process_target()
+        if lib_obj_targets is not None:
+            lib_targets.extend(lib_obj_targets)
 
 
     prog_targets = []
     for prog_obj in prog_objs:
         env['fn_debug']("Processing prog target: %s" % (prog_obj.prog_name))
-        prog_targets.extend(prog_obj.process_target())
+        prog_obj_targets = prog_obj.process_target()
+        if prog_obj_targets is not None:
+            prog_targets.extend(prog_obj_targets)
 
 
     env['fn_debug']('BUILD_TARGETS: %s' % (str(env['BUILD_TARGETS'])))
@@ -342,19 +354,21 @@ def process_lib(lib_name, env, build_env):
             break
 
     if (lib_mk_file is None and lib_sc_file is None):
-        print("Build rules file not found for library '%s'" % (lib_name))
-        quit()
+        env['fn_debug']("Build rules file not found for library '%s'" % (lib_name))
+        return genode_lib.GenodeDisabledLib(lib_name, env,
+                                            "build rules file not found")
 
     if (lib_mk_file is not None and lib_sc_file is not None):
-        print("Multiple build rules files found for library '%s' ('%s' and '%s')"
-              % (lib_name,
-                 tools.file_path(lib_mk_file, lib_mk_repo),
-                 tools.file_path(lib_sc_file, lib_sc_repo)))
-        quit()
+        env['fn_debug']("Multiple build rules files found for library '%s' ('%s' and '%s')"
+                        % (lib_name,
+                           tools.file_path(lib_mk_file, lib_mk_repo),
+                           tools.file_path(lib_sc_file, lib_sc_repo)))
+        return genode_lib.GenodeDisabledLib(lib_name, env,
+                                            "multiple build rules variant files found")
 
     if lib_sc_file is not None:
-        print("lib_sc_file: %s" % (lib_sc_file))
-        print("TODO: support needed")
+        env['fn_error']("lib_sc_file: %s" % (lib_sc_file))
+        env['fn_error']("TODO: support needed")
         quit()
     else:
         env['fn_debug']("lib_mk_file: %s" % (lib_mk_file))
@@ -399,7 +413,7 @@ def check_for_lib_mk_overlay(lib_name, env, lib_mk_file, lib_mk_repo):
                 if len(ovr_data) < 2:
                     env['fn_error']("Invalid overlay entry in '%s':"
                                     % (env['fn_localize_ovr'](overlay_info_file_path)))
-                    print("     : %s" % (line))
+                    env['fn_error']("     : %s" % (line))
                     quit()
                 overlay_file_name = ovr_data[1]
     if overlay_file_name is None:
