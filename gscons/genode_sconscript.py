@@ -234,6 +234,7 @@ def process_builddir(build_dir, env):
                     env['fn_error']("Circular library dependency detected when processing '%s'"
                                     % (dep))
                     quit()
+                lib_obj.increase_use_count()
             dep_lib_objs.append(lib_obj)
         return dep_lib_objs
     env['fn_require_libs'] = require_libs

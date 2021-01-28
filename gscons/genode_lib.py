@@ -22,10 +22,49 @@ class GenodeLib:
         self.env = env
 
         self.disabled_message = None
+        self.usage_count = 1
+        self.dep_lib_objs = None
 
 
     def is_disabled(self):
-        return self.disabled_message is not None
+        return (self.disabled_message is not None) or (self.usage_count == 0)
+
+
+    def make_disabled(self, message):
+        assert self.usage_count != 0
+        assert self.disabled_message is None
+        self.disabled_message = message
+        self.unlock_deps()
+
+
+    def get_disabled_message(self):
+        if self.disabled_message is not None:
+            return self.disabled_message
+        if self.usage_count == 0:
+            return "usage count is 0"
+        return None
+
+
+    def increase_use_count(self):
+        self.usage_count += 1
+        if (self.usage_count == 1) and not self.is_disabled():
+            self.lock_deps()
+
+
+    def decrease_use_count(self):
+        if (self.usage_count == 1) and not self.is_disabled():
+            self.unlock_deps()
+        self.usage_count -= 1
+
+
+    def lock_deps(self):
+        for lib_obj in self.dep_lib_objs:
+            lib_obj.increase_use_count()
+
+
+    def unlock_deps(self):
+        for lib_obj in self.dep_lib_objs:
+            lib_obj.decrease_use_count()
 
 
     def process_load(self):
@@ -36,7 +75,7 @@ class GenodeLib:
         ### handle case if target is disabled
         if self.is_disabled():
             self.env['fn_info']("Skipping building library '%s' due to %s"
-                                % (self.lib_name, self.disabled_message))
+                                % (self.lib_name, self.get_disabled_message()))
             return None
 
         return self.do_process_target()
@@ -53,11 +92,8 @@ class GenodeDisabledLib(GenodeLib):
 
         super().__init__(lib_name, env)
 
-        self.disabled_message = disabled_message
-
-
-    def is_disabled(self):
-        return self.disabled_message is not None
+        self.dep_lib_objs = []
+        self.make_disabled(disabled_message)
 
 
     def process_load(self):
@@ -197,7 +233,9 @@ class GenodeMkLib(GenodeBaseLib):
         if len(missing_specs) > 0:
             self.env['fn_debug']("Skipping loading dependencies of library '%s' due to missing specs: %s"
                                  % (self.lib_name, ' '.join(missing_specs)))
-            self.disabled_message = ("missing specs: %s" % ' '.join(missing_specs))
+            self.dep_lib_objs = []
+            self.make_disabled("missing specs: %s" % ' '.join(missing_specs))
+
             return
 
 
@@ -223,12 +261,15 @@ class GenodeMkLib(GenodeBaseLib):
             direct_dep_libs.append('ldso_so_support')
 
 
+        self.dep_lib_objs = direct_dep_lib_objs
+
         ### check if dependencies are not disabled
         disabled_dep_libs = [ lib_obj.lib_name for lib_obj in direct_dep_lib_objs if lib_obj.is_disabled() ]
         if len(disabled_dep_libs) > 0:
             self.env['fn_debug']("Skipping processing library '%s' due to disabled dependencies: %s"
                                  % (self.lib_name, ' '.join(disabled_dep_libs)))
-            self.disabled_message = ("disabled dependency libs: %s" % ' '.join(disabled_dep_libs))
+            self.make_disabled("disabled dependency libs: %s" % ' '.join(disabled_dep_libs))
+
             return
 
 
