@@ -96,6 +96,8 @@ VarName: VarIdent |
 
 RValuePartText: TEXT_CHAR |
                 SPECIAL_NOESCAPE |
+                SPECIAL_ESCAPE |
+                DOUBLE_DOLLAR |
 								VarIdentWithOptWs |
 							  VAR_IDENT_SECOND_ALLOWED |
                 COMMA |
@@ -106,6 +108,7 @@ RValuePartText: TEXT_CHAR |
 ParamPartText: TEXT_CHAR |
                SPECIAL_NOESCAPE |
 							 SPECIAL_ESCAPE |
+               DOUBLE_DOLLAR |
 							 VarIdentWithOptWs |
 							 VAR_IDENT_SECOND_ALLOWED |
 							 CMD_RECURSIVE_EXPAND_ASSIGN |
@@ -153,6 +156,7 @@ VarIdentStd: VAR_IDENT_START |
 terminals
 SPECIAL_ESCAPE: /~~./;
 SPECIAL_NOESCAPE: /~[^~]/;
+DOUBLE_DOLLAR: /\$\$/;
 LINE_END: /(#.*)?\n/;
 TEXT_CHAR: /[^~#,:$\\\n\t (){}A-Za-z0-9_@*]/;
 VAR_IDENT_START: /[A-Za-z_]/;
