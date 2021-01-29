@@ -21,7 +21,7 @@ def process_mk_overlay(mk_file, build_env):
                                    env['fn_fmt_out'](map_file, 'CONVERT', map_cmd)))
 
     if ('linux' in build_env.var_values('SPECS')
-        and env['fn_current_target_type']() == 'lib'):
+        and env['fn_current_target_type_code']() == 'LIB'):
 
         lib_so = env['fn_norm_tgt_path']('ld-linux.lib.so')
         exe_cmd = r"""printf "\x02" |

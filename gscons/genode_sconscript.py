@@ -218,18 +218,16 @@ def process_builddir(build_dir, env):
         return 'LIB:%s:%s' % (build_dir, lib_name)
     env['fn_lib_alias_name'] = lib_alias_name
 
-    lib_objs = []
-    known_libs = {}
+    all_lib_objs = {}
     def require_libs(dep_libs):
         dep_lib_objs = []
         for dep in dep_libs:
-            if dep not in known_libs:
-                known_libs[dep] = None
+            if dep not in all_lib_objs:
+                all_lib_objs[dep] = None
                 lib_obj = process_lib(dep, env, build_env)
-                known_libs[dep] = lib_obj
-                lib_objs.append(lib_obj)
+                all_lib_objs[dep] = lib_obj
             else:
-                lib_obj = known_libs[dep]
+                lib_obj = all_lib_objs[dep]
                 if lib_obj is None:
                     env['fn_error']("Circular library dependency detected when processing '%s'"
                                     % (dep))
@@ -245,15 +243,24 @@ def process_builddir(build_dir, env):
         return 'PRG:%s:%s' % (build_dir, prog_name)
     env['fn_prog_alias_name'] = prog_alias_name
 
-    prog_objs = []
-    known_progs = set([])
+    all_prog_objs = {}
     def require_progs(dep_progs):
-        dep_aliases = []
+        dep_prog_objs = {}
         for dep in dep_progs:
-            if dep not in known_progs:
-                prog_objs.extend(process_progs(dep, env, build_env, known_progs))
-            dep_aliases.append(env.Alias(prog_alias_name(dep)))
-        return dep_aliases
+            current_dep_prog_objs = process_progs(dep, env, build_env, all_prog_objs)
+
+            for dep_prog_name, dep_prog_obj in current_dep_prog_objs.items():
+                if dep_prog_name not in dep_prog_objs:
+                    dep_prog_objs[dep_prog_name] = dep_prog_obj
+                else:
+                    # dependencies in one require_progs call require
+                    # program target more than one time using
+                    # different require paths
+                    assert dep_prog_obj.usage_count > 1
+                    dep_prog_obj.decrease_use_count()
+                    env['fn_notice']("Program target %s required more than once in one require call (now by %s)"
+                                     % (dep_prog_name, dep))
+        return list(dep_prog_objs.values())
     env['fn_require_progs'] = require_progs
 
 
@@ -279,7 +286,7 @@ def process_builddir(build_dir, env):
 
 
     lib_targets = []
-    for lib_obj in lib_objs:
+    for lib_obj in all_lib_objs.values():
         env['fn_debug']("Processing lib target: %s" % (lib_obj.lib_name))
         lib_obj_targets = lib_obj.process_target()
         if lib_obj_targets is not None:
@@ -287,7 +294,7 @@ def process_builddir(build_dir, env):
 
 
     prog_targets = []
-    for prog_obj in prog_objs:
+    for prog_obj in all_prog_objs.values():
         env['fn_debug']("Processing prog target: %s" % (prog_obj.prog_name))
         prog_obj_targets = prog_obj.process_target()
         if prog_obj_targets is not None:
@@ -442,7 +449,7 @@ def check_for_lib_mk_overlay(lib_name, env, lib_mk_file, lib_mk_repo):
     return overlay_file_path
 
 
-def process_progs(prog_name, env, build_env, known_progs):
+def process_progs(prog_name, env, build_env, all_prog_objs):
 
     repositories = env['REPOSITORIES']
     env['fn_debug']('process_progs: %s, repositories: %s' % (prog_name, repositories))
@@ -472,21 +479,29 @@ def process_progs(prog_name, env, build_env, known_progs):
 
     env['fn_debug']('process_progs: %s, found descr files: %s' % (prog_name, str(target_descr_files)))
 
-    progs = []
+    progs = {}
     for prog, desc in target_descr_files.items():
         prog_mk_file = desc[1] if desc[0] == 'mk' else None
         prog_mk_repo = desc[2] if desc[0] == 'mk' else None
         prog_sc_file = desc[1] if desc[0] == 'sc' else None
         prog_sc_repo = desc[2] if desc[0] == 'sc' else None
 
-        if prog in known_progs:
-            continue
-        known_progs.add(prog)
+        if prog not in all_prog_objs:
+            all_prog_objs[prog] = None
+            prog_obj = process_prog(prog,
+                                    prog_mk_file, prog_mk_repo,
+                                    prog_sc_file, prog_sc_repo,
+                                    env, build_env)
+            all_prog_objs[prog] = prog_obj
+        else:
+            prog_obj = all_prog_objs[prog]
+            if prog_obj is None:
+                env['fn_error']("Circular program dependency detected when processing '%s'"
+                                % (prog))
+                quit()
+            prog_obj.increase_use_count()
 
-        progs.append(process_prog(prog,
-                                  prog_mk_file, prog_mk_repo,
-                                  prog_sc_file, prog_sc_repo,
-                                  env, build_env))
+        progs[prog] = prog_obj
 
     return progs
 

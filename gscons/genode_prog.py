@@ -11,79 +11,16 @@ from gscons import mkparser
 from gscons import scmkevaluator
 
 from gscons import genode_build_helper
-
+from gscons import genode_target
 from gscons import genode_tools as tools
 
 
-class GenodeProg:
+class GenodeProg(genode_target.GenodeTarget):
 
     def __init__(self, prog_name, env):
+
         self.prog_name = prog_name
-        self.env = env
-
-        self.disabled_message = None
-        self.usage_count = 1
-        self.dep_lib_objs = None
-
-
-    def is_disabled(self):
-        return (self.disabled_message is not None) or (self.usage_count == 0)
-
-
-    def make_disabled(self, message):
-        assert self.usage_count != 0
-        assert self.disabled_message is None
-        self.disabled_message = message
-        self.unlock_deps()
-
-
-    def get_disabled_message(self):
-        if self.disabled_message is not None:
-            return self.disabled_message
-        if self.usage_count == 0:
-            return "usage count is 0"
-        return None
-
-
-    def increase_use_count(self):
-        self.usage_count += 1
-        if (self.usage_count == 1) and not self.is_disabled():
-            self.lock_deps()
-
-
-    def decrease_use_count(self):
-        if (self.usage_count == 1) and not self.is_disabled():
-            self.unlock_deps()
-        self.usage_count -= 1
-
-
-    def lock_deps(self):
-        for lib_obj in self.dep_lib_objs:
-            lib_obj.increase_use_count()
-
-
-    def unlock_deps(self):
-        for lib_obj in self.dep_lib_objs:
-            lib_obj.decrease_use_count()
-
-
-    def process_load(self):
-        raise Exception("GenodeProg::process_load should be overridden")
-
-
-    def process_target(self):
-        ### handle case if target is disabled
-        if self.is_disabled():
-            self.env['fn_info']("Skipping building program '%s' due to %s"
-                                % (self.prog_name, self.get_disabled_message()))
-            return None
-
-        return self.do_process_target()
-
-
-    def do_process_target(self):
-        raise Exception("GenodeProg::do_process_target should be overridden")
-
+        super().__init__(prog_name, 'program', 'PRG', env)
 
 
 
@@ -93,7 +30,7 @@ class GenodeDisabledProg(GenodeProg):
 
         super().__init__(prog_name, env)
 
-        self.dep_lib_objs = []
+        self.dep_target_objs = []
         self.make_disabled(disabled_message)
 
 
@@ -114,9 +51,7 @@ class GenodeBaseProg(GenodeProg):
 
         self.build_helper = build_helper
 
-        self.env['fn_current_target_type'] = lambda : 'prog'
         self.env['fn_current_target_alias'] = lambda : self.env['fn_prog_alias_name'](self.prog_name)
-        self.env['fn_current_target_obj'] = lambda : self
         self.env['fn_norm_tgt_path'] = lambda tgt: self.norm_tgt_path(tgt)
         self.env['fn_sc_tgt_path'] = lambda tgt: self.sc_tgt_path(tgt)
 
@@ -229,7 +164,7 @@ class GenodeMkProg(GenodeBaseProg):
         if len(missing_specs) > 0:
             self.env['fn_debug']("Skipping loading dependencies of program '%s' due to missing specs: %s"
                                  % (self.prog_name, ' '.join(missing_specs)))
-            self.dep_lib_objs = []
+            self.dep_target_objs = []
             self.make_disabled("missing specs: %s" % ' '.join(missing_specs))
 
             return
@@ -261,7 +196,7 @@ class GenodeMkProg(GenodeBaseProg):
             direct_dep_libs.extend(sanitizer_dep_libs)
 
 
-        self.dep_lib_objs = direct_dep_lib_objs
+        self.dep_target_objs = direct_dep_lib_objs
 
         ### check if dependencies are not disabled
         disabled_dep_libs = [ lib_obj.lib_name for lib_obj in direct_dep_lib_objs if lib_obj.is_disabled() ]
