@@ -1,0 +1,9 @@
+@@ -13,7 +13,7 @@ MUEN_COMPONENTS = $(shell sed -n "/^COMPONENTS/s/^.*=\\s*//p" ${MUEN_CONF_FILE})
+ GNAT_PATH       = $(shell sed -n "/^GNAT_PATH/s/^.*=\\s*//p" ${MUEN_CONF_FILE})
+ SPARK_PATH      = $(shell sed -n "/^SPARK_PATH/s/^.*=\\s*//p" ${MUEN_CONF_FILE})
+ 
+-BUILD_ENV       = PATH=$(GNAT_PATH)/bin:$(SPARK_PATH)/bin:$$PATH
++BUILD_ENV       = PATH=$(GNAT_PATH)/bin~~:$(SPARK_PATH)/bin~~:$$PATH
+ BUILD_OPTS      = SYSTEM=$(MUEN_SYSTEM) HARDWARE=$(MUEN_HARDWARE) PLATFORM=$(MUEN_PLATFORM) NO_PROOF=true
+ 
+ ifeq ($(VERBOSE),)
