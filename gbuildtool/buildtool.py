@@ -14,6 +14,7 @@ import sqlite3
 import subprocess
 
 from gbuildtool import buildinfo_storer
+from gbuildtool import builddir_utils
 from gbuildtool import db_utils
 from gbuildtool import schema
 from gbuildtool import mklogparser
@@ -61,7 +62,6 @@ def arguments_parse():
     argparser.add_argument('--db-reset-data', action='store_true')
 
     argparser.add_argument('--builddir-recreate', action='store_true')
-    argparser.add_argument('--builddir-enable-repos', nargs='+', default=[])
 
     argparser.add_argument('--check-builds', action='store_true')
 
@@ -99,7 +99,7 @@ def database_connect(opts):
 
     check_result = schema.db_check_schema(build_db, schema.CURRENT_SCHEMA_VERSION)
     print('Check schema result: %s' % ('OK' if check_result else 'EMPTY'))
-    
+
     if not check_result:
         print("Preparing schema")
         schema.db_prepare_schema(build_db, schema.CURRENT_SCHEMA_VERSION)
@@ -332,6 +332,11 @@ def do_builds(opts, build_db):
 
         if is_mk_build(build):
             print('Make type build: %s' % (build))
+
+            if opts.builddir_recreate:
+                print('Recreating mk build directory: %s (%s)' % (rel_dir, arch))
+                builddir_utils.recreate_mk_builddir(rel_dir, arch)
+
             exit_code = do_mk_build(build, opts, stamp_dt, log_file)
             run_time = None
             build_info = parse_mk_log(log_file)
@@ -340,6 +345,11 @@ def do_builds(opts, build_db):
                                               abs_dir, rel_dir)
         elif is_sc_build(build):
             print('SCons type build: %s' % (build))
+
+            if opts.builddir_recreate:
+                print('Recreating sc build directory: %s (%s)' % (rel_dir, arch))
+                builddir_utils.recreate_sc_builddir(rel_dir, arch)
+
             exit_code = do_sc_build(build, opts, stamp_dt, log_file)
             run_time = None
             build_info = parse_sc_log(log_file)

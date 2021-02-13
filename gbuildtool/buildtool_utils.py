@@ -36,3 +36,12 @@ def command_execute(command):
     exit_code = process.wait()
 
     return exit_code, output
+
+
+def asserted_command_execute(description, command):
+    print('%s: %s' % (description, command))
+    exit_code, output = command_execute(command)
+    if exit_code != 0:
+        print("ERROR: %s failed" % description)
+        quit()
+
