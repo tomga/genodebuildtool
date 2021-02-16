@@ -335,7 +335,7 @@ def mkfun_patsubst(mkenv, args):
     assert len([x for x in args[1][0] if x == '%']) <= 1, "TODO: Support replacements that contain more than one % char"
     assert len([x for x in args[0][0] if x == '%']) == len([x for x in args[1][0] if x == '%']), "Either both patten and replacement % char or both don't"
     if len([x for x in args[0][0] if x == '%']) == 1:
-        pattern = re.compile(args[0][0].replace('%', '(.*)'))
+        pattern = re.compile('^' + args[0][0].replace('%', '(.*)') + '$')
         return [ pattern.sub(args[1][0].replace('%', r'\1'), v) for v in args[2] ]
     else:
         return [ args[1][0] if v == args[0][0] else v for v in args[2] ]
