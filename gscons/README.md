@@ -57,11 +57,9 @@ working replacement of make based build system.
 
 ## Installation
 
-Currently all my development and testing was performed on Ubuntu
-18.04. Probably in the near future I'll upgrade to Ubuntu 20.04 and it
-will be my main platform. Installation requires python3 and a
-possibility to create Python virtual environment in which two packages
-should be installed:
+Currently development and testing is performed on Ubuntu
+20.04. Installation requires python3 and a possibility to create
+Python virtual environment in which two packages should be installed:
  * SCons
  * parlglare - lexer and parser implementation in Python used to parse
    makfiles
@@ -177,16 +175,16 @@ kernels. Below there is a list of tested configurations and builds on
 releases *20.08*, *20.11* and *master* from end of the 2020.
 
     tool/create_builddir linux BUILD_DIR=build/linux_s; touch build/linux_s/SCons; rm build/linux_s/Makefile
-    scons BUILD=build/linux_s KERNEL=linux BOARD=linux '*' PROG_EXCLUDES='app/status_bar drivers/audio drivers/framebuffer/sdl drivers/usb_block test/lx_hybrid_ctors test/sanitizer test/xml_generator'
+    scons BUILD=build/linux_s KERNEL=linux BOARD=linux '*' PROG_EXCLUDES=test/lx_hybrid_ctors
 
     tool/create_builddir arm_v6 BUILD_DIR=build/arm6_s; touch build/arm6_s/SCons; rm build/arm6_s/Makefile
-    scons BUILD=build/arm6_s KERNEL=hw BOARD=rpi '*' PROG_EXCLUDES='bbl kernel test/sanitizer test/xml_generator'
+    scons BUILD=build/arm6_s KERNEL=hw BOARD=rpi '*'
 
     tool/create_builddir arm_v7a BUILD_DIR=build/arm7_s; touch build/arm7_s/SCons; rm build/arm7_s/Makefile
-    scons BUILD=build/arm7_s KERNEL=hw BOARD=pbxa9 '*' PROG_EXCLUDES='bbl bootstrap/hw kernel test/sanitizer test/xml_generator'
+    scons BUILD=build/arm7_s KERNEL=hw BOARD=pbxa9 '*'
 
     tool/create_builddir arm_v8a BUILD_DIR=build/arm8_s; touch build/arm8_s/SCons; rm build/arm8_s/Makefile
-    scons BUILD=build/arm8_s KERNEL=hw BOARD=pbxa9 '*' PROG_EXCLUDES='bbl bootstrap/hw kernel test/sanitizer test/xml_generator'
+    scons BUILD=build/arm8_s KERNEL=hw BOARD=pbxa9 '*'
 
 More about testing methodology in [gbuildtool](../gbuildtool).
 
@@ -228,10 +226,6 @@ There are different reasons for providing overlays:
 
  * makefiles can contain syntax that my make parser is not capable to
    process, e.g.:
-
-    * tab characters at beginning of line that do not indicate make
-      rules (example patch provided for
-      `repos/base/src/core/version.inc`)
 
     * some characters (especially braces and dollar) inside of
       expressions - for such cases it is possible to escape such
