@@ -119,6 +119,8 @@ def arg_clean_compiler(args_tokenized, run_dir, abs_dir, rel_dir, options):
     opts = arg_parse_compiler(args_tokenized[1:])
     #arguments_print(opts)
 
+    args_tokenized[0] = path_clean(args_tokenized[0], run_dir, abs_dir, rel_dir, False)
+
     res = [args_tokenized[0]]
 
     sources = [ '%s' % (path_clean(v, run_dir, abs_dir, rel_dir, True))
@@ -581,6 +583,10 @@ def arg_tokenize(args_string):
     if libs_var_match:
         libs_var_value = libs_var_match.group(1)
         args_tokenized = [ t.replace('$libs', libs_var_value) for t in args_tokenized[1:]]
+
+    # handle ccache
+    if args_tokenized[0] == 'ccache':
+        args_tokenized = args_tokenized[1:]
 
     return args_tokenized
 

@@ -32,6 +32,7 @@ def commands_clean(cmd_lines, run_dir, abs_dir, rel_dir):
             orig == 'true' or
             orig.startswith('compilation terminated.') or
             orig.split()[0].endswith(':') or
+            orig.startswith('ln -sf `which ccache') or
             False):
             continue
 
