@@ -186,17 +186,21 @@ def process_builddir(build_dir, env):
 
     ### handle global.mk
     #
-    # NOTE: it seems it is included only for CUSTOM_CXX_LIB and
-    #       including it here is too early for evaluating some
-    #       variables like e.g. CC_OPT_NOSTDINC as their value depend
-    #       on values included in library specifi files so currently
-    #       evaluating to temporary env and later it can be considered
-    #       to do something more specific
+    # NOTE: it is currently included only for CUSTOM_CXX_LIB and
+    #       ccache handling and including it here is too early for
+    #       evaluating some variables like e.g. CC_OPT_NOSTDINC as
+    #       their value depend on values included in library specific
+    #       files so currently evaluating to temporary env and later
+    #       it can be considered to do something more specific
     temp_build_env = mkevaluator.MkEnv(mkcache, parent_env=build_env)
     base_global_mk = mkcache.get_parsed_mk('%s/mk/global.mk' % (base_dir))
     base_global_mk.process(temp_build_env)
     #pprint.pprint(temp_build_env.debug_struct('pretty'), width=200)
     ## temp_build_env.var_set('CUSTOM_CXX_LIB', '/usr/local/genode/tool/19.05/bin/genode-x86-g++')
+
+
+    if temp_build_env.var_value('CCACHE') == 'yes':
+        setup_ccache(env, temp_build_env, build_env)
 
 
     ### handle LIBGCC_INC_DIR
@@ -597,3 +601,34 @@ def check_for_prog_mk_overlay(prog_name, env, prog_mk_file, prog_mk_repo):
 
     return overlay_file_path
 
+
+def setup_ccache(env, conf_build_env, base_build_env):
+
+    tool_var_path = '%s/var/tool/ccache' % env['BUILD']
+
+    cc = conf_build_env.var_value('CUSTOM_CC')
+    cc_dir, cc_name = os.path.split(cc)
+    cc_ccache = os.path.join(tool_var_path, cc_name)
+
+    cxx = conf_build_env.var_value('CUSTOM_CXX')
+    cxx_dir, cxx_name = os.path.split(cxx)
+    cxx_ccache = os.path.join(tool_var_path, cxx_name)
+
+    if cc_dir != cxx_dir:
+        env['fn_error']("ccache enabled but the compilers %s and %s "
+                        "reside in different directories" % (cxx, cc))
+        quit()
+
+    base_build_env.var_set('CUSTOM_CC', cc_ccache)
+    base_build_env.var_set('CUSTOM_CXX', cxx_ccache)
+
+    env['ENV']['CCACHE_PATH'] = cxx_dir
+    cmd = "mkdir -p %s" % (tool_var_path)
+    results = subprocess.run(cmd, stdout=subprocess.PIPE,
+                             shell=True, universal_newlines=True, check=True)
+    cmd = "ln -sf `which ccache` %s" % (cc_ccache)
+    results = subprocess.run(cmd, stdout=subprocess.PIPE,
+                             shell=True, universal_newlines=True, check=True)
+    cmd = "ln -sf `which ccache` %s" % (cxx_ccache)
+    results = subprocess.run(cmd, stdout=subprocess.PIPE,
+                             shell=True, universal_newlines=True, check=True)
