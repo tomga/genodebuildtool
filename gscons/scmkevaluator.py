@@ -16,6 +16,10 @@ class ScMkEnv(mkevaluator.MkEnv):
         super().__init__(mk_cache, parent_env)
         self.scons_env = scons_env
 
+    def log(self, level, message):
+        assert level in ['error', 'warning', 'notice', 'info', 'debug', 'trace']
+        self.scons_env['fn_' + level](message)
+
 
 class ScMkOverlay(mkevaluator.MkCommand):
     def __init__(self, overlay_file_path, mk_file_path, overlay_fun):

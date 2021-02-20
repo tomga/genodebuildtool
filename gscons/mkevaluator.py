@@ -89,6 +89,12 @@ class MkEnv:
             return self.parent_env.check_var(varname)
         return False
 
+
+    def log(self, level, message):
+        assert level in ['error', 'warning', 'notice', 'info', 'debug', 'trace']
+        print("[%s] %s" % (level, message))
+
+
     def debug_struct(self, mode):
         retval = {}
         if self.parent_env is not None:
@@ -623,8 +629,8 @@ class MkScript:
             try:
                 cmd.process(mkenv)
             except Exception as e:
-                print("Error processing command:")
-                print("%s" % (str(cmd.debug_struct())))
+                mkenv.log("error", "Error processing command:")
+                mkenv.log("error", "%s" % (str(cmd.debug_struct())))
                 traceback.print_exception(None, e, e.__traceback__)
                 raise e
 
@@ -769,7 +775,7 @@ class MkCmdVpath(MkCommand):
     def process(self, mkenv):
         rval_path_value = copy.deepcopy(self.rval_path)
         rval_path_value = rval_path_value.value(mkenv)
-        #print("MkCmdVpath: vpath %s %s" % (str(self.rval_pattern), rval_path_value))
+        mkenv.log("debug", "MkCmdVpath: vpath %s %s" % (str(self.rval_pattern), rval_path_value))
         mkenv.append_vpath(self.rval_pattern, rval_path_value)
 
 
@@ -869,7 +875,7 @@ class MkCmdExpr(MkCommand):
     def debug_struct(self):
         return [ self.expr.debug_struct() ]
 
-    
+
 class MkCmdRuleHeader(MkCommand):
     def __init__(self, targets, sources):
         self.targets = targets
