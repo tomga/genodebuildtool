@@ -55,6 +55,7 @@ def arg_parse_compiler(args_array):
     argparser.add_argument('-nostdinc', action='store_true')
     argparser.add_argument('-nostdlib', action='store_true')
     argparser.add_argument('-static', action='store_true')
+    argparser.add_argument('-shared', action='store_true')
     argparser.add_argument('-no-pie', action='store_true')
     argparser.add_argument('-o', dest='TARGETS', action='append', default=[], nargs=1)
     argparser.add_argument('-f', action='append', default=[])
@@ -125,8 +126,13 @@ def arg_clean_compiler(args_tokenized, run_dir, abs_dir, rel_dir, options):
 
     sources = [ '%s' % (path_clean(v, run_dir, abs_dir, rel_dir, True))
                 for v in nodups(opts.SOURCES[0]) ]
-    targets = [ '%s' % (path_clean(v, run_dir, abs_dir, rel_dir, True))
-                for v in nodups(opts.TARGETS[0]) ]
+    if len(opts.TARGETS) > 0:
+        targets = [ '%s' % (path_clean(v, run_dir, abs_dir, rel_dir, True))
+                    for v in nodups(opts.TARGETS[0]) ]
+    else:
+        targets = [ '%s' % (path_clean(os.path.join(run_dir, os.path.splitext(os.path.basename(v))[0] + '.o'),
+                                       run_dir, abs_dir, rel_dir, True))
+                    for v in nodups(opts.SOURCES[0]) ]
 
     if opts.c: res += ['-c']
     if opts.g: res += ['-g']
@@ -137,6 +143,7 @@ def arg_clean_compiler(args_tokenized, run_dir, abs_dir, rel_dir, options):
     if opts.nostdinc: res += ['-nostdinc']
     if opts.nostdlib: res += ['-nostdlib']
     if opts.static: res += ['-static']
+    if opts.static: res += ['-shared']
     if opts.no_pie: res += ['-no-pie']
     res += [ '-f%s' % (v) for v in nodups(opts.f) ]
     res += [ '-W%s' % (v if v != '~' else '') for v in sorted(nodups(opts.W)) ]
@@ -595,6 +602,10 @@ def arg_clean(args_string, run_dir, abs_dir, rel_dir, options):
     try:
         return arg_clean_systemexit(args_string, run_dir, abs_dir, rel_dir, options)
     except SystemExit as e:
+        print("Error during processing arguments of:")
+        print("%s" % (args_string))
+        raise e
+    except Exception as e:
         print("Error during processing arguments of:")
         print("%s" % (args_string))
         raise e
