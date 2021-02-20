@@ -6,6 +6,10 @@ def mkfun_select_from_repositories(mkenv, args):
     #print('repositories: %s' % (str(repositories)))
     file_pattern = args[0][0]
     #print('arg: %s' % (str(file_pattern)))
+    if file_pattern.startswith('/'):
+        mkenv.log('warning', 'select_from_repositories pattern starting with /: %s'
+                  % (str(file_pattern)))
+        file_pattern = file_pattern[1:]
     for repository in repositories:
         checked_file = os.path.join(repository, file_pattern)
         if os.path.exists(checked_file):
