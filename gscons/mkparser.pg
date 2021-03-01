@@ -157,7 +157,7 @@ terminals
 SPECIAL_ESCAPE: /~~./;
 SPECIAL_NOESCAPE: /~[^~]/;
 DOUBLE_DOLLAR: /\$\$/;
-LINE_END: /(#.*)?\n/;
+LINE_END: /[ ]*(#.*)?\n[ ]*/;
 TEXT_CHAR: /[^~#,:$\\\n\t (){}A-Za-z0-9_@*]/;
 VAR_IDENT_START: /[A-Za-z_]/;
 VAR_IDENT_SECOND_ALLOWED: /[0-9]/;
