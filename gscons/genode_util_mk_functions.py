@@ -2,10 +2,10 @@
 import os
 
 def mkfun_select_from_repositories(mkenv, args):
-    repositories = mkenv.get_var('REPOSITORIES').get_value().values_list(mkenv)
-    #print('repositories: %s' % (str(repositories)))
+    repositories = mkenv.var_values('REPOSITORIES')
     file_pattern = args[0][0]
-    #print('arg: %s' % (str(file_pattern)))
+    #mkenv.log('debug', 'mkfun_select_from_repositories arg: %s' % (str(file_pattern)))
+    #mkenv.log('debug', 'repositories: %s' % (str(repositories)))
     if file_pattern.startswith('/'):
         mkenv.log('warning', 'select_from_repositories pattern starting with /: %s'
                   % (str(file_pattern)))
@@ -13,9 +13,9 @@ def mkfun_select_from_repositories(mkenv, args):
     for repository in repositories:
         checked_file = os.path.join(repository, file_pattern)
         if os.path.exists(checked_file):
-            #print('return: %s' % (str([checked_file])))
+            #mkenv.log('debug', 'return: %s' % (str([checked_file])))
             return [checked_file]
-    #print('return: %s' % (str([])))
+    #mkenv.log('debug', 'return: %s' % (str([])))
     return []
 
 
