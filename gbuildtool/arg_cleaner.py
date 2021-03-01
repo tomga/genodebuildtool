@@ -61,6 +61,7 @@ def arg_parse_compiler(args_array):
     argparser.add_argument('-f', action='append', default=[])
     argparser.add_argument('-W', action='append', default=[])
     argparser.add_argument('-D', action='append', default=[])
+    argparser.add_argument('-U', action='append', default=[])
     argparser.add_argument('-I', action='append', default=[])
     argparser.add_argument('-L', action='append', default=[])
     argparser.add_argument('-l', action='append', default=[])
@@ -148,6 +149,7 @@ def arg_clean_compiler(args_tokenized, run_dir, abs_dir, rel_dir, options):
     res += [ '-f%s' % (v) for v in nodups(opts.f) ]
     res += [ '-W%s' % (v if v != '~' else '') for v in sorted(nodups(opts.W)) ]
     res += [ '-D%s' % (v) for v in sorted(nodups(opts.D)) ]
+    res += [ '-U%s' % (v) for v in sorted(nodups(opts.U)) ]
     inc = [ '-I%s' % (path_clean(v, run_dir, abs_dir, rel_dir, True))
              for v in nodups(opts.I) ]
     if 'noincsort' not in options:
