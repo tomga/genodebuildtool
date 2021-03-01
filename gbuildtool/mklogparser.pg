@@ -1,16 +1,16 @@
 
-CmdList: Command | CmdList Command;
+CmdList: Command | CmdList Command | EMPTY;
 
-Command: EnteringDir LibraryTitle CmdList LeavingDir |
-         EnteringDir ProgramTitle CmdList LeavingDir |
-         EnteringDir CmdList LeavingDir |
-         EnteringDir LeavingDir |
+TitledCmdList: LibraryTitle CmdList |
+               ProgramTitle CmdList;
+
+Command: EnteringDir TitledCmdList LeavingDir |
+         EnteringDir CmdList TitledCmdList? LeavingDir |
          BuildCommandTitle SimpleCommandList |
          SimpleCommandList |
          SkipTarget |
          LibDescrMissing |
-         LINE_END |
-         EMPTY;
+         LINE_END;
 
 SimpleCommandList: SimpleCommand | SimpleCommandList SimpleCommand;
 

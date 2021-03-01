@@ -43,6 +43,20 @@ class BuildCommandGroup(BuildCommand):
         self.cmd_list.append(cmd)
         return self
 
+    def prepend_list(self, cmd_group):
+        self.cmd_list = cmd_group.cmd_list + self.cmd_list
+        return self
+
+    def set_target(self, tgt_type, tgt_descr):
+        self.tgt_type = tgt_type
+        self.tgt_descr = tgt_descr
+        return self
+
+    def set_run_dir(self, run_dir):
+        assert self.run_dir == '.'
+        self.run_dir = run_dir
+        return self
+
     def relabel(self, tgt_type, tgt_descr, run_dir):
         assert self.run_dir == '.'
         self.tgt_type = tgt_type
