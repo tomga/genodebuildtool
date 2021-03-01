@@ -95,6 +95,18 @@ class MkEnv:
         print("[%s] %s" % (level, message))
 
 
+    def get_cwd(self):
+        return os.getcwd()
+
+
+    def process_shell_overrides(self, args):
+        return None
+
+
+    def preprocess_shell_command(self, cmd):
+        return cmd
+
+
     def debug_struct(self, mode):
         retval = {}
         if self.parent_env is not None:
@@ -279,12 +291,23 @@ functionsDict['notdir'] = mkfun_notdir
 def mkfun_shell(mkenv, args):
     assert len(args) == 1, "TODO: support shell commands with comma"
     #print("SHELL_start: %s" % (' '.join(args[0])))
-    results = subprocess.run(' '.join(args[0]),
+
+    override_output = mkenv.process_shell_overrides(args[0])
+    if override_output is not None:
+        return override_output.split()
+
+    cwd = mkenv.get_cwd()
+    if not os.path.isdir(cwd):
+        print("SHELL_cwd: %s" % (cwd))
+    cmd = mkenv.preprocess_shell_command(' '.join(args[0]))
+    results = subprocess.run(cmd,
+                             cwd=cwd,
                              stdout=subprocess.PIPE,
                              shell=True, universal_newlines=True, check=True,
                              executable='/bin/bash')
     output = results.stdout
-    #print("SHELL_end: %s" % (output))
+    #if args[0][0] == 'pwd':
+    #    print("SHELL_end: %s" % (str(output.split())))
     return output.split()
 functionsDict['shell'] = mkfun_shell
 

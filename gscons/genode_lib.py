@@ -57,6 +57,10 @@ class GenodeBaseLib(GenodeLib):
         self.post_process_actions = []
         self.env['fn_add_post_process_action'] = lambda action: self.post_process_actions.append(action)
 
+        target_cwd = self.norm_tgt_path(None)
+        if not os.path.isdir(target_cwd):
+            os.makedirs(target_cwd)
+
 
     def sconsify_path(self, path):
         return self.env['fn_sconsify_path'](path)

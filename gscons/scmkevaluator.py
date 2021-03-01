@@ -1,5 +1,6 @@
 
 import os
+import re
 import subprocess
 
 from gscons import mkevaluator
@@ -16,9 +17,39 @@ class ScMkEnv(mkevaluator.MkEnv):
         super().__init__(mk_cache, parent_env)
         self.scons_env = scons_env
 
+
     def log(self, level, message):
         assert level in ['error', 'warning', 'notice', 'info', 'debug', 'trace']
         self.scons_env['fn_' + level](message)
+
+
+    def get_cwd(self):
+        return os.path.abspath(self.scons_env['fn_norm_tgt_path'](None))
+
+
+    def process_shell_overrides(self, args):
+        ## if args[0] == 'pwd':
+        ##     result = self.get_cwd()
+        ##     self.log("debug", "process_shell_overrides: %s -> %s" % (str(args), result))
+        ##     return result
+
+        return None
+
+
+    def preprocess_shell_command(self, cmd):
+
+        relative_build_dir = self.scons_env['BUILD']
+        genode_dir = self.scons_env['GENODE_DIR']
+
+        pattern = r'([^/])%s' % (relative_build_dir)
+        replacement = r'\1%s/%s' % (genode_dir, relative_build_dir)
+        result = re.sub(pattern, replacement, ' ' + cmd)[1:]
+
+        if result != cmd:
+            self.log("debug", "preprocess_shell_command: %s" % cmd)
+            self.log("debug", "                        : %s" % result)
+
+        return result
 
 
 class ScMkOverlay(mkevaluator.MkCommand):

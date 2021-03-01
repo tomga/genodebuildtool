@@ -54,10 +54,20 @@ def process_builddir(build_dir, env):
     build_conf.process(build_env)
     #pprint.pprint(build_env.debug_struct('pretty'), width=200)
 
-    build_env.var_set('BUILD_BASE_DIR', '%s' % (build_dir))
-    build_env.var_set('DEBUG_DIR', '%s/debug' % (build_dir))
-    build_env.var_set('INSTALL_DIR', '%s/bin' % (build_dir))
-    build_env.var_set('LIB_CACHE_DIR', '%s/var/libcache' % (build_dir))
+    abs_build_dir = os.path.abspath(build_dir)
+
+    build_env.var_set('BUILD_BASE_DIR', '%s' % (abs_build_dir))
+
+    env['DEBUG_DIR'] = '%s/debug' % (build_dir)
+    build_env.var_set('DEBUG_DIR', '%s/debug' % (abs_build_dir))
+
+    env['INSTALL_DIR'] = '%s/bin' % (build_dir)
+    build_env.var_set('INSTALL_DIR', '%s/bin' % (abs_build_dir))
+
+    env['LIB_CACHE_DIR'] = '%s/var/libcache' % (build_dir)
+    build_env.var_set('LIB_CACHE_DIR', '%s/var/libcache' % (abs_build_dir))
+
+    print("LIB_CACHE_DIR: %s" % (build_env.var_value('LIB_CACHE_DIR')))
 
     genode_dir = build_env.var_value('GENODE_DIR')
     env['GENODE_DIR'] = genode_dir
@@ -126,15 +136,6 @@ def process_builddir(build_dir, env):
 
     base_dir = build_env.var_value('BASE_DIR')
     env['BASE_DIR'] = base_dir
-
-    install_dir = build_env.var_value('INSTALL_DIR')
-    env['INSTALL_DIR'] = install_dir
-
-    debug_dir = build_env.var_value('DEBUG_DIR')
-    env['DEBUG_DIR'] = debug_dir
-
-    lib_cache_dir = build_env.var_value('LIB_CACHE_DIR')
-    env['LIB_CACHE_DIR'] = lib_cache_dir
 
     env['CHECK_ABI'] = env['fn_localize_path']('%s/../../tool/check_abi' % (base_dir))
 
