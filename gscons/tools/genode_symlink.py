@@ -40,7 +40,8 @@ def symlink_print(target, source, env, executor=None):
         lnk = target[0]
         src = os.path.relpath(source[0].abspath, target[0].abspath)
         # simulate ln to be conformant with make output
-        retval += '\nln -sf %s %s' % (src, lnk)
+        flags = '-sf' if 'SYMLINK_PRINT_FLAGS' not in env else env['SYMLINK_PRINT_FLAGS']
+        retval += '\nln %s %s %s' % (flags, src, lnk)
     return retval
 
 def symlink_emitter(target, source, env):
