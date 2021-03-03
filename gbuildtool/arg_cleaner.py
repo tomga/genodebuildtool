@@ -63,6 +63,7 @@ def arg_parse_compiler(args_array):
     argparser.add_argument('-D', action='append', default=[])
     argparser.add_argument('-U', action='append', default=[])
     argparser.add_argument('-I', action='append', default=[])
+    argparser.add_argument('-include', action='append', default=[])
     argparser.add_argument('-L', action='append', default=[])
     argparser.add_argument('-l', action='append', default=[])
     argparser.add_argument('-MMD', action='store_true')
@@ -155,6 +156,8 @@ def arg_clean_compiler(args_tokenized, run_dir, abs_dir, rel_dir, options):
     if 'noincsort' not in options:
         inc = sorted(inc)
     res += inc
+    res += [ '-include %s' % (path_clean(v, run_dir, abs_dir, rel_dir, False))
+             for v in opts.include ]
     res += [ '-L%s' % (path_clean(v, run_dir, abs_dir, rel_dir, False))
              for v in nodups(opts.L) ]
     res += [ '-l%s' % (v) for v in nodups(opts.l) ]
