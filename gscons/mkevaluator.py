@@ -285,7 +285,7 @@ def mkfun_lastword(mkenv, args):
 functionsDict['lastword'] = mkfun_lastword
 
 def mkfun_notdir(mkenv, args):
-    return [x for x in args[0] if not os.path.isdir(x)]
+    return [os.path.basename(x) for x in args[0]]
 functionsDict['notdir'] = mkfun_notdir
 
 def mkfun_shell(mkenv, args):
