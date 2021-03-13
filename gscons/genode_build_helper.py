@@ -87,9 +87,13 @@ class GenodeBuildHelper:
     def generic_compile(self, env, src_files, flags_var):
         objs = []
 
-        target_opts_fun = lambda tgt: None
+        target_get_opts_fun = lambda tgt: None
         if 'fn_get_target_opts' in env:
-            target_opts_fun = env['fn_get_target_opts']
+            target_get_opts_fun = env['fn_get_target_opts']
+
+        target_modify_opts_fun = None
+        if 'fn_modify_target_opts' in env:
+            target_modify_opts_fun = env['fn_modify_target_opts']
 
         for src_file_info in src_files:
             if isinstance(src_file_info, tuple):
@@ -102,15 +106,28 @@ class GenodeBuildHelper:
             tgt_file = '%s.o' % (tgt_basename)
             if tgt_subdir != '':
                 tgt_file = os.path.join(tgt_subdir, tgt_file)
-            src_file = src_file_path + '/' + src_file
-            env['fn_debug']("src_file: %s, tgt_file: %s" % (src_file, tgt_file))
+            full_src_file = src_file_path + '/' + src_file
+            env['fn_debug']("full_src_file: %s, tgt_file: %s" % (full_src_file, tgt_file))
 
             kwargs = {}
-            target_opts = target_opts_fun(tgt_basename)
-            if target_opts is not None:
-                kwargs[flags_var] = target_opts + env[flags_var]
+            opts = env[flags_var]
+            opts_changed = False
 
-            obj = env.SharedObject(source = src_file,
+            target_opts = target_get_opts_fun(tgt_basename)
+            if target_opts is not None:
+                opts_changed = True
+                opts = target_opts + opts
+
+            if target_modify_opts_fun is not None:
+                modified_opts = target_modify_opts_fun(src_file, opts)
+                if modified_opts is not None:
+                    opts_changed = True
+                    opts = modified_opts
+
+            if opts_changed:
+                kwargs[flags_var] = opts
+
+            obj = env.SharedObject(source = full_src_file,
                                    target = env['fn_sc_tgt_path'](tgt_file),
                                    **kwargs)
             objs += obj

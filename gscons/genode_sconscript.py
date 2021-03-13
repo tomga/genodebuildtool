@@ -116,6 +116,23 @@ def process_builddir(build_dir, env):
     env['fn_localize_ovr'] = lambda path: overlay_localization_pattern.sub('<overlays>/', path)
 
 
+    # function that registers function for a source that allows to
+    # modify compilation flags; it is used to handle cases where in mk
+    # build flags are modified by setting variables in a rule like in:
+    #   net/ethernet/eth.o: SETUP_SUFFIX="_eth"
+    def register_modify_target_opts(env, src_file, modify_fun):
+        if 'reg_modify_target_opts' not in env:
+            reg = {}
+            env['reg_modify_target_opts'] = reg
+            def target_modify_opts_fun(src_filename, opts):
+                if src_filename not in reg:
+                    return None # no modifications
+                env['fn_debug']("Found modify_target_opts for %s" % (src_filename))
+                return reg[src_filename](opts)
+            env['fn_modify_target_opts'] = target_modify_opts_fun
+        env['reg_modify_target_opts'][src_file] = modify_fun
+    env['fn_register_modify_target_opts'] = register_modify_target_opts
+
     lib_info_dict = {}
     def register_lib_info(lib_name, lib_info):
         env['fn_debug']('register_lib_info: %s, %s' % (lib_name, str(lib_info)))
