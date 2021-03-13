@@ -9,14 +9,13 @@ def commands_clean(cmd_lines, run_dir, abs_dir, rel_dir):
 
         orig = unstripped.strip()
 
-        # specially accpepted
+        # specially accepted
         special_accepted = False
         if orig.startswith('sed '):
             special_accepted = True
 
         # unstripped negative checks
-        if (not special_accepted and
-            (unstripped.startswith(' ') and (unstripped.startswith('     ') or not unstripped.startswith('    ')))):
+        if (not special_accepted and unstripped.startswith(' ')):
             continue
 
         # stripped negative checks
@@ -32,6 +31,8 @@ def commands_clean(cmd_lines, run_dir, abs_dir, rel_dir):
             orig == 'true' or
             orig.startswith('compilation terminated.') or
             orig.split()[0].endswith(':') or
+            '->' in orig or
+            '~~~' in orig or
             orig.startswith('ln -sf `which ccache') or
             False):
             continue
