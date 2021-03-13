@@ -6,7 +6,7 @@ import os
 import re
 import sys
 
-buildtool_dir = os.path.dirname(os.path.abspath(__file__))
+buildtool_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 overlay_localization_pattern = re.compile('^%s/' % (buildtool_dir))
 ignored_overlay_extension_pattern = re.compile(r'^\.(sc|[0-9]+)$')
 
