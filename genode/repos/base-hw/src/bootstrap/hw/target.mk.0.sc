@@ -60,7 +60,7 @@ class GenodeBaseHwMkProg(genode_prog.GenodeMkProg):
         ## is bootstrap/hw so disabling here too
         # prog_targets.append(dbg_prog_tgt)
 
-        return env.Alias(env['fn_current_target_alias'](), prog_targets)
+        return env.Alias(env['ent_current_target_alias'], prog_targets)
 
 
 def process_prog_overlay(prog_name, env, prog_mk_file, prog_mk_repo, build_env):

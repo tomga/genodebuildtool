@@ -25,7 +25,7 @@ class GenodeIwlFirmwareMkLib(genode_lib.GenodeMkLib):
                            source=os.path.join(fw_dir, i))
             targets.append(tgt)
 
-        return env.Alias(env['fn_current_target_alias'](), targets)
+        return env.Alias(env['ent_current_target_alias'], targets)
 
 
 def process_lib_overlay(lib_name, env, lib_mk_file, lib_mk_repo, build_env):

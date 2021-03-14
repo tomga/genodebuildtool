@@ -66,4 +66,4 @@ def create_targets(mk_file, build_env):
                                                                              core_obj_basename)))
     prog_targets.append(dbg_prog_tgt)
 
-    env.Alias(env['fn_current_target_alias'](), prog_targets)
+    env.Alias(env['ent_current_target_alias'], prog_targets)

@@ -20,7 +20,7 @@ def process_mk_overlay(mk_file, build_env):
 def create_targets(mk_file, build_env):
 
     env = build_env.scons_env
-    tgt = env['fn_current_target_obj']()
+    tgt = env['ent_current_target_obj']
 
     env['CC_MARCH'] = build_env.var_value('CC_MARCH')
     env['CXX_OPT'] = build_env.var_value('CXX_OPT')
@@ -64,4 +64,4 @@ def create_targets(mk_file, build_env):
     prog_targets.append(policy_inst)
 
 
-    env.Alias(env['fn_current_target_alias'](), prog_targets)
+    env.Alias(env['ent_current_target_alias'], prog_targets)

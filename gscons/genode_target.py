@@ -14,9 +14,9 @@ class GenodeTarget:
         self.usage_count = 1
         self.dep_target_objs = None
 
-        self.env['fn_current_target_obj'] = lambda : self
-        self.env['fn_current_target_type'] = lambda : target_type
-        self.env['fn_current_target_type_code'] = lambda : target_type_code
+        self.env['ent_current_target_obj'] = self
+        self.env['ent_current_target_type'] = target_type
+        self.env['ent_current_target_type_code'] = target_type_code
 
 
     def is_disabled(self):

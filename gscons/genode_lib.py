@@ -50,7 +50,7 @@ class GenodeBaseLib(GenodeLib):
 
         self.build_helper = build_helper
 
-        self.env['fn_current_target_alias'] = lambda : self.env['fn_lib_alias_name'](self.lib_name)
+        self.env['ent_current_target_alias'] = self.env['fn_lib_alias_name'](self.lib_name)
         self.env['fn_norm_tgt_path'] = lambda tgt: self.norm_tgt_path(tgt)
         self.env['fn_sc_tgt_path'] = lambda tgt: self.sc_tgt_path(tgt)
 

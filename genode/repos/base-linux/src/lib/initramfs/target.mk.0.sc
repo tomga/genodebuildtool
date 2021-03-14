@@ -39,7 +39,7 @@ class GenodeInitramfsMkProg(genode_prog.GenodeMkProg):
                                                                                        initramfs_basename)))
         prog_targets.append(inst_initramfs_tgt)
 
-        return env.Alias(env['fn_current_target_alias'](), prog_targets)
+        return env.Alias(env['ent_current_target_alias'], prog_targets)
 
 
 def process_prog_overlay(prog_name, env, prog_mk_file, prog_mk_repo, build_env):

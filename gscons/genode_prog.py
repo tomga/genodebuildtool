@@ -51,7 +51,7 @@ class GenodeBaseProg(GenodeProg):
 
         self.build_helper = build_helper
 
-        self.env['fn_current_target_alias'] = lambda : self.env['fn_prog_alias_name'](self.prog_name)
+        self.env['ent_current_target_alias'] = self.env['fn_prog_alias_name'](self.prog_name)
         self.env['fn_norm_tgt_path'] = lambda tgt: self.norm_tgt_path(tgt)
         self.env['fn_sc_tgt_path'] = lambda tgt: self.sc_tgt_path(tgt)
 
