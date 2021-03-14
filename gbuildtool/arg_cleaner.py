@@ -524,6 +524,25 @@ def arg_clean_ln(args_tokenized, run_dir, abs_dir, rel_dir):
     return (command, sources, targets)
 
 
+def arg_clean_cp(args_tokenized, run_dir, abs_dir, rel_dir):
+
+    res = args_tokenized
+
+    if res[-1].endswith('/'):
+        # handle case when directory is passed as target - heuristic
+        res[-1] += os.path.basename(res[-2])
+
+    res[-2] = path_clean(res[-2], abs_dir, abs_dir, rel_dir, True)
+    sources = [res[-2]]
+
+    res[-1] = path_clean(res[-1], run_dir, abs_dir, rel_dir, True)
+    targets = [res[-1]]
+
+    command = ' '.join(res)
+
+    return (command, sources, targets)
+
+
 def arg_clean_ld_platform_symbol_map(args_tokenized, run_dir, abs_dir, rel_dir):
     assert args_tokenized[3] == 'sed'
     assert args_tokenized[4] == '-n'
@@ -679,6 +698,8 @@ def arg_clean_systemexit(args_string, run_dir, abs_dir, rel_dir, options):
         return arg_clean_sed(args_tokenized, run_dir, abs_dir, rel_dir)
     elif (prg.endswith('ln')):
         return arg_clean_ln(args_tokenized, run_dir, abs_dir, rel_dir)
+    elif (prg.endswith('cp')):
+        return arg_clean_cp(args_tokenized, run_dir, abs_dir, rel_dir)
     elif (prg.endswith('echo') and '.incbin' in args_string):
         return arg_clean_binary(args_tokenized, run_dir, abs_dir, rel_dir)
     elif (prg == '(echo' and 'global' in args_string and 'local' in args_string):
