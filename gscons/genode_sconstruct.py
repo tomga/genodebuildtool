@@ -63,6 +63,7 @@ def sconstruct():
     env['OVERLAYS_DIR'] = os.path.join(buildtool_dir, 'genode')
 
     env.Tool('genode_symlink',   toolpath = [os.path.join(env['BUILDTOOL_DIR'], 'gscons/tools')])
+    env.Tool('genode_copy',      toolpath = [os.path.join(env['BUILDTOOL_DIR'], 'gscons/tools')])
     env.Tool('genode_symbols',   toolpath = [os.path.join(env['BUILDTOOL_DIR'], 'gscons/tools')])
     env.Tool('genode_abi_so',    toolpath = [os.path.join(env['BUILDTOOL_DIR'], 'gscons/tools')])
     env.Tool('genode_lib_so',    toolpath = [os.path.join(env['BUILDTOOL_DIR'], 'gscons/tools')])
