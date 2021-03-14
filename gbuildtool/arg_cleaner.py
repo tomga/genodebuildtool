@@ -541,6 +541,43 @@ def arg_clean_ld_platform_symbol_map(args_tokenized, run_dir, abs_dir, rel_dir):
 
 
 
+def arg_clean_ar_core_lib(args_tokenized, run_dir, abs_dir, rel_dir):
+
+    assert args_tokenized[0] == '(echo'
+    assert args_tokenized[1].split()[0] == 'create'
+    assert args_tokenized[1].split()[1][-1] == ';'
+    assert args_tokenized[2] == 'echo'
+    assert args_tokenized[3] == '-e'
+    assert args_tokenized[5] == 'echo'
+    assert args_tokenized[6] == 'save;'
+    assert args_tokenized[7] == 'echo'
+    assert args_tokenized[8] == 'end;'
+    assert args_tokenized[9] == ')'
+    assert args_tokenized[10] == '|'
+    assert args_tokenized[12] == '-M'
+
+    res = args_tokenized
+
+    res[1] = '"create %s";' % (path_clean(res[1].split()[1][:-1], run_dir, abs_dir, rel_dir, True))
+    targets = [res[1]]
+
+    addlibs_tokenized = arg_tokenize(res[4])
+    assert addlibs_tokenized[-1][-1] == ';'
+    addlibs_tokenized[-1] = addlibs_tokenized[-1][:-1]
+
+    sources = [ path_clean(lib, run_dir, abs_dir, rel_dir, True)
+                for addcmd, lib in zip(addlibs_tokenized[::2], addlibs_tokenized[1::2]) ]
+    res[4] = '"%s";' % (' '.join(['\\naddlib %s' % lib for lib in sources]))
+
+    res[6] = '"save";'
+    res[8] = '"end";'
+
+    command = ' '.join(res)
+
+    return (command, sources, targets)
+
+
+
 def arg_parse_dd(args_array):
 
     argparser = argparse.ArgumentParser('dd')
@@ -644,6 +681,8 @@ def arg_clean_systemexit(args_string, run_dir, abs_dir, rel_dir, options):
         return arg_clean_binary(args_tokenized, run_dir, abs_dir, rel_dir)
     elif (prg == '(echo' and 'global' in args_string and 'local' in args_string):
         return arg_clean_ld_platform_symbol_map(args_tokenized, run_dir, abs_dir, rel_dir)
+    elif (prg == '(echo' and '"\\naddlib' in args_string and '"save";' in args_string and '"end";' in args_string):
+        return arg_clean_ar_core_lib(args_tokenized, run_dir, abs_dir, rel_dir)
     elif (prg == 'printf' and args_tokenized[3] == 'dd'):
         return arg_clean_ld_elf_executable(args_tokenized, run_dir, abs_dir, rel_dir)
     elif prg.endswith(':'): # compiler/linker errors and warnings
