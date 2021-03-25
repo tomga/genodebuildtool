@@ -6,9 +6,9 @@ import gscons.utils
 
 class GenodeIwlFirmwareMkLib(genode_lib.GenodeMkLib):
 
-    def process_target(self):
+    def do_process_target(self):
 
-        super().process_target()
+        super().do_process_target()
 
         env = self.env
         build_env = self.build_env

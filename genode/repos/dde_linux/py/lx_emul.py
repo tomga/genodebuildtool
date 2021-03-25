@@ -25,7 +25,7 @@ class GenodeDdeLinuxLxEmulMkLib(genode_lib.GenodeMkLib):
         return retval
 
 
-    def process_target(self):
+    def do_process_target(self):
 
         env = self.env.Clone()
         build_env = self.build_env
@@ -45,8 +45,8 @@ class GenodeDdeLinuxLxEmulMkLib(genode_lib.GenodeMkLib):
 
         # MK_COMPATIBILITY: without the line below only required
         # include links are created and that is incompatible with make
-        env.Alias(env['fn_lib_alias_name'](self.lib_name), include_targets)
+        env.Alias(env['ent_current_target_alias'], include_targets)
 
-        retval = super().process_target()
+        retval = super().do_process_target()
 
         return retval

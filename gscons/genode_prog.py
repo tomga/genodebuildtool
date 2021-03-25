@@ -30,7 +30,6 @@ class GenodeDisabledProg(GenodeProg):
 
         super().__init__(prog_name, env)
 
-        self.dep_target_objs = []
         self.make_disabled(disabled_message)
 
 
@@ -110,6 +109,7 @@ class GenodeMkProg(GenodeBaseProg):
                  build_env):
 
         prog_env = env.Clone()
+        self.env = prog_env    # avoid cloning environment again in GenodeTarget
 
         self.build_env = scmkevaluator.ScMkEnv(prog_env,
                                                mk_cache=build_env.mk_cache,
@@ -168,7 +168,6 @@ class GenodeMkProg(GenodeBaseProg):
         if len(missing_specs) > 0:
             self.env['fn_debug']("Skipping loading dependencies of program '%s' due to missing specs: %s"
                                  % (self.prog_name, ' '.join(missing_specs)))
-            self.dep_target_objs = []
             self.make_disabled("missing specs: %s" % ' '.join(missing_specs))
 
             return
@@ -180,7 +179,7 @@ class GenodeMkProg(GenodeBaseProg):
         ### register program dependencies
         orig_dep_libs = self.build_env.var_values('LIBS')
         if len(orig_dep_libs) > 0:
-            direct_dep_lib_objs += self.env['fn_require_libs'](orig_dep_libs)
+            direct_dep_lib_objs += self.env['fn_require_libs'](self, orig_dep_libs)
         direct_dep_libs = orig_dep_libs + []
 
 
@@ -188,7 +187,7 @@ class GenodeMkProg(GenodeBaseProg):
         coverage_enabled = (self.build_env.var_value('COVERAGE') == 'yes')
         if coverage_enabled:
             coverage_dep_libs = ['libgcov']
-            direct_dep_lib_objs += self.env['fn_require_libs'](coverage_dep_libs)
+            direct_dep_lib_objs += self.env['fn_require_libs'](self, coverage_dep_libs)
             direct_dep_libs.extend(coverage_dep_libs)
 
 
@@ -196,18 +195,14 @@ class GenodeMkProg(GenodeBaseProg):
         sanitizer_enabled = (self.build_env.var_value('SANITIZE_UNDEFINED') == 'yes')
         if sanitizer_enabled:
             sanitizer_dep_libs = ['libubsan', 'libsanitizer_common']
-            direct_dep_lib_objs += self.env['fn_require_libs'](sanitizer_dep_libs)
+            direct_dep_lib_objs += self.env['fn_require_libs'](self, sanitizer_dep_libs)
             direct_dep_libs.extend(sanitizer_dep_libs)
 
 
-        self.dep_target_objs = direct_dep_lib_objs
-
         ### check if dependencies are not disabled
-        disabled_dep_libs = [ lib_obj.lib_name for lib_obj in direct_dep_lib_objs if lib_obj.is_disabled() ]
-        if len(disabled_dep_libs) > 0:
+        if self.is_disabled():
             self.env['fn_debug']("Skipping processing program '%s' due to disabled dependencies: %s"
-                                 % (self.prog_name, ' '.join(disabled_dep_libs)))
-            self.make_disabled("disabled dependency libs: %s" % ' '.join(disabled_dep_libs))
+                                 % (self.target_name, ' '.join(self.get_disabled_dep_target_names())))
             return
 
 

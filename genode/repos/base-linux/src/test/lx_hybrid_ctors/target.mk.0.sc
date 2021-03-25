@@ -7,9 +7,9 @@ from SCons.Script import *
 
 class GenodeBaseHwMkProg(genode_prog.GenodeMkProg):
 
-    def process_target(self):
+    def do_process_target(self):
 
-        retval = super().process_target()
+        retval = super().do_process_target()
 
         env = self.env.Clone()
         build_env = self.build_env

@@ -30,7 +30,6 @@ class GenodeDisabledLib(GenodeLib):
 
         super().__init__(lib_name, env)
 
-        self.dep_target_objs = []
         self.make_disabled(disabled_message)
 
 
@@ -109,6 +108,7 @@ class GenodeMkLib(GenodeBaseLib):
                  build_env):
 
         lib_env = env.Clone()
+        self.env = lib_env    # avoid cloning environment again in GenodeTarget
 
         self.build_env = scmkevaluator.ScMkEnv(lib_env,
                                                mk_cache=build_env.mk_cache,
@@ -173,7 +173,6 @@ class GenodeMkLib(GenodeBaseLib):
         if len(missing_specs) > 0:
             self.env['fn_debug']("Skipping loading dependencies of library '%s' due to missing specs: %s"
                                  % (self.lib_name, ' '.join(missing_specs)))
-            self.dep_target_objs = []
             self.make_disabled("missing specs: %s" % ' '.join(missing_specs))
 
             return
@@ -185,7 +184,7 @@ class GenodeMkLib(GenodeBaseLib):
         ### register library dependencies
         self.orig_dep_libs = self.build_env.var_values('LIBS')
         if len(self.orig_dep_libs) > 0:
-            direct_dep_lib_objs += self.env['fn_require_libs'](self.orig_dep_libs)
+            direct_dep_lib_objs += self.env['fn_require_libs'](self, self.orig_dep_libs)
         direct_dep_libs = self.orig_dep_libs + []
 
 
@@ -197,19 +196,14 @@ class GenodeMkLib(GenodeBaseLib):
         #       compatibility
         shared_lib_defined = self.build_env.check_var('SHARED_LIB')
         if shared_lib_defined:
-            direct_dep_lib_objs += self.env['fn_require_libs'](['ldso_so_support'])
+            direct_dep_lib_objs += self.env['fn_require_libs'](self, ['ldso_so_support'])
             direct_dep_libs.append('ldso_so_support')
 
 
-        self.dep_target_objs = direct_dep_lib_objs
-
         ### check if dependencies are not disabled
-        disabled_dep_libs = [ lib_obj.lib_name for lib_obj in direct_dep_lib_objs if lib_obj.is_disabled() ]
-        if len(disabled_dep_libs) > 0:
+        if self.is_disabled():
             self.env['fn_debug']("Skipping processing library '%s' due to disabled dependencies: %s"
-                                 % (self.lib_name, ' '.join(disabled_dep_libs)))
-            self.make_disabled("disabled dependency libs: %s" % ' '.join(disabled_dep_libs))
-
+                                 % (self.target_name, ' '.join(self.get_disabled_dep_target_names())))
             return
 
 

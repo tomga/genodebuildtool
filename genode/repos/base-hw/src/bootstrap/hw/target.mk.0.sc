@@ -6,9 +6,9 @@ import SCons.Action
 
 class GenodeBaseHwMkProg(genode_prog.GenodeMkProg):
 
-    def process_target(self):
+    def do_process_target(self):
 
-        super().process_target()
+        super().do_process_target()
 
         env = self.env
         build_env = self.build_env

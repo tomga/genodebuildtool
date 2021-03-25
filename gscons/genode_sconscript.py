@@ -13,6 +13,7 @@ from gscons import mkevaluator
 from gscons import mkparser
 from gscons import scmkevaluator
 
+from gscons import genode_all_target
 from gscons import genode_lib
 from gscons import genode_prog
 from gscons import genode_tools as tools
@@ -241,7 +242,7 @@ def process_builddir(build_dir, env):
     env['fn_lib_alias_name'] = lib_alias_name
 
     all_lib_objs = {}
-    def require_libs(dep_libs):
+    def require_libs(target, dep_libs):
         dep_lib_objs = []
         for dep in dep_libs:
             if dep not in all_lib_objs:
@@ -254,8 +255,8 @@ def process_builddir(build_dir, env):
                     env['fn_error']("Circular library dependency detected when processing '%s'"
                                     % (dep))
                     quit()
-                lib_obj.increase_use_count()
             dep_lib_objs.append(lib_obj)
+        target.add_dep_targets(dep_lib_objs)
         return dep_lib_objs
     env['fn_require_libs'] = require_libs
 
@@ -266,7 +267,7 @@ def process_builddir(build_dir, env):
     env['fn_prog_alias_name'] = prog_alias_name
 
     all_prog_objs = {}
-    def require_progs(dep_progs):
+    def require_progs(target, dep_progs):
         dep_prog_objs = {}
         for dep in dep_progs:
             current_dep_prog_objs = process_progs(dep, env, build_env, all_prog_objs)
@@ -282,7 +283,9 @@ def process_builddir(build_dir, env):
                     dep_prog_obj.decrease_use_count()
                     env['fn_notice']("Program target %s required more than once in one require call (now by %s)"
                                      % (dep_prog_name, dep))
-        return list(dep_prog_objs.values())
+        dep_objs = list(dep_prog_objs.values())
+        target.add_dep_targets(dep_objs)
+        return dep_objs
     env['fn_require_progs'] = require_progs
 
 
@@ -303,9 +306,10 @@ def process_builddir(build_dir, env):
         print('PROGS: %s' % (' '.join(exp_progs)))
         quit()
 
-    require_libs(env['LIB_TARGETS'])
-    require_progs(env['PROG_TARGETS'])
-
+    all_target = genode_all_target.GenodeAll(env,
+                                             env['LIB_TARGETS'],
+                                             env['PROG_TARGETS'])
+    all_target.process_load()
 
     lib_targets = []
     for lib_obj in all_lib_objs.values():
