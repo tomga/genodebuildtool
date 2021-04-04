@@ -14,6 +14,7 @@ from gscons import mkparser
 from gscons import scmkevaluator
 
 from gscons import genode_all_target
+from gscons import genode_port
 from gscons import genode_lib
 from gscons import genode_prog
 from gscons import genode_tools as tools
@@ -237,6 +238,30 @@ def process_builddir(build_dir, env):
 
 
 
+    def port_alias_name(port_name):
+        return 'PORT:%s' % (port_name)
+    env['fn_port_alias_name'] = port_alias_name
+
+    all_port_objs = {}
+    def require_ports(target, dep_ports):
+        dep_port_objs = []
+        for dep in dep_ports:
+            if dep not in all_port_objs:
+                all_port_objs[dep] = None
+                port_obj = process_port(dep, env, build_env)
+                all_port_objs[dep] = port_obj
+            else:
+                port_obj = all_port_objs[dep]
+                if port_obj is None:
+                    env['fn_error']("Circular port dependency detected when processing '%s'"
+                                    % (dep))
+                    quit()
+            dep_port_objs.append(port_obj)
+        target.add_dep_targets(dep_port_objs)
+        return dep_port_objs
+    env['fn_require_ports'] = require_ports
+
+
     def lib_alias_name(lib_name):
         return 'LIB:%s:%s' % (build_dir, lib_name)
     env['fn_lib_alias_name'] = lib_alias_name
@@ -311,6 +336,23 @@ def process_builddir(build_dir, env):
                                              env['PROG_TARGETS'])
     all_target.process_load()
 
+
+    # process ports
+    port_targets = []
+    for port_obj in all_port_objs.values():
+        env['fn_debug']("Processing port target: %s" % (port_obj.port_name))
+        port_obj_targets = port_obj.process_target()
+        if port_obj_targets is not None:
+            port_targets.extend(port_obj_targets)
+
+    # inform about outdated ports
+    outdated_ports = [ port for port in all_port_objs.values() if port.port_outdated() ]
+    if len(outdated_ports) > 0:
+        env['fn_notice']("Outdated ports detected")
+        env['fn_notice']("  tool/ports/prepare_port %s"
+                         % (' '.join(map(lambda p: p.port_name, outdated_ports))))
+
+    # process libraries
     lib_targets = []
     for lib_obj in all_lib_objs.values():
         env['fn_debug']("Processing lib target: %s" % (lib_obj.lib_name))
@@ -318,7 +360,7 @@ def process_builddir(build_dir, env):
         if lib_obj_targets is not None:
             lib_targets.extend(lib_obj_targets)
 
-
+    # process programs
     prog_targets = []
     for prog_obj in all_prog_objs.values():
         env['fn_debug']("Processing prog target: %s" % (prog_obj.prog_name))
@@ -333,6 +375,31 @@ def process_builddir(build_dir, env):
     env['fn_info']('Final build targets: %s' % (' '.join(list(map(str, env['BUILD_TARGETS'])))))
 
     env['fn_trace'](env.Dump())
+
+
+
+def process_port(port_name, env, build_env):
+    """Process port build rules.
+    """
+
+    repositories = env['REPOSITORIES']
+
+    found_port_hash_file = None
+    for repository in repositories:
+        checked_file = os.path.join(repository, 'ports', '%s.hash' % port_name)
+        if os.path.exists(checked_file):
+            env['fn_debug']('found_port_hash_file: %s' % (str(checked_file)))
+            found_port_hash_file = checked_file
+            continue
+
+    if found_port_hash_file is None:
+        env['fn_debug']("Port hash  file not found for port '%s'" % (port_name))
+        return genode_port.GenodeDisabledPort(port_name, env,
+                                              "port hash file not found")
+
+    port_obj = genode_port.GenodePort(port_name, env, found_port_hash_file, repository)
+    port_obj.process_load()
+    return port_obj
 
 
 

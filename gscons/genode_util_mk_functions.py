@@ -20,5 +20,23 @@ def mkfun_select_from_repositories(mkenv, args):
 
 
 
+def mkfun_select_from_ports(mkenv, args):
+    repositories = mkenv.var_values('REPOSITORIES')
+    port_name = args[0][0]
+    mkenv.log('debug', 'mkfun_select_from_ports arg: %s' % (str(port_name)))
+    mkenv.log('debug', 'repositories: %s' % (str(repositories)))
+
+    # NOTE: here mkenv is known to be ScMkEnv instance
+    env = mkenv.scons_env
+
+    required_ports = env['fn_require_ports'](env['ent_current_target_obj'], [port_name])
+    assert len(required_ports) == 1
+    port_dir = required_ports[0].port_dir()
+
+    return [port_dir]
+
+
+
 def register_mk_functions(functions_dict):
     functions_dict['select_from_repositories'] = mkfun_select_from_repositories
+    functions_dict['select_from_ports'] = mkfun_select_from_ports
