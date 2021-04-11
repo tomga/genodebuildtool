@@ -62,19 +62,11 @@ class GenodeBaseProg(GenodeProg):
             os.makedirs(target_cwd)
 
 
-    def sconsify_path(self, path):
-        return self.env['fn_sconsify_path'](path)
-
-
     def norm_tgt_path(self, target):
         if target is not None:
             return '%s/%s' % (self.relative_prog_dir, target)
         else:
             return self.relative_prog_dir
-
-
-    def sc_tgt_path(self, target):
-        return self.sconsify_path(self.norm_tgt_path(target))
 
 
     def build_c_objects(self):

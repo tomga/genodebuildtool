@@ -134,3 +134,15 @@ class GenodeTarget:
 
     def do_process_target(self):
         raise Exception("GenodeTarget::do_process_target should be overridden")
+
+
+    def sconsify_path(self, path):
+        return self.env['fn_sconsify_path'](path)
+
+
+    def sc_tgt_path(self, target):
+        return self.sconsify_path(self.norm_tgt_path(target))
+
+
+    def norm_tgt_path(self, target):
+        raise Exception("GenodeTarget::norm_tgt_path should be overridden")
