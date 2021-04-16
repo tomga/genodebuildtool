@@ -47,6 +47,8 @@ def arguments_parse():
                            help='disabled target executables')
     argparser.add_argument('-r', '--run', nargs='+', default=[],
                            help='target run scripts')
+    argparser.add_argument('-nr', '--no-run', nargs='+', default=[],
+                           help='disabled run scripts')
     argparser.add_argument('--kernel',
                            help='target run kernel')
     argparser.add_argument('--board',
@@ -189,8 +191,10 @@ def do_sc_expand_targets(build, opts):
                                     '%s' % (board),
                                     "LIB='%s'" % ' '.join(opts.lib) if len(opts.lib) > 0 else '',
                                     '%s' % ' '.join(["'%s'" % (prog) for prog in opts.prog]),
+                                    '%s' % ' '.join(["'run/%s'" % (run) for run in opts.run]),
                                     "LIB_EXCLUDES='%s'" % ' '.join(opts.no_lib) if len(opts.no_lib) > 0 else '',
                                     "PROG_EXCLUDES='%s'" % ' '.join(opts.no_prog) if len(opts.no_prog) > 0 else '',
+                                    "RUN_EXCLUDES='%s'" % ' '.join(opts.no_run) if len(opts.no_run) > 0 else '',
                                     '2>&1 | tee %s' % (log_file)] if p != ''])
     print('Expanding targets: %s' % command)
     exit_code, output = buildtool_utils.command_execute(command)
@@ -201,21 +205,26 @@ def do_sc_expand_targets(build, opts):
 
     target_libs = None
     target_progs = None
+    target_runs = None
     with open(log_file, 'r') as log:
         for line in log:
             if line.startswith('LIBS: '):
                 target_libs = line[len('LIBS: '):].strip().split()
             if line.startswith('PROGS: '):
                 target_progs = line[len('PROGS: '):].strip().split()
+            if line.startswith('RUNS: '):
+                target_runs = line[len('RUNS: '):].strip().split()
 
-    if target_libs is None or target_progs is None:
-        print("ERROR: expanding targets process did not produce expected LIBS: and PROGS:")
+    if target_libs is None or target_progs is None or target_runs is None:
+        print("ERROR: expanding targets process did not produce expected LIBS:, PROGS: and RUNS:")
         quit()
 
     opts.lib = target_libs
     opts.no_lib = []
     opts.prog = target_progs
     opts.no_prog = []
+    opts.run = target_runs
+    opts.no_run = []
 
 
 def do_expand_targets(opts):
@@ -267,14 +276,14 @@ def do_mk_build(build_name, opts, stamp_dt, log_file):
                                     '%s' % (board),
                                     'LIB=%s' % opts.lib[0] if len(opts.lib) > 0 else '',
                                     '%s' % ' '.join(opts.prog),
-                                    '%s' % ' '.join(opts.run),
+                                    '%s' % ' '.join(map(lambda r: 'run/' + r, opts.run)),
                                     '2>&1 | tee %s' % (log_file)] if p != ''])
     print('Executing: %s' % command)
     exit_code, output = buildtool_utils.command_execute(command)
 
     return exit_code
 
-    
+
 def do_sc_build(build_name, opts, stamp_dt, log_file):
 
     kernel = 'KERNEL=%s' % (opts.kernel) if opts.kernel is not None else ''
@@ -288,13 +297,13 @@ def do_sc_build(build_name, opts, stamp_dt, log_file):
                                     '%s' % (board),
                                     "LIB='%s'" % ' '.join(opts.lib) if len(opts.lib) > 0 else '',
                                     '%s' % ' '.join(opts.prog),
+                                    '%s' % ' '.join(map(lambda r: 'run/' + r, opts.run)),
                                     '2>&1 | tee %s' % (log_file)] if p != ''])
     print('Executing: %s' % command)
     exit_code, output = buildtool_utils.command_execute(command)
 
     return exit_code
 
-    
 
 def do_builds(opts, build_db):
 
@@ -304,7 +313,7 @@ def do_builds(opts, build_db):
         quit()
 
     # refuse build if no targets specified
-    if len(opts.lib) + len(opts.prog) == 0:
+    if len(opts.lib) + len(opts.prog) + len(opts.run) == 0:
         print("ERROR: empty effective targets list")
         quit()
 

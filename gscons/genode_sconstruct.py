@@ -15,6 +15,7 @@ def sconstruct():
     opts.Add('LIB', 'Space separated libraries list to build', default='')
     opts.Add('LIB_EXCLUDES', 'Space separated libraries list to not build', default='')
     opts.Add('PROG_EXCLUDES', 'Space separated programs list to not build', default='')
+    opts.Add('RUN_EXCLUDES', 'Space separated run scripts list to not build', default='')
     opts.Add(BoolVariable('VERBOSE_OUTPUT', 'Enable verbose output', default=False))
     opts.Add('LOG_LEVEL', 'Specify log output level', default='info',
              allowed_values=('none', 'error', 'warning', 'notice', 'info', 'debug', 'trace'))
@@ -37,9 +38,11 @@ def sconstruct():
     env['SHELL'] = 'bash'
 
     env['LIB_TARGETS'] = env['LIB'].split()
-    env['PROG_TARGETS'] = list(BUILD_TARGETS)  # TODO: filter when adding support for run scripts
+    env['PROG_TARGETS'] = [t for t in BUILD_TARGETS if not t.startswith('run/')]
+    env['RUN_TARGETS'] = [t[4:] for t in BUILD_TARGETS if t.startswith('run/')]
     env['LIB_EXCLUDES'] = env['LIB_EXCLUDES'].split()
     env['PROG_EXCLUDES'] = env['PROG_EXCLUDES'].split()
+    env['RUN_EXCLUDES'] = env['RUN_EXCLUDES'].split()
     env['BUILD_TARGETS'] = BUILD_TARGETS
     BUILD_TARGETS.clear()
 

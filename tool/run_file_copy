@@ -1,0 +1,44 @@
+
+rename file_copy orig_file_copy
+proc file_copy {src dst} {
+	#puts "file_copy $src $dst"
+
+	set relative_link_processing false
+	if {![catch {file readlink $src}]} {
+
+		set link_src [file readlink $src]
+
+		if {[file pathtype $link_src] == "relative"} {
+			set relative_link_processing true
+		}
+
+		#puts "src is link"
+		#puts "link_src $link_src"
+		#set src_path_type [file pathtype $link_src]
+		#puts "src_path_type $src_path_type"
+	}
+
+	if {$relative_link_processing} {
+		#puts "relative link processing"
+
+		set link_basename [file tail $src]
+		#puts "link_basename $link_basename"
+
+
+		set link_tgt_name [file tail $link_src]
+		#puts "link_tgt_name $link_tgt_name"
+		if {[file isdirectory $dst]} {
+			#puts "dst is dir"
+			set dst_path [file join $dst $link_basename]
+			set dst_dir $dst
+		} {
+			#puts "dst is not dir"
+			set dst_path $dst
+			set dst_dir [file dirname $dst]
+		}
+		exec ln -sf [exec realpath --relative-to $dst_dir $src] $dst_path
+	} {
+		#puts "not a link or is absolute - use tcl standard"
+		file copy -force $src $dst
+	}
+}

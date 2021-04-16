@@ -17,6 +17,7 @@ from gscons import genode_all_target
 from gscons import genode_port
 from gscons import genode_lib
 from gscons import genode_prog
+from gscons import genode_run
 from gscons import genode_tools as tools
 
 from gscons import genode_util_mk_functions
@@ -69,6 +70,8 @@ def process_builddir(build_dir, env):
     env['LIB_CACHE_DIR'] = '%s/var/libcache' % (build_dir)
     build_env.var_set('LIB_CACHE_DIR', '%s/var/libcache' % (abs_build_dir))
 
+    env['RUN_LOG_DIR'] = '%s/runlog' % (build_dir)
+
     print("LIB_CACHE_DIR: %s" % (build_env.var_value('LIB_CACHE_DIR')))
 
     genode_dir = build_env.var_value('GENODE_DIR')
@@ -104,6 +107,7 @@ def process_builddir(build_dir, env):
     env['OBJCPYCOMSTR'] = '${fn_msg(TARGET, SOURCES, " CONVERT ", "OBJCPYCOM", __env__)}'
     env['LINKCOMSTR']   = '${fn_msg(TARGET, SOURCES, " LINK    ", "LINKCOM",   __env__)}'
     env['BUILDCOMSTR']  = '${fn_msg(TARGET, SOURCES, " BUILD   ", "BUILDCOM",  __env__)}'
+    env['RUNCOMSTR']    = '${fn_msg(TARGET, SOURCES, " RUN     ", "RUNCOM",    __env__)}'
 
     def format_custom_message_simple(tgt, cmd_pres, cmd_text):
         return "%s %s" % (' ' + cmd_pres.ljust(8), prettify_path(tgt))
@@ -203,7 +207,6 @@ def process_builddir(build_dir, env):
     env['fn_info']("Effective specs: %s" % (' '.join(specs)))
     env['SPECS'] = specs
 
-
     ### handle global.mk
     #
     # NOTE: it is currently included only for CUSTOM_CXX_LIB and
@@ -217,6 +220,14 @@ def process_builddir(build_dir, env):
     base_global_mk.process(temp_build_env)
     #pprint.pprint(temp_build_env.debug_struct('pretty'), width=200)
     ## temp_build_env.var_set('CUSTOM_CXX_LIB', '/usr/local/genode/tool/19.05/bin/genode-x86-g++')
+
+
+    # variables for run tool
+    env['CROSS_DEV_PREFIX'] = temp_build_env.var_value('CROSS_DEV_PREFIX')
+    env['QEMU_OPT'] = temp_build_env.var_value('QEMU_OPT')
+    env['RUN_OPT'] = temp_build_env.var_value('RUN_OPT')
+    env['CCACHE'] = temp_build_env.var_value('CCACHE')
+    env['MAKE'] = 'make' # it seems to be used for depots but they are not supported yet
 
 
     if temp_build_env.var_value('CCACHE') == 'yes':
@@ -304,14 +315,38 @@ def process_builddir(build_dir, env):
                     # dependencies in one require_progs call require
                     # program target more than one time using
                     # different require paths
-                    assert dep_prog_obj.usage_count > 1
-                    dep_prog_obj.decrease_use_count()
                     env['fn_notice']("Program target %s required more than once in one require call (now by %s)"
                                      % (dep_prog_name, dep))
         dep_objs = list(dep_prog_objs.values())
         target.add_dep_targets(dep_objs)
         return dep_objs
     env['fn_require_progs'] = require_progs
+
+
+
+    def run_alias_name(run_name):
+        return 'RUN:%s' % (run_name)
+    env['fn_run_alias_name'] = run_alias_name
+
+    all_run_objs = {}
+    def require_runs(target, dep_runs):
+        dep_run_objs = []
+        for dep in dep_runs:
+            if dep not in all_run_objs:
+                all_run_objs[dep] = None
+                run_obj = process_run(dep, env, build_env)
+                all_run_objs[dep] = run_obj
+            else:
+                run_obj = all_run_objs[dep]
+                if run_obj is None:
+                    env['fn_error']("Circular run dependency detected when processing '%s'"
+                                    % (dep))
+                    quit()
+            dep_run_objs.append(run_obj)
+        target.add_dep_targets(dep_run_objs)
+        return dep_run_objs
+    env['fn_require_runs'] = require_runs
+
 
 
     # expand targets lib masks taking into account target excludes
@@ -326,14 +361,22 @@ def process_builddir(build_dir, env):
     env['PROG_TARGETS'] = exp_progs
     env['fn_info']("Effective program targets: %s" % (' '.join(exp_progs)))
 
+    # expand targets run masks taking into account target excludes
+    exp_runs = tools.expand_run_targets(env['REPOSITORIES'],
+                                        env['RUN_TARGETS'], env['RUN_EXCLUDES'])
+    env['RUN_TARGETS'] = exp_runs
+    env['fn_info']("Effective run script targets: %s" % (' '.join(exp_runs)))
+
     if env['DEV_ONLY_EXPAND_TARGETS']:
         print('LIBS: %s' % (' '.join(exp_libs)))
         print('PROGS: %s' % (' '.join(exp_progs)))
+        print('RUNS: %s' % (' '.join(exp_runs)))
         quit()
 
     all_target = genode_all_target.GenodeAll(env,
                                              env['LIB_TARGETS'],
-                                             env['PROG_TARGETS'])
+                                             env['PROG_TARGETS'],
+                                             env['RUN_TARGETS'])
     all_target.process_load()
 
 
@@ -368,9 +411,17 @@ def process_builddir(build_dir, env):
         if prog_obj_targets is not None:
             prog_targets.extend(prog_obj_targets)
 
+    # process run scripts
+    run_targets = []
+    for run_obj in all_run_objs.values():
+        env['fn_debug']("Processing run target: %s" % (run_obj.run_name))
+        run_obj_targets = run_obj.process_target()
+        if run_obj_targets is not None:
+            run_targets.extend(run_obj_targets)
+
 
     env['fn_debug']('BUILD_TARGETS: %s' % (str(env['BUILD_TARGETS'])))
-    targets = lib_targets + prog_targets
+    targets = lib_targets + prog_targets + run_targets
     env['BUILD_TARGETS'] += targets
     env['fn_info']('Final build targets: %s' % (' '.join(list(map(str, env['BUILD_TARGETS'])))))
 
@@ -393,13 +444,38 @@ def process_port(port_name, env, build_env):
             continue
 
     if found_port_hash_file is None:
-        env['fn_debug']("Port hash  file not found for port '%s'" % (port_name))
+        env['fn_debug']("Port hash file not found for port '%s'" % (port_name))
         return genode_port.GenodeDisabledPort(port_name, env,
                                               "port hash file not found")
 
     port_obj = genode_port.GenodePort(port_name, env, found_port_hash_file, repository)
     port_obj.process_load()
     return port_obj
+
+
+
+def process_run(run_name, env, build_env):
+    """Process run build rules.
+    """
+
+    repositories = env['REPOSITORIES']
+
+    found_run_file = None
+    for repository in repositories:
+        checked_file = os.path.join(repository, 'run', '%s.run' % run_name)
+        if os.path.exists(checked_file):
+            env['fn_debug']('found_run_file: %s' % (str(checked_file)))
+            found_run_file = checked_file
+            continue
+
+    if found_run_file is None:
+        env['fn_debug']("Run file not found for run '%s'" % (run_name))
+        return genode_run.GenodeDisabledRun(run_name, env,
+                                            "run file not found")
+
+    run_obj = genode_run.GenodeRun(run_name, env, found_run_file, repository)
+    run_obj.process_load()
+    return run_obj
 
 
 

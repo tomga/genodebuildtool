@@ -32,6 +32,8 @@ class GenodeTarget:
 
     def get_inactive_message(self):
         if self.disabled_message is not None:
+            if self.disabled_message == "disabled dependencies":
+                return "disabled dependencies (%s)" % self.get_disabled_dep_target_names()
             return self.disabled_message
         if self.usage_count == 0:
             return "usage count is 0"
@@ -134,6 +136,10 @@ class GenodeTarget:
 
     def do_process_target(self):
         raise Exception("GenodeTarget::do_process_target should be overridden")
+
+
+    def get_target_alias(self):
+        return self.env.Alias(self.env['ent_current_target_alias'])
 
 
     def sconsify_path(self, path):

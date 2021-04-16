@@ -110,3 +110,37 @@ def expand_prog_targets(repositories, prog_targets, prog_excludes):
         processed = processed | set(new_matches)
 
     return result
+
+
+def expand_run_targets(repositories, run_targets, run_excludes):
+    run_patterns = [ run for run in run_targets if '*' in run ]
+    if len(run_patterns) == 0:
+        return run_targets
+
+    found_runs = []
+    for repository in repositories:
+        run_list = glob.glob('%s/run/*.run' % (repository))
+        found_runs.extend([ os.path.splitext(os.path.basename(run))[0] for run in run_list ])
+
+    found_runs = sorted(list(set(found_runs)))
+
+    for excl in run_excludes:
+        found_runs = [ run for run in found_runs if not fnmatch.fnmatch(run, excl) ]
+
+    result = []
+    processed = set([])
+
+    for run in run_targets:
+        if '*' not in run:
+            if run not in processed:
+                result.append(run)
+                processed.add(run)
+            continue
+
+        all_matches = fnmatch.filter(found_runs, run)
+        new_matches = [ run for run in all_matches if run not in processed ]
+
+        result.extend(new_matches)
+        processed = processed | set(new_matches)
+
+    return result

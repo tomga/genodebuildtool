@@ -1,0 +1,55 @@
+
+# 'run' tool plugin that should be included just before final run script
+# include that allows to retrieve list of required build targets without
+# actually building them.
+#
+# Note: currrently it does not support 'depot_autopilot' run script.
+
+
+# aggregated targets list variable
+set build_targets_list {}
+
+
+# indicates if tool already entered 'build_boot_image' in which case
+# it assumes that first call to 'build' is the final one; currently
+# it is not true at least for 'okl4' and 'sel4' where additional calls
+# to build some special library targets with 'build LIB=<special>'
+set entered_build_boot_image false
+
+
+# replace original 'build' procedure with one that just aggregates
+# targets passed to it on a global 'build_targets_list' variable;
+# if it is called from inside 'build_boot_image' it prints gathered
+# targets list and quits
+rename build orig_build
+proc build {targets} {
+	global build_targets_list
+	global entered_build_boot_image
+
+	lappend build_targets_list {*}$targets
+
+	if {$entered_build_boot_image} {
+		puts "PROG_TARGETS: $build_targets_list"
+		exit 0
+	}
+}
+
+
+# wraps original 'build_boot_image' with version that marks on a
+# global variable that this procedure is executed; this marker is
+# used to determine if call to 'build' should cause 'run' tool to
+# print targets list and quit
+rename build_boot_image orig_build_boot_image
+proc build_boot_image {binaries} {
+	global entered_build_boot_image
+	set entered_build_boot_image true
+
+	orig_build_boot_image $binaries
+}
+
+
+# dummy version to disable real checks in that mode
+rename check_config orig_check_config
+proc check_config {bin xml_file xsd_file label avail_xsd_files xsd_inc nesting_level} {
+	return
+}
