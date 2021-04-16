@@ -151,3 +151,11 @@ class GenodeRun(GenodeBaseRun):
         env['fn_debug']('run_cmd: %s' % (str(cmd)))
 
         return cmd
+
+
+    def make_disabled(self, message):
+        """Make this target to never be disabled
+           (until discrepancies between build run
+           targets vs. required targets are resolved."""
+
+        self.env['fn_debug']("Ignoring make_disabled for RUN target %s" % (self.target_name))
