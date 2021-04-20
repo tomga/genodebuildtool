@@ -97,7 +97,8 @@ def database_connect(opts):
         db_file = os.path.join(os.path.dirname(opts.database), 'testdb.db')
         print('Using test database: %s' % (db_file))
 
-    build_db = sqlite3.connect(db_file)
+    # big timeout for multiple buildtool instances running in parallel
+    build_db = sqlite3.connect(db_file, timeout=300)
 
     check_result = schema.db_check_schema(build_db, schema.CURRENT_SCHEMA_VERSION)
     print('Check schema result: %s' % ('OK' if check_result else 'EMPTY'))
