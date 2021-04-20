@@ -13,6 +13,8 @@ controlling build rules by using Python to control build.
 
  * build only what is really needed to be rebuilt - avoid big
    recompilations e.g. after switching branches due to unclear reasons
+   (this actually became less important after adding easy way to
+   enable *ccache* in original build)
 
  * avoid repetitions in flags passed to compiler - include paths are
    sometimes repeated four times in original build (possibly it can be
@@ -167,40 +169,55 @@ Brief description of accepted parameters can be retrieved by executing:
     scons --help
 
 
+## ccache support
+
+SCons build variant implements support for *ccache* in the same way it
+is implemented in original make based builds. Only *CCACHE* variable
+with value *yes* is needed in *build.conf* is needed.
+
+
 ## Current state
 
 Currently build of everything that builds properly in make based build
-in repositories enabled by default should work for *linux* and *hw*
-kernels. Below there is a list of tested configurations and builds on
-releases *20.08*, *20.11* and *master* from end of the 2020.
+in following repositories:
 
-    tool/create_builddir linux BUILD_DIR=build/linux_s; touch build/linux_s/SCons; rm build/linux_s/Makefile
-    scons BUILD=build/linux_s KERNEL=linux BOARD=linux '*' PROG_EXCLUDES=test/lx_hybrid_ctors
+ * base-hw
+ * base-linux
+ * base
+ * os
+ * demo
+ * dde_linux
 
-    tool/create_builddir arm_v6 BUILD_DIR=build/arm6_s; touch build/arm6_s/SCons; rm build/arm6_s/Makefile
-    scons BUILD=build/arm6_s KERNEL=hw BOARD=rpi '*'
+Below there is a list of currently tested configurations and builds on
+*master* and *staging* (architecture, kernel, board):
 
-    tool/create_builddir arm_v7a BUILD_DIR=build/arm7_s; touch build/arm7_s/SCons; rm build/arm7_s/Makefile
-    scons BUILD=build/arm7_s KERNEL=hw BOARD=pbxa9 '*'
-
-    tool/create_builddir arm_v8a BUILD_DIR=build/arm8_s; touch build/arm8_s/SCons; rm build/arm8_s/Makefile
-    scons BUILD=build/arm8_s KERNEL=hw BOARD=pbxa9 '*'
+ * linux, linux, linux
+ * x86_64, hw, pc
+ * arm_v6, hw, rpi
+ * arm_v7a, hw, pbxa9
+ * arm_v8a, hw, rpi3
 
 More about testing methodology in [gbuildtool](../gbuildtool).
 
 
 ## TODO
 
-Here is a list of things planned to do in short term:
+Here is a list of known things to do:
 
- * support for ports
+ * extend support for more repositories
 
- * integration with *run* tool
+ * improve integration with *run* tool - better handling of
+   dependencies
 
- * code refactoring:
-   * merge common parts of programs and library processing
-   * cleanup of existing overlays and possible create some common api
-     for them
+ * support for depots
+   * as build targets
+   * as dependencies from run scripts
+
+ * consider some support for make rules
+
+ * refactoring:
+   * split target type specific parts from *genode_sconscript.py* to
+     proper files
 
 
 ## Some implementation details
