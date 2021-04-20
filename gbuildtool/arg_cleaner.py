@@ -377,6 +377,8 @@ def arg_parse_binary(args_array):
 
     argparser = argparse.ArgumentParser('as')
     argparser.add_argument('-f', action='store_true')
+    argparser.add_argument('-march', action='append', default=[])
+    argparser.add_argument('--32', action='store_true')
     argparser.add_argument('SOURCES', action='append', default=[], nargs=1)
     argparser.add_argument('-o', dest='TARGETS', action='append', default=[], nargs=1)
 
@@ -414,6 +416,9 @@ def arg_clean_binary(args_tokenized, run_dir, abs_dir, rel_dir):
 
     targets = [ '%s' % (path_clean(v, run_dir, abs_dir, rel_dir, True))
                 for v in nodups(opts.TARGETS[0]) ]
+
+    res += [ '-march=%s' % (v) for v in nodups(opts.march) ]
+    if '32' in vars(opts) and str(getattr(opts, '32')): res += ['--32']
 
     res += [ '-o %s' % (v) for v in targets ]
     res += [ '-' ]
