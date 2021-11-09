@@ -791,9 +791,9 @@ def setup_ccache(env, conf_build_env, base_build_env):
     cmd = "mkdir -p %s" % (tool_var_path)
     results = subprocess.run(cmd, stdout=subprocess.PIPE,
                              shell=True, universal_newlines=True, check=True)
-    cmd = "ln -sf `which ccache` %s" % (cc_ccache)
+    cmd = "ln -sf `command -v ccache` %s" % (cc_ccache)
     results = subprocess.run(cmd, stdout=subprocess.PIPE,
                              shell=True, universal_newlines=True, check=True)
-    cmd = "ln -sf `which ccache` %s" % (cxx_ccache)
+    cmd = "ln -sf `command -v ccache` %s" % (cxx_ccache)
     results = subprocess.run(cmd, stdout=subprocess.PIPE,
                              shell=True, universal_newlines=True, check=True)

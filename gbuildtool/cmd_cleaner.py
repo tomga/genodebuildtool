@@ -34,6 +34,7 @@ def commands_clean(cmd_lines, run_dir, abs_dir, rel_dir):
             '->' in orig or
             '~~~' in orig or
             orig.startswith('ln -sf `which ccache') or
+            orig.startswith('ln -sf `command -v ccache') or
             False):
             continue
 
