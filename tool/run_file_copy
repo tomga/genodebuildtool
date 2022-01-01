@@ -1,7 +1,7 @@
 
-rename file_copy orig_file_copy
-proc file_copy {src dst} {
-	#puts "file_copy $src $dst"
+rename copy_file orig_copy_file
+proc copy_file {src dst} {
+	#puts "copy_file $src $dst"
 
 	set relative_link_processing false
 	if {![catch {file readlink $src}]} {
