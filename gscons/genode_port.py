@@ -61,6 +61,12 @@ class GenodePort(GenodeBasePort):
         self.is_outdated = None
 
 
+    def norm_tgt_path(self, target):
+        if target is None:
+            target = self.target_name
+        return os.path.join(self.env['PORT_LOG_DIR'], target)
+
+
     def port_dir(self):
         return self.port_directory
 
@@ -82,12 +88,42 @@ class GenodePort(GenodeBasePort):
         env['fn_debug']('checking port directory: %s' % (self.port_directory))
 
         if not os.path.isdir(self.port_directory):
-            env['fn_info']('port outdated: %s' % (self.port_name))
             self.is_outdated = True
-            self.make_disabled('port outdated')
+            if env['PORT_AUTO_UPDATE']:
+                env['fn_info']('port outdated (preparing): %s' % (self.port_name))
+                self.prepare_port()
+            else:
+                env['fn_info']('port outdated: %s' % (self.port_name))
+                self.make_disabled('port outdated')
             return
 
         env['fn_debug']('port current: %s' % (self.port_name))
+        self.is_outdated = False
+
+
+    def prepare_port(self):
+
+        env = self.env
+
+        d = { 'genode_dir': env['GENODE_DIR'],
+              'port_name': self.port_name,
+              }
+
+        cmd = "{genode_dir}/tool/ports/prepare_port {port_name}"
+        cmd = cmd.format(**d)
+        cmd = cmd.replace('\n', ' ')
+        cmd = ' '.join(cmd.split())
+        env['fn_debug']('port_cmd: %s' % (str(cmd)))
+
+        port_cmd = ("mkdir -p %s; %s | tee %s | sed -e 's/^/ | /'"
+                    % (env['PORT_LOG_DIR'], cmd, self.norm_tgt_path(None)))
+
+        results = subprocess.run(port_cmd,
+                                 shell=True, universal_newlines=True, check=True)
+        if results.returncode != 0:
+            env['fn_error']("error during preparing port '%s'" % (self.port_name()))
+            quit()
+
         self.is_outdated = False
 
 

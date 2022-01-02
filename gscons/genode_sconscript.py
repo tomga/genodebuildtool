@@ -71,6 +71,7 @@ def process_builddir(build_dir, env):
     build_env.var_set('LIB_CACHE_DIR', '%s/var/libcache' % (abs_build_dir))
 
     env['RUN_LOG_DIR'] = '%s/runlog' % (build_dir)
+    env['PORT_LOG_DIR'] = '%s/portlog' % (build_dir)
 
     print("LIB_CACHE_DIR: %s" % (build_env.var_value('LIB_CACHE_DIR')))
 
