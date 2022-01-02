@@ -12,9 +12,12 @@ def sconstruct():
     opts.Add('BUILD', 'Build directory (relative from genode root)')
     opts.Add('BOARD', 'Selected board')
     opts.Add('KERNEL', 'Selected kernel')
-    opts.Add('LIB', 'Space separated libraries list to build', default='')
+    opts.Add('LIB', 'Space separated libraries list to build (alias for LIB_TARGETS for compatibility)', default='')
+    opts.Add('LIB_TARGETS', 'Space separated libraries list to build', default='')
     opts.Add('LIB_EXCLUDES', 'Space separated libraries list to not build', default='')
+    opts.Add('PROG_TARGETS', 'Space separated programs list to build', default='')
     opts.Add('PROG_EXCLUDES', 'Space separated programs list to not build', default='')
+    opts.Add('RUN_TARGETS', 'Space separated run scenarios list to build', default='')
     opts.Add('RUN_EXCLUDES', 'Space separated run scripts list to not build', default='')
     opts.Add(BoolVariable('VERBOSE_OUTPUT', 'Enable verbose output', default=False))
     opts.Add('LOG_LEVEL', 'Specify log output level', default='info',
@@ -39,15 +42,6 @@ def sconstruct():
 
     env['SHELL'] = 'bash'
 
-    env['LIB_TARGETS'] = env['LIB'].split()
-    env['PROG_TARGETS'] = [t for t in BUILD_TARGETS if not t.startswith('run/')]
-    env['RUN_TARGETS'] = [t[4:] for t in BUILD_TARGETS if t.startswith('run/')]
-    env['LIB_EXCLUDES'] = env['LIB_EXCLUDES'].split()
-    env['PROG_EXCLUDES'] = env['PROG_EXCLUDES'].split()
-    env['RUN_EXCLUDES'] = env['RUN_EXCLUDES'].split()
-    env['BUILD_TARGETS'] = BUILD_TARGETS
-    BUILD_TARGETS.clear()
-
     def nodebug(txt):
         pass
     def debug(lvl, txt):
@@ -61,6 +55,31 @@ def sconstruct():
     env['fn_notice'] = partial(debug, 'NOT') if log_level in ['trace', 'debug', 'info', 'notice'] else nodebug
     env['fn_warning'] = partial(debug, 'WAR') if log_level in ['trace', 'debug', 'info', 'notice', 'warning'] else nodebug
     env['fn_error'] = partial(debug, 'ERR') if log_level in ['trace', 'debug', 'info', 'notice', 'warning', 'error'] else nodebug
+
+
+    if env['LIB_TARGETS'] != '' and env['LIB'] != '':
+        env['fn_error']("LIB_TARGETS and LIB (compatibility option) cannot be provided simutlanously")
+        quit()
+
+    compatibilityProgTargets = [t for t in BUILD_TARGETS if not t.startswith('run/')]
+    if env['PROG_TARGETS'] != '' and len(compatibilityProgTargets) != 0:
+        env['fn_error']("PROG_TARGETS and compatibility prog targets cannot be provided simutlanously")
+        quit()
+
+    compatibilityRunTargets = [t[4:] for t in BUILD_TARGETS if t.startswith('run/')]
+    if env['RUN_TARGETS'] != '' and len(compatibilityRunTargets) != 0:
+        env['fn_error']("RUN_TARGETS and compatibility run targets cannot be provided simutlanously")
+        quit()
+
+
+    env['LIB_TARGETS'] = env['LIB_TARGETS'].split() if env['LIB_TARGETS'] != '' else env['LIB'].split()
+    env['LIB_EXCLUDES'] = env['LIB_EXCLUDES'].split()
+    env['PROG_TARGETS'] = env['PROG_TARGETS'].split() if env['PROG_TARGETS'] != '' else compatibilityProgTargets
+    env['PROG_EXCLUDES'] = env['PROG_EXCLUDES'].split()
+    env['RUN_TARGETS'] = env['RUN_TARGETS'].split() if env['RUN_TARGETS'] != '' else compatibilityRunTargets
+    env['RUN_EXCLUDES'] = env['RUN_EXCLUDES'].split()
+    env['BUILD_TARGETS'] = BUILD_TARGETS
+    BUILD_TARGETS.clear()
 
 
     buildtool_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
