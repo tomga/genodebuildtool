@@ -33,6 +33,40 @@ def file_md5(file_path):
         return hashlib.md5(f.read()).hexdigest()
 
 
+def expand_port_targets(repositories, port_targets, port_excludes):
+    port_patterns = [ port for port in port_targets if '*' in port ]
+    if len(port_patterns) == 0:
+        return port_targets
+
+    found_ports = []
+    for repository in repositories:
+        port_list = glob.glob('%s/ports/*.port' % (repository))
+        found_ports.extend([ os.path.splitext(os.path.basename(port))[0] for port in port_list ])
+
+    found_ports = sorted(list(set(found_ports)))
+
+    for excl in port_excludes:
+        found_ports = [ port for port in found_ports if not fnmatch.fnmatch(port, excl) ]
+
+    result = []
+    processed = set([])
+
+    for port in port_targets:
+        if '*' not in port:
+            if port not in processed:
+                result.append(port)
+                processed.add(port)
+            continue
+
+        all_matches = fnmatch.filter(found_ports, port)
+        new_matches = [ port for port in all_matches if port not in processed ]
+
+        result.extend(new_matches)
+        processed = processed | set(new_matches)
+
+    return result
+
+
 def expand_lib_targets(repositories, specs, lib_targets, lib_excludes):
     lib_patterns = [ lib for lib in lib_targets if '*' in lib ]
     if len(lib_patterns) == 0:

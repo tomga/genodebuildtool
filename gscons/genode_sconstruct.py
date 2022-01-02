@@ -19,6 +19,8 @@ def sconstruct():
     opts.Add('PROG_EXCLUDES', 'Space separated programs list to not build', default='')
     opts.Add('RUN_TARGETS', 'Space separated run scenarios list to build', default='')
     opts.Add('RUN_EXCLUDES', 'Space separated run scripts list to not build', default='')
+    opts.Add('PORT_TARGETS', 'Space separated ports list to build', default='')
+    opts.Add('PORT_EXCLUDES', 'Space separated ports list to not build', default='')
     opts.Add(BoolVariable('VERBOSE_OUTPUT', 'Enable verbose output', default=False))
     opts.Add('LOG_LEVEL', 'Specify log output level', default='info',
              allowed_values=('none', 'error', 'warning', 'notice', 'info', 'debug', 'trace'))
@@ -78,6 +80,8 @@ def sconstruct():
     env['PROG_EXCLUDES'] = env['PROG_EXCLUDES'].split()
     env['RUN_TARGETS'] = env['RUN_TARGETS'].split() if env['RUN_TARGETS'] != '' else compatibilityRunTargets
     env['RUN_EXCLUDES'] = env['RUN_EXCLUDES'].split()
+    env['PORT_TARGETS'] = env['PORT_TARGETS'].split()
+    env['PORT_EXCLUDES'] = env['PORT_EXCLUDES'].split()
     env['BUILD_TARGETS'] = BUILD_TARGETS
     BUILD_TARGETS.clear()
 

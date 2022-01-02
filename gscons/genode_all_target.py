@@ -3,14 +3,15 @@ from gscons import genode_target
 
 class GenodeAll(genode_target.GenodeTarget):
 
-    def __init__(self, env, lib_target_names, prog_target_names,
-                 run_target_names):
+    def __init__(self, env, port_target_names, lib_target_names,
+                 prog_target_names, run_target_names):
 
         super().__init__('ALL', 'all', 'ALL', env)
 
         # mark self as needed to make all target also be needed
         self.increase_use_count()
 
+        self.port_target_names = port_target_names
         self.lib_target_names = lib_target_names
         self.prog_target_names = prog_target_names
         self.run_target_names = run_target_names
@@ -20,6 +21,7 @@ class GenodeAll(genode_target.GenodeTarget):
 
     def process_load(self):
 
+        self.port_targets = self.env['fn_require_ports'](self, self.port_target_names)
         self.lib_targets = self.env['fn_require_libs'](self, self.lib_target_names)
 
         self.prog_targets = []

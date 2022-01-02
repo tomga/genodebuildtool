@@ -298,7 +298,6 @@ def process_builddir(build_dir, env):
     env['fn_require_libs'] = require_libs
 
 
-
     def prog_alias_name(prog_name):
         return 'PRG:%s:%s' % (build_dir, prog_name)
     env['fn_prog_alias_name'] = prog_alias_name
@@ -350,6 +349,12 @@ def process_builddir(build_dir, env):
 
 
 
+    # expand targets port masks taking into account target excludes
+    exp_ports = tools.expand_port_targets(env['REPOSITORIES'],
+                                          env['PORT_TARGETS'], env['PORT_EXCLUDES'])
+    env['PORT_TARGETS'] = exp_ports
+    env['fn_info']("Effective port targets: %s" % (' '.join(exp_ports)))
+
     # expand targets lib masks taking into account target excludes
     exp_libs = tools.expand_lib_targets(env['REPOSITORIES'], env['SPECS'],
                                         env['LIB_TARGETS'], env['LIB_EXCLUDES'])
@@ -369,12 +374,14 @@ def process_builddir(build_dir, env):
     env['fn_info']("Effective run script targets: %s" % (' '.join(exp_runs)))
 
     if env['DEV_ONLY_EXPAND_TARGETS']:
+        print('PORTS: %s' % (' '.join(exp_ports)))
         print('LIBS: %s' % (' '.join(exp_libs)))
         print('PROGS: %s' % (' '.join(exp_progs)))
         print('RUNS: %s' % (' '.join(exp_runs)))
         quit()
 
     all_target = genode_all_target.GenodeAll(env,
+                                             env['PORT_TARGETS'],
                                              env['LIB_TARGETS'],
                                              env['PROG_TARGETS'],
                                              env['RUN_TARGETS'])
