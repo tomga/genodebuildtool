@@ -63,7 +63,7 @@ Currently development and testing is performed on Ubuntu
 20.04. Installation requires python3 and a possibility to create
 Python virtual environment in which two packages should be installed:
  * SCons
- * parlglare - lexer and parser implementation in Python used to parse
+ * parglare - lexer and parser implementation in Python used to parse
    makfiles
 
 Following commands should be enough:
@@ -173,7 +173,7 @@ Brief description of accepted parameters can be retrieved by executing:
 
 SCons build variant implements support for *ccache* in the same way it
 is implemented in original make based builds. Only *CCACHE* variable
-with value *yes* is needed in *build.conf* is needed.
+with value *yes* in *build.conf* is needed.
 
 
 ## Current state
