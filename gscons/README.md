@@ -106,7 +106,7 @@ build directories that it is not supposed to.
 In consequence creating a build directory for GScons build may look
 like:
 
-    tool/create_builddir linux BUILD_DIR=build/linux_s
+    tool/create_builddir x86_64 BUILD_DIR=build/linux_s
     touch build/linux_s/SCons
     rm build/linux_s/Makefile
 
