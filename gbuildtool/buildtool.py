@@ -242,7 +242,7 @@ def do_expand_targets(opts):
     for build in opts.build:
         current_arch = get_build_arch(build)
         if arch is not None and arch != current_arch:
-            print("ERROR: targets with asterisks allowed only for builds with consistent archiecture")
+            print("ERROR: targets with asterisks allowed only for builds with consistent architecture")
             print("       but detected at least two: %s and %s" % (arch, current_arch))
             quit()
         arch = current_arch
