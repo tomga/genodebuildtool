@@ -41,20 +41,20 @@ terminals
 
 PATH: /[.+\-a-zA-Z0-9_\/][.+\-a-zA-Z0-9_\/]*/;
 QUOT: /'/;
-ENTERING_DIR: /make(\[[0-9]+\])?: Entering directory '/;
-LEAVING_DIR: /make(\[[0-9]+\])?: Leaving directory '/;
+ENTERING_DIR: /make(\[[0-9]+\])?:\ Entering\ directory\ '/;
+LEAVING_DIR: /make(\[[0-9]+\])?:\ Leaving\ directory\ '/;
 
-SKIP_TARGET: /Skip target .*/;
-LIB_DESCR_MISSING: /Library-description file .* is missing/;
+SKIP_TARGET: /Skip\ target\ .*/;
+LIB_DESCR_MISSING: /Library-description\ file\ .*\ is\ missing/;
 
-LIBRARY_TITLE: /\x1b\[00;33m  Library \x1b\[0m/;
-PROGRAM_TITLE: /\x1b\[01;33m  Program \x1b\[0m/;
+LIBRARY_TITLE: /\x1b\[00;33m\ \ Library\ \x1b\[0m/;
+PROGRAM_TITLE: /\x1b\[01;33m\ \ Program\ \x1b\[0m/;
 
-BUILD_COMMAND_TITLE: /    (ASSEMBLE|COMPILE|CONVERT|LINK|MERGE|BUILD)/;
+BUILD_COMMAND_TITLE: /\ \ \ \ (ASSEMBLE|COMPILE|CONVERT|LINK|MERGE|BUILD)/;
 
 NONBACKSLASH: /[^\\]/;
 LINE_END: /\n/;
 LINE_CONTINUATION: /\\\n/;
 ESCAPED: /\\./;
-WS: /[ \t]+/;
+WS: /[\ \t]+/;
 TEXT: /[^\x1b\\\n]/;
