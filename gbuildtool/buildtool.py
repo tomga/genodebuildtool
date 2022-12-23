@@ -263,10 +263,6 @@ def do_expand_targets(opts):
 
 def do_mk_build(build_name, opts, stamp_dt, log_file):
 
-    if len(opts.lib) > 1:
-        print("ERROR: only single library allowed with make build but asked for '%s'" % (str(opts.lib)))
-        quit()
-
     kernel = 'KERNEL=%s' % (opts.kernel) if opts.kernel is not None else ''
     board = 'BOARD=%s' % (opts.board) if opts.board is not None else ''
 
@@ -275,7 +271,7 @@ def do_mk_build(build_name, opts, stamp_dt, log_file):
                                     '-C build/%s' % (build_name),
                                     '%s' % (kernel),
                                     '%s' % (board),
-                                    'LIB=%s' % opts.lib[0] if len(opts.lib) > 0 else '',
+                                    '%s' % ' '.join(map(lambda l: 'lib/' + l, opts.lib)),
                                     '%s' % ' '.join(opts.prog),
                                     '%s' % ' '.join(map(lambda r: 'run/' + r, opts.run)),
                                     '2>&1 | tee %s' % (log_file)] if p != ''])
