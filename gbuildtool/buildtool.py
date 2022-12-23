@@ -485,6 +485,11 @@ if opts.test_mkdbstore:
     stamp_dt = datetime.datetime.now()
     abs_dir = os.getcwd()
     rel_dir = 'build/%s' % (build)
+
+    if opts.db_reset_data:
+        print('Clearing build db: %s' % (build))
+        db_utils.clear_build_info(build_db, build)
+
     for log_file in opts.log:
         build_info = parse_mk_log(log_file)
         buildinfo_storer.store_build_info(build_db, build_info, build, 'make',
@@ -497,6 +502,11 @@ if opts.test_scdbstore:
     stamp_dt = datetime.datetime.now()
     abs_dir = os.getcwd()
     rel_dir = 'build/%s' % (build)
+
+    if opts.db_reset_data:
+        print('Clearing build db: %s' % (build))
+        db_utils.clear_build_info(build_db, build)
+
     for log_file in opts.log:
         build_info = parse_sc_log(log_file)
         buildinfo_storer.store_build_info(build_db, build_info, build, 'make',
