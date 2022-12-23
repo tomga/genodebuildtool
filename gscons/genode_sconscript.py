@@ -111,10 +111,26 @@ def process_builddir(build_dir, env):
     env['RUNCOMSTR']    = '${fn_msg(TARGET, SOURCES, " RUN     ", "RUNCOM",    __env__)}'
 
     def format_custom_message_simple(tgt, cmd_pres, cmd_text):
-        return "%s %s" % (' ' + cmd_pres.ljust(8), prettify_path(tgt))
+        pres_list = [ "%s %s" % (' ' + cmd_pres.ljust(8), prettify_path(tgt)) ]
+        def nextpres(tgt, src, e):
+            pres = None
+            if len(pres_list) != 0:
+                pres = pres_list.pop(0)
+            return pres
+        return nextpres
 
     def format_custom_message_verbose(tgt, cmd_pres, cmd_text):
-        return "%s %s\n%s" % (' ' + cmd_pres.ljust(8), prettify_path(tgt), cmd_text)
+        if not isinstance(cmd_text, list):
+            cmd_text = [ cmd_text ]
+        pres_list = [(tgt, None, x) for x in cmd_text]
+        pres_list[0] = (tgt, cmd_pres, cmd_text[0])
+        def nextpres(tgt, src, e):
+            tgt, cmd_pres, cmd_text = pres_list.pop(0)
+            exp_cmd_text = e.subst(cmd_text, raw=0, target=tgt, source=src)
+            if cmd_pres is None:
+                return exp_cmd_text
+            return "%s %s\n%s" % (' ' + cmd_pres.ljust(8), prettify_path(tgt), exp_cmd_text)
+        return nextpres
 
     env['fn_fmt_out'] = (format_custom_message_simple if not env['VERBOSE_OUTPUT']
                          else format_custom_message_verbose)
