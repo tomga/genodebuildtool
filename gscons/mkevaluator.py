@@ -372,6 +372,8 @@ functionsDict['patsubst'] = mkfun_patsubst
 
 def mkfun_subst(mkenv, args):
     assert len(args[0]) == 1, "TODO: support pattern with spaces"
+    if len(args[1]) == 0:
+        args[1].append('')
     assert len(args[1]) == 1, "TODO: support replacement with spaces"
     return [ v.replace(args[0][0], args[1][0]) for v in args[2] ]
 functionsDict['subst'] = mkfun_subst
