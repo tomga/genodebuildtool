@@ -27,8 +27,10 @@ def path_clean(path, run_dir, abs_dir, rel_dir, modify_relatives):
         path = os.path.normpath(os.path.join(run_dir, path))
     if path.startswith(abs_dir + '/'):
         path = path[len(abs_dir)+1:]
-    if path.startswith(rel_dir + '/'):
-        path = 'BLD/%s' % (path[len(rel_dir)+1:])
+    if path.startswith(rel_dir):
+        path = 'BLD%s' % (path[len(rel_dir):])
+    else:
+        path = path.replace('/' + rel_dir, '/BLD')
 
     return path
 
