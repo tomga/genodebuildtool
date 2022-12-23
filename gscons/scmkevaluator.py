@@ -73,16 +73,16 @@ class ScMkCache:
         self.mkcache = mkcache
         self.overlays_info = {}
 
-    def get_parsed_mk(self, makefile, no_overlay=False):
+    def get_parsed_mk(self, makefile, forced_overlay_type=None):
 
         env = self.env
 
-        if no_overlay:
+        if forced_overlay_type == 'no_overlay':
             # asked explicitely for makefile
             return self.mkcache.get_parsed_mk(makefile)
 
 
-        if makefile in self.overlays_info:
+        if makefile in self.overlays_info and forced_overlay_type is None:
             # already processed
             overlay_info = self.overlays_info[makefile]
             if not overlay_info['overlay_found']:
@@ -125,6 +125,10 @@ class ScMkCache:
 
         overlay_file_path = os.path.join(os.path.dirname(overlay_info_file_path), overlay_file_name)
         overlay_type = os.path.splitext(overlay_file_path)[1]
+        if forced_overlay_type is not None:
+            env['fn_debug']("Changing overlay type %s to %s" % (overlay_file_path, forced_overlay_type))
+            overlay_file_path = overlay_file_path[:-len(overlay_type)] + forced_overlay_type
+            overlay_type = forced_overlay_type
 
         env['fn_debug']("Checking overlay file %s" % (overlay_file_path))
         if overlay_type != '.orig' and not os.path.isfile(overlay_file_path):
@@ -138,6 +142,7 @@ class ScMkCache:
 
         if overlay_type == '.orig':
             parsed_makefile = self.mkcache.get_parsed_mk(makefile)
+            assert forced_overlay_type is None
             self.overlays_info[makefile] = { 'overlay_found': True,
                                              'overlay_type': '.orig',
                                              'overlay': parsed_makefile }
@@ -151,21 +156,24 @@ class ScMkCache:
             output = results.stdout
             parsed_makefile = self.mkcache.parser.parse(output)
             self.mkcache.set_parsed_mk(overlay_file_path, parsed_makefile)
-            self.overlays_info[makefile] = { 'overlay_found': True,
-                                             'overlay_type': '.patch',
-                                             'overlay': parsed_makefile }
+            if forced_overlay_type is None:
+                self.overlays_info[makefile] = { 'overlay_found': True,
+                                                 'overlay_type': '.patch',
+                                                 'overlay': parsed_makefile }
             return parsed_makefile
 
         if overlay_type == '.mk':
             parsed_makefile = self.mkcache.get_parsed_mk(overlay_file_path)
-            self.overlays_info[makefile] = { 'overlay_found': True,
-                                             'overlay_type': '.mk',
-                                             'overlay': parsed_makefile }
+            if forced_overlay_type is None:
+                self.overlays_info[makefile] = { 'overlay_found': True,
+                                                 'overlay_type': '.mk',
+                                                 'overlay': parsed_makefile }
             return parsed_makefile
 
         if overlay_type == '.sc':
             mk_overlay_fun = buildtool_tools.get_process_mk_overlay_fun(overlay_file_path)
             mk_overlay = ScMkOverlay(overlay_file_path, makefile, mk_overlay_fun)
+            assert forced_overlay_type is None
             self.overlays_info[makefile] = { 'overlay_found': True,
                                              'overlay_type': '.sc',
                                              'overlay': mk_overlay }

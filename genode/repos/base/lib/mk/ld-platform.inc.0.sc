@@ -5,7 +5,7 @@ def process_mk_overlay(mk_file, build_env):
 
     env = build_env.scons_env
 
-    include_mk = build_env.get_mk_cache().get_parsed_mk(mk_file, no_overlay=True)
+    include_mk = build_env.get_mk_cache().get_parsed_mk(mk_file, forced_overlay_type='no_overlay')
     include_mk.process(build_env)
 
     ld_file = env['fn_localize_path']('%s/lib/symbols/ld' % (env['BASE_DIR']))

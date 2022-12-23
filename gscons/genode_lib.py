@@ -112,11 +112,15 @@ class GenodeMkLib(GenodeBaseLib):
         super().__init__(lib_name, lib_env,
                          genode_build_helper.GenodeMkBuildHelper(self.build_env))
 
-        self.no_overlay = False
+        self.forced_overlay_type = None
 
 
     def disable_overlay(self):
-        self.no_overlay = True
+        self.forced_overlay_type = 'no_overlay'
+
+
+    def enforce_overlay_type(self, forced_overlay_type):
+        self.forced_overlay_type = forced_overlay_type
 
 
     def process_load(self):
@@ -152,7 +156,8 @@ class GenodeMkLib(GenodeBaseLib):
         self.env['fn_info']("Parsing build rules for library '%s' from '%s'" %
                             (self.lib_name, self.env['fn_localize_path'](self.lib_mk_file)))
         # overlays for <lib>.mk are already handled on a different level
-        lib_mk = mkcache.get_parsed_mk(self.lib_mk_file, no_overlay=self.no_overlay)
+        lib_mk = mkcache.get_parsed_mk(self.lib_mk_file,
+                                       forced_overlay_type=self.forced_overlay_type)
         lib_mk.process(self.build_env)
 
 
