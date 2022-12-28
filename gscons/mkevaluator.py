@@ -54,6 +54,7 @@ class MkEnv:
         self.vpaths = [] # list of tupples <pattern_re, path>
         self.mk_cache = mk_cache
         self.parent_env = parent_env
+        self.registered_targets = {}
 
     def dict(self):
         return self.variables;
@@ -162,6 +163,18 @@ class MkEnv:
             if re.search(pattern, filename) is not None:
                 retval.append(path)
         return retval
+
+    def register_target_file(self, file_name):
+        self.registered_targets[file_name] = None
+
+    def is_file_or_target(self, file_name):
+        if os.path.isfile(file_name):
+            return True
+
+        if file_name in self.registered_targets:
+            return True
+
+        return False
 
 
 class MkRValue:

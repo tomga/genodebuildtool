@@ -525,11 +525,12 @@ class GenodeMkLib(GenodeBaseLib):
     def get_sources(self, files):
         src_files = []
         for src_file in files:
-            file_paths = self.build_env.find_vpaths(src_file)
+            working_path = self.env['fn_norm_tgt_path'](None)
+            file_paths = [working_path] + self.build_env.find_vpaths(src_file)
             if src_file.startswith('/'):
                 file_paths = [ os.path.dirname(src_file) ]
                 src_file = os.path.basename(src_file)
-            existing_file_paths = [ f for f in file_paths if os.path.isfile(os.path.join(f, src_file)) ]
+            existing_file_paths = [ f for f in file_paths if self.build_env.is_file_or_target(os.path.join(f, src_file)) ]
             if len(existing_file_paths) == 0:
                 self.env['fn_error']("Expected exactly one vpath for %s but none from %s found" % (src_file, ' '.join(file_paths)))
                 quit()
