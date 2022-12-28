@@ -153,8 +153,8 @@ def arg_clean_compiler(args_tokenized, run_dir, abs_dir, rel_dir, options):
     res += [ '-W%s' % (v if v != '~' else '') for v in sorted(nodups(opts.W)) ]
     res += [ '-D%s' % (v) for v in sorted(nodups(opts.D)) ]
     res += [ '-U%s' % (v) for v in sorted(nodups(opts.U)) ]
-    inc = [ '-I%s' % (path_clean(v, run_dir, abs_dir, rel_dir, True))
-             for v in nodups(opts.I) ]
+    inc = nodups([ '-I%s' % (path_clean(v, run_dir, abs_dir, rel_dir, True))
+                   for v in nodups(opts.I) ])
     if 'noincsort' not in options:
         inc = sorted(inc)
     res += inc
