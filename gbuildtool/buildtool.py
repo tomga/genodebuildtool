@@ -58,7 +58,8 @@ def arguments_parse():
     argparser.add_argument('--logs', default='build/logs',
                            help='target run kernel')
     argparser.add_argument('--log-level', default='none',
-                           choices=['none', 'error', 'warning', 'notice', 'info', 'debug'],
+                           choices=['none', 'error', 'warning', 'notice',
+                                    'info', 'debug', 'trace'],
                            help='scons helper code diagnostics log level')
 
     argparser.add_argument('--db-reset-data', action='store_true')
