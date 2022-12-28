@@ -495,6 +495,131 @@ def arg_clean_check_abi(args_tokenized, run_dir, abs_dir, rel_dir):
 
 
 
+def arg_clean_perl(args_tokenized, run_dir, abs_dir, rel_dir):
+
+    assert args_tokenized[-2] == '>'
+
+    res = args_tokenized
+
+    res[-3] = path_clean(res[-3], run_dir, abs_dir, rel_dir, True)
+    sources = [res[-3]]
+
+    res[-1] = path_clean(res[-1], run_dir, abs_dir, rel_dir, True)
+    targets = [res[-1]]
+
+    command = ' '.join(res)
+
+    return (command, sources, targets)
+
+
+
+def arg_parse_make(args_array, mk_params_paths, mk_params_std):
+
+    # make copy as content is modified
+    args_array = [ v for v in args_array ]
+
+    for option in [] + mk_params_paths + mk_params_std:
+        args_array = [ '--%s' % (v) if v.startswith(option + '=') else v for v in args_array ]
+
+    argparser = argparse.ArgumentParser('make')
+    argparser.add_argument('-C', action='append', default=[])
+    for option in [] + mk_params_paths + mk_params_std:
+        argparser.add_argument('--%s' % option, action='append', default=[])
+    argparser.add_argument('TARGETS', action='append', default=[], nargs='*')
+
+    return argparser.parse_args(args_array)
+
+
+def arg_clean_make(args_tokenized, run_dir, abs_dir, rel_dir):
+
+    mk_params_paths = [ 'O' ]
+    mk_params_std = [ 'ARCH', 'CROSS_COMPILE' ]
+
+    if (args_tokenized[-4] == '2>&1' and
+        args_tokenized[-3] == '|' and
+        args_tokenized[-2] == 'sed'):
+        args_tokenized = args_tokenized[0:-4]
+
+    opts = arg_parse_make(args_tokenized[1:], mk_params_paths, mk_params_std)
+    #arguments_print(opts)
+
+    res = [args_tokenized[0]]
+
+    assert len(opts.C) <= 1
+    realC_value = '.'
+    if len(opts.C) == 1:
+        realC_value = opts.C[0]
+    realC_value = path_clean(realC_value, run_dir, abs_dir, rel_dir, True)
+    res += [ '-C %s' % (realC_value) ]
+
+    def calc_rel_path(path):
+        return os.path.relpath(path, realC_value) if path.startswith('/') else path
+    paramOvalues = nodups(getattr(opts, 'O'))
+    paramOvalue = '.'
+    if len(paramOvalues) != 0:
+        paramOvalue = path_clean(calc_rel_path(paramOvalues[0]), run_dir, abs_dir, rel_dir, False)
+
+    for option in mk_params_paths:
+        res += [ '%s=%s' % (option, path_clean(calc_rel_path(v), run_dir, abs_dir, rel_dir, False))
+                 for v in nodups(getattr(opts, option)) ]
+
+    for option in mk_params_std:
+        res += [ '%s=%s' % (option, v)
+                 for v in nodups(getattr(opts, option)) ]
+    res += opts.TARGETS[0]
+
+    targets = [ os.path.normpath(os.path.join(realC_value, paramOvalue, '#' + v))
+                for v in opts.TARGETS[0] ]
+    sources = []
+
+    command = ' '.join(res)
+
+    return (command, sources, targets)
+
+
+
+def arg_parse_linux_scripts_config(args_array):
+
+    argparser = argparse.ArgumentParser('linux/scripts/config')
+    argparser.add_argument('--file', action='append', default=[])
+    argparser.add_argument('--enable', action='append', default=[])
+    argparser.add_argument('--disable', action='append', default=[])
+
+    return argparser.parse_args(args_array)
+
+
+def arg_clean_linux_scripts_config(args_tokenized, run_dir, abs_dir, rel_dir):
+
+    opts = arg_parse_linux_scripts_config(args_tokenized[1:])
+    #arguments_print(opts)
+
+    res = [path_clean(args_tokenized[0], run_dir, abs_dir, rel_dir, True)]
+
+    assert len(opts.file) <= 1
+    tgt_file = '.config'
+    if len(opts.file) == 1:
+        tgt_file = opts.file[0]
+    tgt_file = path_clean(tgt_file, run_dir, abs_dir, rel_dir, True)
+
+    res += [ '--file %s' % (tgt_file) ]
+
+    res += [ '--enable %s' % (v)
+             for v in nodups(opts.enable)  ]
+    res += [ '--disable %s' % (v)
+             for v in nodups(opts.disable)  ]
+
+    sources = []
+    targets_annotation = ('#enable'  if len(opts.disable) == 0 else
+                          '#disable' if len(opts.enable) == 0 else
+                          '#')
+    targets = [ tgt_file + targets_annotation ]
+
+    command = ' '.join(res)
+
+    return (command, sources, targets)
+
+
+
 def arg_clean_sed(args_tokenized, run_dir, abs_dir, rel_dir):
 
     assert args_tokenized[-2] == '>'
@@ -703,6 +828,12 @@ def arg_clean_systemexit(args_string, run_dir, abs_dir, rel_dir, options):
         return arg_clean_strip(args_tokenized, run_dir, abs_dir, rel_dir)
     elif (prg.endswith('check_abi')):
         return arg_clean_check_abi(args_tokenized, run_dir, abs_dir, rel_dir)
+    elif (prg == 'perl'):
+        return arg_clean_perl(args_tokenized, run_dir, abs_dir, rel_dir)
+    elif (prg == 'make'):
+        return arg_clean_make(args_tokenized, run_dir, abs_dir, rel_dir)
+    elif (prg.endswith('linux/scripts/config')):
+        return arg_clean_linux_scripts_config(args_tokenized, run_dir, abs_dir, rel_dir)
     elif (prg.endswith('sed')):
         return arg_clean_sed(args_tokenized, run_dir, abs_dir, rel_dir)
     elif (prg.endswith('ln')):

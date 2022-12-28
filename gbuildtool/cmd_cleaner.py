@@ -18,6 +18,13 @@ def commands_clean(cmd_lines, run_dir, abs_dir, rel_dir):
         if (not special_accepted and unstripped.startswith(' ')):
             continue
 
+        # stripped positive checks
+        if (orig.startswith('make ')
+            and (' tinyconfig ' in orig or
+                 ' olddefconfig ' in orig or
+                 ' bzImage ' in orig)):
+            special_accepted = True
+
         # stripped negative checks
         if (orig.startswith('rm ') or
             (orig.startswith('echo ') and ' .incbin ' not in orig) or
@@ -36,7 +43,8 @@ def commands_clean(cmd_lines, run_dir, abs_dir, rel_dir):
             orig.startswith('ln -sf `which ccache') or
             orig.startswith('ln -sf `command -v ccache') or
             False):
-            continue
+            if not special_accepted:
+                continue
 
         #print('cmd: %s' % orig)
 
