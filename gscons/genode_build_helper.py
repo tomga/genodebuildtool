@@ -21,12 +21,15 @@ class GenodeBuildHelper:
         self.prepare_strip_env(env)
 
 
-    def split_non_unique_args(self, args):
+    def split_non_unique_args(self, args, env):
         nonunique, unique = [], []
         last_was_include = False
         for arg in args:
             if last_was_include or arg == '-include':
-                nonunique.append(arg)
+                if last_was_include:
+                    nonunique.append(env['fn_localize_path'](arg))
+                else:
+                    nonunique.append(arg)
                 last_was_include = not last_was_include
             else:
                 unique.append(arg)
@@ -186,7 +189,7 @@ class GenodeMkBuildHelper(GenodeBuildHelper):
         env['CC'] = self.build_env.var_value('CC')
 
         cc_def = self.build_env.var_values('CC_DEF')
-        nonunique, unique = self.split_non_unique_args(cc_def)
+        nonunique, unique = self.split_non_unique_args(cc_def, env)
         env.Append(CFLAGS=nonunique)
         env.AppendUnique(CFLAGS=unique)
         #env['fn_debug']('CFLAGS: %s' % (env['CFLAGS']))
@@ -194,7 +197,9 @@ class GenodeMkBuildHelper(GenodeBuildHelper):
         cc_opt_dep_to_remove = self.build_env.var_value('CC_OPT_DEP')
         cc_c_opt = self.build_env.var_value('CC_C_OPT')
         cc_c_opt = cc_c_opt.replace(cc_opt_dep_to_remove, '')
-        env.AppendUnique(CFLAGS=cc_c_opt.split())
+        nonunique, unique = self.split_non_unique_args(cc_c_opt.split(), env)
+        env.Append(CFLAGS=nonunique)
+        env.AppendUnique(CFLAGS=unique)
         #env['fn_debug']('CFLAGS: %s' % (env['CFLAGS']))
 
 
@@ -220,7 +225,7 @@ class GenodeMkBuildHelper(GenodeBuildHelper):
         env.Replace(ASPPFLAGS=['-D__ASSEMBLY__'])
 
         cc_def = self.build_env.var_values('CC_DEF')
-        nonunique, unique = self.split_non_unique_args(cc_def)
+        nonunique, unique = self.split_non_unique_args(cc_def, env)
         env.Append(ASFLAGS=nonunique)
         env.AppendUnique(ASFLAGS=unique)
         #env['fn_debug']('ASFLAGS: %s' % (env['ASFLAGS']))
