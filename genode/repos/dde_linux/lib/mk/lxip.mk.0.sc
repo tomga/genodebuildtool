@@ -12,7 +12,7 @@ class GenodeLxipMkLib(genode_lib.GenodeMkLib):
 
     def build_c_objects(self):
 
-        def target_opts_modifier(opts):
+        def target_opts_modifier(src, opts):
             return [ o if o != '-DSETUP_SUFFIX=' else o + '"_eth"' for o in opts ]
 
         self.env['fn_register_modify_target_opts'](self.env, 'net/ethernet/eth.c',

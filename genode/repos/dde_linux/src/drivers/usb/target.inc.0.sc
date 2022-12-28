@@ -12,7 +12,7 @@ def process_mk_overlay(mk_file, build_env):
 
     cc_cxx_opt = build_env.var_set('CC_CXX_OPT', cc_cxx_opt + ' -fpermissive')
 
-    def target_opts_modifier(opts):
+    def target_opts_modifier(src, opts):
         return [ o if o != '-DMOD_SUFFIX=' else o + '"_core"' for o in opts ]
 
     env['fn_register_modify_target_opts'](env, 'hid/hid-core.c', target_opts_modifier)
