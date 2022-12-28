@@ -349,7 +349,7 @@ class GenodeMkLib(GenodeBaseLib):
 
         all_inc_dir = self.build_env.var_values('ALL_INC_DIR')
         all_inc_dir = [ path if os.path.isabs(path) else self.norm_tgt_path(path) for path in all_inc_dir ]
-        all_inc_dir = [ path for path in all_inc_dir if os.path.isdir(path) or path.startswith(self.env['BUILD']) ]
+        all_inc_dir = [ path for path in all_inc_dir if os.path.isdir(path) or self.env['fn_localize_path'](path).startswith(self.env['BUILD']) ]
         all_inc_dir = [ self.sconsify_path(path) for path in all_inc_dir ]
 
         self.env.AppendUnique(CPPPATH=all_inc_dir)
