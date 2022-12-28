@@ -1,0 +1,38 @@
+diff --git a/repos/dde_linux/lib/import/import-lx_emul_common.inc b/repos/dde_linux/lib/import/import-lx_emul_common.inc
+index 600b37b075..a82c5c4375 100644
+--- a/repos/dde_linux/lib/import/import-lx_emul_common.inc
++++ b/repos/dde_linux/lib/import/import-lx_emul_common.inc
+@@ -147,7 +147,7 @@ CC_C_OPT += -Wno-packed-not-aligned
+ CC_C_OPT += -Wno-discarded-qualifiers
+ 
+ # avoid link errors whenever the build config's CC_OLEVEL is set to -O0
+-override CC_OLEVEL := -O2
++CC_OLEVEL := -O2
+ 
+ LX_SRC   = $(shell grep ".*\.c" $(TARGET_SOURCE_LIST))
+ SRC_S   += $(shell grep ".*\.S" $(TARGET_SOURCE_LIST))
+@@ -159,15 +159,15 @@ vpath %.S $(LX_GEN_DIR)
+ 
+ CUSTOM_TARGET_DEPS += $(TARGET_SOURCE_LIST)
+ 
+-# Define per-compilation-unit CC_OPT defines needed by MODULE* macros in Linux
+-define CC_OPT_LX_RULES =
+-CC_OPT_$(1) += -DKBUILD_MODFILE='"$(1)"' -DKBUILD_BASENAME='"$(notdir $(1))"' -DKBUILD_MODNAME='"$(notdir $(1))"'
+-endef
+-
+-$(foreach file,$(LX_SRC),$(eval $(call CC_OPT_LX_RULES,$(file:%.c=%))))
+-
+-$(eval $(call CC_OPT_LX_RULES,generated_dummies))
+-$(eval $(call CC_OPT_LX_RULES,dummies))
++## # Define per-compilation-unit CC_OPT defines needed by MODULE* macros in Linux
++## define CC_OPT_LX_RULES =
++## CC_OPT_$(1) += -DKBUILD_MODFILE='"$(1)"' -DKBUILD_BASENAME='"$(notdir $(1))"' -DKBUILD_MODNAME='"$(notdir $(1))"'
++## endef
++## 
++## $(foreach file,$(LX_SRC),$(eval $(call CC_OPT_LX_RULES,$(file:%.c=%))))
++## 
++## $(eval $(call CC_OPT_LX_RULES,generated_dummies))
++## $(eval $(call CC_OPT_LX_RULES,dummies))
+ 
+ 
+ #
