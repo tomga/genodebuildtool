@@ -77,6 +77,9 @@ class GenodeTarget:
 
     def make_disabled(self, message):
         self.env['fn_debug']("make_disabled %s:%s due to %s" % (self.target_type_code, self.target_name, message))
+        if self.disabled_message is not None:
+            self.disabled_message += ', ' + message
+            return
         assert self.disabled_message is None
         self.disabled_message = message
         for dep_parent in self.dep_parent_objs:
