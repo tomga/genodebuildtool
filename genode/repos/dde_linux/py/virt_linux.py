@@ -9,11 +9,12 @@ class GenodeDdeLinuxVirtMkProg(genode_prog.GenodeMkProg):
     def __init__(self, prog_name, env,
                  prog_mk_file, prog_mk_repo,
                  build_env,
-                 lx_target):
+                 lx_target, lx_ktag_without_prepare = False):
         super().__init__(prog_name, env,
                          prog_mk_file, prog_mk_repo,
                          build_env)
         self.lx_target = lx_target
+        self.lx_ktag_without_prepare = lx_ktag_without_prepare
 
 
     def do_process_target(self):
@@ -31,6 +32,7 @@ class GenodeDdeLinuxVirtMkProg(genode_prog.GenodeMkProg):
                                  lx_mk_args = build_env.var_value('LX_MK_ARGS'),
                                  lx_enable = build_env.var_values('LX_ENABLE'),
                                  lx_disable = build_env.var_values('LX_DISABLE'),
+                                 without_prepare = self.lx_ktag_without_prepare,
                                  )
 
         bzimage_tgt = env.LinuxBuild(source = conf_tgt,
