@@ -566,10 +566,12 @@ def arg_clean_make(args_tokenized, run_dir, abs_dir, rel_dir):
     for option in mk_params_std:
         res += [ '%s=%s' % (option, v)
                  for v in nodups(getattr(opts, option)) ]
-    res += opts.TARGETS[0]
+    if len(opts.TARGETS) > 0:
+        res += opts.TARGETS[0]
 
+    real_targets = opts.TARGETS[0] if len(opts.TARGETS[0]) > 0 else ['<default>']
     targets = [ os.path.normpath(os.path.join(realC_value, paramOvalue, '#' + v))
-                for v in opts.TARGETS[0] ]
+                for v in real_targets ]
     sources = []
 
     command = ' '.join(res)

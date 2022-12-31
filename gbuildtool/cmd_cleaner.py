@@ -22,7 +22,8 @@ def commands_clean(cmd_lines, run_dir, abs_dir, rel_dir):
         if (orig.startswith('make ')
             and (' tinyconfig ' in orig or
                  ' olddefconfig ' in orig or
-                 ' bzImage ' in orig)):
+                 ' bzImage ' in orig or
+                 '2>&1 | sed ' in orig)):     # for linux builds without targets
             special_accepted = True
 
         # stripped negative checks
