@@ -13,9 +13,16 @@ class GenodeWireguardLxIncDirsMkLib(genode_lib.GenodeMkLib):
         env = self.env
         build_env = self.build_env
 
-        base_name = 'poly1305-x86_64-cryptogams'
-        perl_base_name = '%s' % (base_name)
-        lx_arch = 'x86'
+        base_name = 'poly1305-core'
+        perl_base_name = 'poly1305-armv8'
+        lx_arch = 'arm64'
+
+        def target_opts_modifier(src, opts):
+            retval = opts + ['-Dpoly1305_init=poly1305_init_arm64']
+            return retval
+
+        self.env['fn_register_modify_target_opts'](self.env, 'arch/arm64/crypto/poly1305-core.S',
+                                                   target_opts_modifier)
 
         # register target for vpath processing before processing
         # original makefile
@@ -47,6 +54,6 @@ class GenodeWireguardLxIncDirsMkLib(genode_lib.GenodeMkLib):
 
 def process_lib_overlay(lib_name, env, lib_mk_file, lib_mk_repo, build_env):
     lib = GenodeWireguardLxIncDirsMkLib(lib_name, env, lib_mk_file, lib_mk_repo, build_env)
-    lib.disable_overlay()
+    lib.enforce_overlay_type('.patch')
     lib.process_load()
     return lib
