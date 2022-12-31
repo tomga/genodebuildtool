@@ -5,18 +5,19 @@ import re
 import SCons.Action
 
 
-def linux_bzimage(env, source,
-                  lx_dir, lx_mk_args):
+def linux_build(env, source,
+                lx_dir, lx_mk_args, lx_target):
 
-    lx_arch = 'x86'
-
-    sc_tgt_file = env['fn_norm_tgt_path']('arch/{arch}/boot/bzImage'.format(arch=lx_arch))
+    sc_tgt_file = env['fn_norm_tgt_path']('linux_build.tag')
     norm_tgt_file = env['fn_norm_tgt_path']('Linux')
 
-    conf_cmd = ['$MAKE -C $PWD $LX_MK_ARGS bzImage $BUILD_OUTPUT_FILTER'
+    if lx_target is None:
+        lx_target = ''
+    conf_cmd = ['$MAKE -C $PWD $LX_MK_ARGS %s $BUILD_OUTPUT_FILTER' % (lx_target),
+                'touch %s' % (sc_tgt_file),
                 ]
 
-    bzimage_tgt = env.Command(
+    build_tgt = env.Command(
         target=[sc_tgt_file],
         source=source,
         action=SCons.Action.Action(conf_cmd,
@@ -27,7 +28,7 @@ def linux_bzimage(env, source,
         BUILD_OUTPUT_FILTER = '2>&1 | sed "`echo s/^/______[Linux]__/ | %s`"' % ("tr '_' ' '"),
     )
 
-    return bzimage_tgt
+    return build_tgt
 
 
 def exists(env):
@@ -40,4 +41,4 @@ def generate(env):
                      lx_dir, lx_mk_args)
     '''
 
-    env.AddMethod(linux_bzimage, "LinuxBzImage")
+    env.AddMethod(linux_build, "LinuxBuild")
