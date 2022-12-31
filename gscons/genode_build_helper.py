@@ -74,7 +74,7 @@ class GenodeBuildHelper:
 
 
     def compile_s_sources(self, env, src_files):
-        return self.generic_compile(env, src_files, 'ASFLAGS')
+        return self.generic_compile(env, src_files, 'ASPPFLAGS')
 
 
     def compile_binary_sources(self, env, src_files):
