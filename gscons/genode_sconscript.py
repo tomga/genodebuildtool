@@ -818,6 +818,7 @@ def setup_ccache(env, conf_build_env, base_build_env):
     base_build_env.var_set('CUSTOM_CXX', cxx_ccache)
 
     env['ENV']['CCACHE_PATH'] = cxx_dir
+    env['ENV']['CCACHE_NODIRECT'] = '1'
     cmd = "mkdir -p %s" % (tool_var_path)
     results = subprocess.run(cmd, stdout=subprocess.PIPE,
                              shell=True, universal_newlines=True, check=True)
