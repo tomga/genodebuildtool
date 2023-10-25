@@ -79,6 +79,7 @@ def lib_so_generator(target, source, env, for_signature):
 
     d = { 'ld': env['LD'],
           'lib_so': target[0],
+          'lib_soname': os.path.basename(str(target[0])),
           'ld_opts': ld_opts,
           'ld_script_so': main_script,
           'ld_script_rest': hidden_opts,
@@ -90,7 +91,7 @@ def lib_so_generator(target, source, env, for_signature):
 
     #env['fn_debug']("lib_so_generator: %s" % (d['sources']))
 
-    cmd = r"""{ld} -o {lib_so} -shared --eh-frame-hdr {ld_opts}
+    cmd = r"""{ld} -o {lib_so} -soname={lib_soname} -shared --eh-frame-hdr {ld_opts}
                    -T {ld_script_so} {ld_script_rest} --entry={entry_point}
                    --whole-archive --start-group
                    {sources}
