@@ -480,9 +480,14 @@ class GenodeMkLib(GenodeBaseLib):
 
             lib_targets.append(lib_so_tgt)
 
+            # debug symbols file
+            debugsyms_tgt = self.env.DebugSymbols(target=self.sc_tgt_path('%s.debug' % (lib_so)),
+                                                  source=lib_so_tgt)
+            lib_targets.append(debugsyms_tgt)
+
             # stripped shared library
             strip_tgt = self.env.Strip(target=self.sc_tgt_path('%s.stripped' % (lib_so)),
-                                       source=lib_so_tgt)
+                                       source=[lib_so_tgt, debugsyms_tgt])
             lib_targets.append(strip_tgt)
 
             # symlink to stripped version
@@ -491,9 +496,14 @@ class GenodeMkLib(GenodeBaseLib):
             lib_targets.append(inst_lib_tgt)
 
             # symlink to debug version
-            dbg_lib_tgt = self.env.SymLink(source = lib_so_tgt,
+            dbg_lib_tgt = self.env.SymLink(source = strip_tgt,
                                            target = self.sconsify_path(os.path.join(self.env['DEBUG_DIR'], lib_so)))
             lib_targets.append(dbg_lib_tgt)
+
+            # symlink to debug symbols for debug version
+            dbg_syms_tgt = self.env.SymLink(source = debugsyms_tgt,
+                                            target = self.sconsify_path(os.path.join(self.env['DEBUG_DIR'], '%s.debug' % (lib_so))))
+            lib_targets.append(dbg_syms_tgt)
 
 
         if (lib_so_tgt is not None and symbols_file is not None):

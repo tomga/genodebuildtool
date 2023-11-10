@@ -465,8 +465,14 @@ class GenodeMkProg(GenodeBaseProg):
                                         source=objects + dep_archives + dep_shlib_links + ext_objects)
             prog_targets.append(prog_tgt)
 
+
+            debugsyms_tgt = self.env.DebugSymbols(target=self.sc_tgt_path('%s.debug' % (prog_name)),
+                                                  source=prog_tgt)
+            prog_targets.append(debugsyms_tgt)
+
+
             strip_tgt = self.env.Strip(target=self.sc_tgt_path('%s.stripped' % (prog_name)),
-                                       source=prog_tgt)
+                                       source=[prog_tgt, debugsyms_tgt])
             prog_targets.append(strip_tgt)
 
 
@@ -477,9 +483,14 @@ class GenodeMkProg(GenodeBaseProg):
 
 
             # symlink to debug version
-            dbg_prog_tgt = self.env.SymLink(source = prog_tgt,
+            dbg_prog_tgt = self.env.SymLink(source = strip_tgt,
                                             target = self.sconsify_path(os.path.join(self.env['DEBUG_DIR'], prog_name)))
             prog_targets.append(dbg_prog_tgt)
+
+            # symlink to debug symbols for debug version
+            dbg_syms_tgt = self.env.SymLink(source = debugsyms_tgt,
+                                            target = self.sconsify_path(os.path.join(self.env['DEBUG_DIR'], '%s.debug' % (prog_name))))
+            prog_targets.append(dbg_syms_tgt)
 
 
         # handle CONFIG_XSD
