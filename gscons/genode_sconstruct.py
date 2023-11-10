@@ -97,6 +97,7 @@ def sconstruct():
     env.Tool('genode_lib_so',        toolpath = [os.path.join(env['BUILDTOOL_DIR'], 'gscons/tools')])
     env.Tool('genode_check_abi',     toolpath = [os.path.join(env['BUILDTOOL_DIR'], 'gscons/tools')])
     env.Tool('genode_lib_tag',       toolpath = [os.path.join(env['BUILDTOOL_DIR'], 'gscons/tools')])
+    env.Tool('genode_debugsymbols',  toolpath = [os.path.join(env['BUILDTOOL_DIR'], 'gscons/tools')])
     env.Tool('genode_strip',         toolpath = [os.path.join(env['BUILDTOOL_DIR'], 'gscons/tools')])
     env.Tool('genode_binary',        toolpath = [os.path.join(env['BUILDTOOL_DIR'], 'gscons/tools')])
     env.Tool('genode_linux_ktag',    toolpath = [os.path.join(env['BUILDTOOL_DIR'], 'gscons/tools')])
