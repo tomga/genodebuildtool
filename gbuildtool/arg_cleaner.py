@@ -817,6 +817,12 @@ def arg_clean_systemexit(args_string, run_dir, abs_dir, rel_dir, options):
     args_tokenized = arg_tokenize(args_string)
     #print(str(args_tokenized))
 
+    if (args_tokenized[0] == 'cd' and
+        args_tokenized[2] == '&&'):
+        run_dir = os.path.join(run_dir, args_tokenized[1])
+        args_tokenized = args_tokenized[3:]
+        #print("new run_dir: {}".format(run_dir))
+
     prg = args_tokenized[0]
 
     if (prg.endswith('gcc') or prg.endswith('g++')):
