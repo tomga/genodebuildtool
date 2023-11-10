@@ -3,8 +3,8 @@ import os
 import re
 
 from SCons.Node import FS
-from SCons.Script import Action, Builder
-from SCons.Action import CommandGeneratorAction
+from SCons.Script import Builder
+from SCons.Action import Action, CommandGeneratorAction
 
 def generate(env):
     '''
@@ -36,7 +36,31 @@ def strip_generator(target, source, env, for_signature):
     cmd = cmd.replace('\n', ' ')
     cmd = ' '.join(cmd.split())
 
-    return cmd
+    commands = [cmd]
+
+    if len(source) > 1: # add gnu debuglink
+
+        lnk = source[1].abspath
+        src = source[0].abspath
+        lnkdir,lnkname = os.path.split(lnk)
+        srcrel = os.path.relpath(src,lnkdir)
+        tgtdir,tgtname = os.path.split(str(target[0]))
+
+        d = { 'objcopy': env['OBJCOPY'],
+              'debuglink': srcrel,
+              'tgtdir': tgtdir,
+              'tgtname': tgtname,
+              }
+        cmd = r"cd {tgtdir} && {objcopy} --add-gnu-debuglink={debuglink} {tgtname}"
+
+        cmd = cmd.format(**d)
+        cmd = cmd.replace('\n', ' ')
+        cmd = ' '.join(cmd.split())
+
+        commands += [cmd]
+
+    return Action(commands,
+                  env['fn_fmt_out'](env['fn_prettify_path'](target[0]), 'STRIP', commands))
 
 
 def strip_print(target, source, env, executor=None):
@@ -45,5 +69,5 @@ def strip_print(target, source, env, executor=None):
         presentation = env['fn_prettify_path'](presentation)
     retval = ' STRIP    %s' % (presentation)
     if env['VERBOSE_OUTPUT']:
-        retval += '\n%s' % (strip_generator(target, source, env, True))
+        retval += '\n%s' % ('\n'.join(strip_generator(target, source, env, True)))
     return retval
