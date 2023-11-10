@@ -344,10 +344,12 @@ def arg_parse_objcopy(args_array):
 
     argparser = argparse.ArgumentParser('objcopy')
     argparser.add_argument('-O', action='append', default=[])
+    argparser.add_argument('--only-keep-debug', action='store_true')
+    argparser.add_argument('--add-gnu-debuglink', action='append', default=[])
     argparser.add_argument('--localize-symbol', action='append', default=[])
     argparser.add_argument('--redefine-sym', action='append', default=[])
     argparser.add_argument('SOURCES', action='append', default=[], nargs=1)
-    argparser.add_argument('TARGETS', action='append', default=[], nargs=1)
+    argparser.add_argument('TARGETS', action='append', default=[], nargs='*')
 
     return argparser.parse_args(args_array)
 
@@ -365,6 +367,8 @@ def arg_clean_objcopy(args_tokenized, run_dir, abs_dir, rel_dir):
                 for v in nodups(opts.TARGETS[0]) ]
 
     res += [ '-O %s' % (v) for v in nodups(opts.O) ]
+    if opts.only_keep_debug: res += ['--only-keep-debug']
+    res += [ '--add-gnu-debuglink=%s' % (v) for v in nodups(opts.add_gnu_debuglink) ]
     res += [ '--localize-symbol=%s' % (v) for v in nodups(opts.localize_symbol) ]
     res += [ '--redefine-sym %s' % (v) for v in nodups(opts.redefine_sym) ]
 
