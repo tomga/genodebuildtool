@@ -71,7 +71,8 @@ def arguments_parse():
     argparser.add_argument('--log', nargs='+', default=[],
                            help='log files to process')
     argparser.add_argument('--test-database', action="store_true")
-    argparser.add_argument('--test-mkparser', action="store_true")
+    argparser.add_argument('--test-mkparser', default='',
+                           help='makefile to parse')
     argparser.add_argument('--test-mklogparser', action="store_true")
     argparser.add_argument('--test-sclogparser', action="store_true")
     argparser.add_argument('--test-mkdbstore', action="store_true")
@@ -93,6 +94,7 @@ def database_connect(opts):
 
     db_file = opts.database
     if (opts.test_database or
+        opts.test_mkparser != ''  or
         opts.test_mklogparser or opts.test_sclogparser or
         opts.test_mkdbstore or opts.test_scdbstore):
         db_file = os.path.join(os.path.dirname(opts.database), 'testdb.db')
@@ -398,12 +400,13 @@ def test_mkparser():
     parser = mkparser.initialize()
     mkcache = mkevaluator.MkCache(parser)
 
-    # test.mk
-    test_mk = mkcache.get_parsed_mk('/projects/genode/tmp/test.mk')
+    test_mk = mkcache.get_parsed_mk(opts.test_mkparser)
+    print("--- test_mk.debug_struct()")
     pprint.pprint(test_mk.debug_struct(), width=180)
 
     env = mkevaluator.MkEnv(mkcache)
     test_mk.process(env)
+    print("--- env.debug_struct('pretty')")
     pprint.pprint(env.debug_struct('pretty'), width=200)
     quit()
 
