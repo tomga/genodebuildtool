@@ -407,7 +407,11 @@ def test_mkparser():
     env = mkevaluator.MkEnv(mkcache)
     test_mk.process(env)
     print("--- env.debug_struct('pretty')")
-    pprint.pprint(env.debug_struct('pretty'), width=200)
+    varvalues = env.debug_struct('pretty');
+    #pprint.pprint(env.debug_struct('pretty'), width=200)
+    #for key, value in varvalues.items():
+    for key, value in sorted(varvalues.items()):
+        print(f"### {key}={value}")
     quit()
 
     # build.conf
