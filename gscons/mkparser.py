@@ -54,7 +54,7 @@ def initialize():
                         ],
         "CondCmd": [lambda _, nodes: mkevaluator.MkCmdCond(nodes[0], nodes[2], None),
                     lambda _, nodes: mkevaluator.MkCmdCond(nodes[0], nodes[2], nodes[6]),
-                    lambda _, nodes: mkevaluator.MkCmdCond(nodes[0], nodes[2], [ nodes[6] ]),
+                    lambda _, nodes: mkevaluator.MkCmdCond(nodes[0], nodes[2], mkevaluator.MkScript(nodes[6])),
                     ],
         "IncludeCmd": [lambda _, nodes: mkevaluator.MkCmdInclude(nodes[2]),
                        lambda _, nodes: mkevaluator.MkCmdInclude(nodes[2], optional=True),
