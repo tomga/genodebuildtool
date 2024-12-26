@@ -41,6 +41,8 @@ def commands_clean(cmd_lines, run_dir, abs_dir, rel_dir):
             orig.split()[0].endswith(':') or
             '->' in orig or
             '~~~' in orig or
+            '00;33mLibrary' in orig or
+            '01;33mProgram' in orig or
             orig.startswith('ln -sf `which ccache') or
             orig.startswith('ln -sf `command -v ccache') or
             False):

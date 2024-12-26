@@ -1,11 +1,9 @@
 
 CmdList: Command | CmdList Command | EMPTY;
 
-TitledCmdList: LibraryTitle CmdList |
-               ProgramTitle CmdList;
-
-Command: EnteringDir TitledCmdList LeavingDir |
-         EnteringDir CmdList TitledCmdList? LeavingDir |
+Command: LibraryTitle SimpleCommand EnteringDir CmdList LeavingDir |
+         ProgramTitle SimpleCommand EnteringDir CmdList LeavingDir |
+         EnteringDir CmdList LeavingDir |
          BuildCommandTitle SimpleCommandList |
          SimpleCommandList |
          SkipTarget |
@@ -34,9 +32,6 @@ SimpleCommandPart: TEXT |
                    ESCAPED |
                    LINE_CONTINUATION;
 
-SimpleCommandLineWithContinuation: TEXT LINE_CONTINUATION;               
-
-
 terminals
 
 PATH: /[.+\-a-zA-Z0-9_\/][.+\-a-zA-Z0-9_\/]*/;
@@ -47,8 +42,8 @@ LEAVING_DIR: /make(\[[0-9]+\])?:\ Leaving\ directory\ '/;
 SKIP_TARGET: /Skip\ target\ .*/;
 LIB_DESCR_MISSING: /Library-description\ file\ .*\ is\ missing/;
 
-LIBRARY_TITLE: /\x1b\[00;33m\ \ Library\ \x1b\[0m/;
-PROGRAM_TITLE: /\x1b\[01;33m\ \ Program\ \x1b\[0m/;
+LIBRARY_TITLE: /\ \ \x1b\x5b00;33mLibrary\x1b\x5b0m\ / {prefer};
+PROGRAM_TITLE: /\ \ \x1b\x5b01;33mProgram\x1b\x5b0m\ / {prefer};
 
 BUILD_COMMAND_TITLE: /\ \ \ \ (ASSEMBLE|COMPILE|CONVERT|LINK|MERGE|BUILD)/;
 

@@ -20,9 +20,9 @@ def initialize():
         "TitledCmdList": [lambda _, nodes: nodes[1].set_target("Library", nodes[0]),
                           lambda _, nodes: nodes[1].set_target("Program", nodes[0]),
                           ],
-        "Command": [lambda _, nodes: nodes[1].set_run_dir(nodes[0]),
-                    lambda _, nodes: (nodes[2].set_run_dir(nodes[0]).prepend_list(nodes[1])
-                                      if nodes[2] is not None else nodes[1]),
+        "Command": [lambda _, nodes: nodes[3].set_target("Library", nodes[0]).set_run_dir(nodes[2]),
+                    lambda _, nodes: nodes[3].set_target("Program", nodes[0]).set_run_dir(nodes[2]),
+                    lambda _, nodes: nodes[1].set_run_dir(nodes[0]),
                     lambda _, nodes: SimpleBuildCommand(nodes[0][0], nodes[0][1], nodes[1]),
                     lambda _, nodes: SimpleBuildCommand(None, None, nodes[0]),
                     lambda _, nodes: None,
