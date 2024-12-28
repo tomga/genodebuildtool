@@ -400,16 +400,10 @@ class GenodeMkLib(GenodeBaseLib):
 
             symbols_file = self.sconsify_path(self.symbols_file_path)
             #self.env['fn_debug']('SYMBOLS_FILE: %s' % (symbols_file))
-            symbols_lnk = '%s.symbols' % (self.lib_name)
-            #self.env['fn_debug']('SYMBOLS_LNK: %s' % (symbols_lnk))
-
-            # TODO: test correctness of changes of this link
-            symbols_lnk_tgt = self.env.SymLink(source = symbols_file,
-                                               target = self.sc_tgt_path(symbols_lnk))
 
             ### handle symbols.s
             symbols_asm = 'symbols.s'
-            symbols_asm_tgt = self.env.Symbols(source = symbols_lnk_tgt,
+            symbols_asm_tgt = self.env.Symbols(source = symbols_file,
                                                target = self.sc_tgt_path(symbols_asm))
 
             ### handle <lib>.symbols.o
