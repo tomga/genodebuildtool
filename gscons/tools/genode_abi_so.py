@@ -89,9 +89,7 @@ def abi_so_generator(target, source, env, for_signature):
 
     cmd = r"""{ld} -o {abi_so} -soname={abi_soname} -shared --eh-frame-hdr {ld_opts}
                    -T {ld_script_so} {ld_script_rest}
-                   --whole-archive --start-group
                    {lib_so_deps} {symbols_obj}
-                   --end-group --no-whole-archive
     """
 
     cmd = cmd.format(**d)
