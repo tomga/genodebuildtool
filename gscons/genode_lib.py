@@ -407,8 +407,8 @@ class GenodeMkLib(GenodeBaseLib):
             symbols_lnk_tgt = self.env.SymLink(source = symbols_file,
                                                target = self.sc_tgt_path(symbols_lnk))
 
-            ### handle <lib>.symbols.s
-            symbols_asm = '%s.symbols.s' % (self.lib_name)
+            ### handle symbols.s
+            symbols_asm = 'symbols.s'
             symbols_asm_tgt = self.env.Symbols(source = symbols_lnk_tgt,
                                                target = self.sc_tgt_path(symbols_asm))
 
