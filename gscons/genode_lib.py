@@ -114,6 +114,8 @@ class GenodeMkLib(GenodeBaseLib):
 
         self.forced_overlay_type = None
 
+        self.has_own_abi = False
+
 
     def disable_overlay(self):
         self.forced_overlay_type = 'no_overlay'
@@ -181,7 +183,7 @@ class GenodeMkLib(GenodeBaseLib):
         ### register library dependencies
         self.orig_dep_libs = self.build_env.var_values('LIBS')
         if len(self.orig_dep_libs) > 0:
-            direct_dep_lib_objs += self.env['fn_require_libs'](self, self.orig_dep_libs)
+            direct_dep_lib_objs += self.env['fn_require_abis_or_libs'](self, self.orig_dep_libs)
         direct_dep_libs = self.orig_dep_libs + []
 
 
@@ -193,9 +195,18 @@ class GenodeMkLib(GenodeBaseLib):
         #       compatibility
         shared_lib_defined = self.build_env.check_var('SHARED_LIB')
         if shared_lib_defined:
-            direct_dep_lib_objs += self.env['fn_require_libs'](self, ['ldso_so_support'])
+            direct_dep_lib_objs += self.env['fn_require_abis_or_libs'](self, ['ldso_so_support'])
             direct_dep_libs.append('ldso_so_support')
 
+
+        ### attempt to require corresponding ABI for library
+        if shared_lib_defined:
+            own_abis = self.env['fn_require_abis'](None, [self.lib_name])
+            assert len(own_abis) == 1
+            own_abi = own_abis[0]
+            if not own_abi.is_disabled():
+                self.add_dep_target(own_abi)
+                self.has_own_abi = True
 
         ### check if dependencies are not disabled
         if self.is_disabled():
@@ -300,13 +311,14 @@ class GenodeMkLib(GenodeBaseLib):
         # registry for use by other libraries and programs that depend
         # on it
         lib_type = None
-        if self.symbols_file_path is not None:
+        if (self.symbols_file_path is not None
+            and self.has_own_abi):
             lib_type = 'abi'
         if self.shared_lib:
             if self.has_any_sources() or len(self.orig_dep_libs) != 0:
                 if lib_type is None:
-                    # prefere announcing 'abi' over 'so'
-                    lib_type = 'so'
+                    # prefer announcing 'abi' over 'so'
+                    lib_type = 'abi'
         else:
             lib_type = 'a'
 
@@ -316,17 +328,19 @@ class GenodeMkLib(GenodeBaseLib):
         else:
             lib_deps.append(self.lib_name)
 
+        ### create links to shared library dependencies
+        dep_shlib_links = self.build_helper.create_dep_lib_links(
+            self.env, self.sc_tgt_path(None), self.lib_so_deps)
+
         self.env['fn_register_lib_info'](self.lib_name, { 'type': lib_type,
-                                                          'lib_deps': lib_deps })
+                                                          'lib_deps': lib_deps,
+                                                          'common_targets': dep_shlib_links })
 
 
 
     def do_process_target(self):
 
-        ### create links to shared library dependencies
-        dep_shlib_links = self.build_helper.create_dep_lib_links(
-            self.env, self.sc_tgt_path(None), self.lib_so_deps)
-
+        dep_shlib_links = self.env['fn_get_lib_info'](self.lib_name)['common_targets']
 
         ### handle libgcc
         # TODO cache results or maybe set unconditionally
@@ -388,36 +402,6 @@ class GenodeMkLib(GenodeBaseLib):
 
 
         lib_targets = []
-
-        abi_so = None
-
-        symbols_file = None
-        if self.symbols_file_path is not None:
-
-            ### handle <lib>.abi.so generation
-
-            abi_so = '%s.abi.so' % (self.lib_name)
-
-            symbols_file = self.sconsify_path(self.symbols_file_path)
-            #self.env['fn_debug']('SYMBOLS_FILE: %s' % (symbols_file))
-
-            ### handle symbols.s
-            symbols_asm = 'symbols.s'
-            symbols_asm_tgt = self.env.Symbols(source = symbols_file,
-                                               target = self.sc_tgt_path(symbols_asm))
-
-            ### handle <lib>.symbols.o
-            # assumes prepare_s_env() was already executed
-            symbols_obj_tgt = self.build_helper.generic_compile(self.env, map(str, symbols_asm_tgt), 'ASFLAGS')
-
-            ### handle <lib>.abi.so
-            for v in ['LD_OPT', 'LIB_SO_DEPS', 'LD_SCRIPT_SO']:
-                self.env[v] = self.build_env.var_value(v)
-            abi_so_tgt = self.env.LibAbiSo(source = symbols_obj_tgt,
-                                           target = self.sc_tgt_path(abi_so))
-
-            lib_targets.append(abi_so_tgt)
-
 
         lib_so = None
         lib_a = None
@@ -500,7 +484,11 @@ class GenodeMkLib(GenodeBaseLib):
             lib_targets.append(dbg_syms_tgt)
 
 
-        if (lib_so_tgt is not None and symbols_file is not None):
+        if (lib_so_tgt is not None
+            and self.symbols_file_path is not None):
+
+            symbols_file = self.sconsify_path(self.symbols_file_path)
+
             lib_checked = "%s.lib.checked" % (self.lib_name)
             check_abi_tgt = self.env.CheckAbi(target=self.sc_tgt_path(lib_checked),
                                               source=[ lib_so_tgt, symbols_file ])
@@ -513,10 +501,11 @@ class GenodeMkLib(GenodeBaseLib):
                                                       source=objects))
 
 
-        lib_tag = "%s.lib.tag" % (self.lib_name)
-        lib_tag_tgt = self.env.LibTag(source = lib_targets,
-                                      target = self.sc_tgt_path(lib_tag))
-        lib_targets.append(lib_tag_tgt)
+        if (lib_a is not None and lib_so is not None):
+            lib_tag = "%s.lib.tag" % (self.lib_name)
+            lib_tag_tgt = self.env.LibTag(source = lib_targets,
+                                          target = self.sc_tgt_path(lib_tag))
+            lib_targets.append(lib_tag_tgt)
 
 
         ## execute post_process_actions

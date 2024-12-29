@@ -176,7 +176,7 @@ class GenodeMkProg(GenodeBaseProg):
         ### register program dependencies
         orig_dep_libs = self.build_env.var_values('LIBS')
         if len(orig_dep_libs) > 0:
-            direct_dep_lib_objs += self.env['fn_require_libs'](self, orig_dep_libs)
+            direct_dep_lib_objs += self.env['fn_require_abis_or_libs'](self, orig_dep_libs)
         direct_dep_libs = orig_dep_libs + []
 
 
@@ -184,7 +184,7 @@ class GenodeMkProg(GenodeBaseProg):
         coverage_enabled = (self.build_env.var_value('COVERAGE') == 'yes')
         if coverage_enabled:
             coverage_dep_libs = ['libgcov']
-            direct_dep_lib_objs += self.env['fn_require_libs'](self, coverage_dep_libs)
+            direct_dep_lib_objs += self.env['fn_require_abis_or_libs'](self, coverage_dep_libs)
             direct_dep_libs.extend(coverage_dep_libs)
 
 
@@ -192,7 +192,7 @@ class GenodeMkProg(GenodeBaseProg):
         sanitizer_enabled = (self.build_env.var_value('SANITIZE_UNDEFINED') == 'yes')
         if sanitizer_enabled:
             sanitizer_dep_libs = ['libubsan', 'libsanitizer_common']
-            direct_dep_lib_objs += self.env['fn_require_libs'](self, sanitizer_dep_libs)
+            direct_dep_lib_objs += self.env['fn_require_abis_or_libs'](self, sanitizer_dep_libs)
             direct_dep_libs.extend(sanitizer_dep_libs)
 
 

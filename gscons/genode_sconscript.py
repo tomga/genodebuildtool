@@ -15,6 +15,7 @@ from gscons import scmkevaluator
 
 from gscons import genode_all_target
 from gscons import genode_port
+from gscons import genode_abi
 from gscons import genode_lib
 from gscons import genode_prog
 from gscons import genode_run
@@ -296,6 +297,31 @@ def process_builddir(build_dir, env):
     env['fn_require_ports'] = require_ports
 
 
+    def abi_alias_name(abi_name):
+        return 'ABI:%s:%s' % (build_dir, abi_name)
+    env['fn_abi_alias_name'] = abi_alias_name
+
+    all_abi_objs = {}
+    def require_abis(target, dep_abis):
+        dep_abi_objs = []
+        for dep in dep_abis:
+            if dep not in all_abi_objs:
+                all_abi_objs[dep] = None
+                abi_obj = process_abi(dep, env, build_env)
+                all_abi_objs[dep] = abi_obj
+            else:
+                abi_obj = all_abi_objs[dep]
+                if abi_obj is None:
+                    env['fn_error']("Circular abi dependency detected when processing '%s'"
+                                    % (dep))
+                    quit()
+            dep_abi_objs.append(abi_obj)
+        if target is not None:
+            target.add_dep_targets(dep_abi_objs)
+        return dep_abi_objs
+    env['fn_require_abis'] = require_abis
+
+
     def lib_alias_name(lib_name):
         return 'LIB:%s:%s' % (build_dir, lib_name)
     env['fn_lib_alias_name'] = lib_alias_name
@@ -315,9 +341,36 @@ def process_builddir(build_dir, env):
                                     % (dep))
                     quit()
             dep_lib_objs.append(lib_obj)
-        target.add_dep_targets(dep_lib_objs)
+        if target is not None:
+            target.add_dep_targets(dep_lib_objs)
         return dep_lib_objs
     env['fn_require_libs'] = require_libs
+
+
+    def require_abis_or_libs(target, dep_abis_or_libs):
+        # require both abi and lib
+        # register dependency for target only for one of them (either
+        # abi if available or library itself otherwise)
+        #
+        # processing of lib is required to gather deps and register
+        # 'common_targets' in lib_info to be able to use trigger them
+        # in abi processing
+        env['fn_debug']("Target %s, requiring abis or libs for: %s"
+                        % (str(target.target_name), str(dep_abis_or_libs)))
+        dep_abis = require_abis(None, dep_abis_or_libs)
+        dep_libs = require_libs(None, dep_abis_or_libs)
+
+        needed_abis = [ abi for abi in dep_abis if not abi.is_disabled() ] # enabled ones
+        needed_abi_names = [ abi.target_name for abi in needed_abis ]
+        needed_libs = [ lib for lib in dep_libs if lib.target_name not in needed_abi_names ]
+        needed_lib_names = [ lib.target_name for lib in needed_libs ]
+
+        env['fn_debug']("Target %s, used abis: %s" % (str(target.target_name), str(needed_abi_names)))
+        env['fn_debug']("Target %s, used libs: %s" % (str(target.target_name), str(needed_lib_names)))
+        all_needed = needed_abis + needed_libs
+        target.add_dep_targets(all_needed)
+        return all_needed
+    env['fn_require_abis_or_libs'] = require_abis_or_libs
 
 
     def prog_alias_name(prog_name):
@@ -425,6 +478,14 @@ def process_builddir(build_dir, env):
         env['fn_notice']("  tool/ports/prepare_port %s"
                          % (' '.join(map(lambda p: p.port_name, outdated_ports))))
 
+    # process abis
+    abi_targets = []
+    for abi_obj in all_abi_objs.values():
+        env['fn_debug']("Processing abi target: %s" % (abi_obj.abi_name))
+        abi_obj_targets = abi_obj.process_target()
+        if abi_obj_targets is not None:
+            abi_targets.extend(abi_obj_targets)
+
     # process libraries
     lib_targets = []
     for lib_obj in all_lib_objs.values():
@@ -451,7 +512,7 @@ def process_builddir(build_dir, env):
 
 
     env['fn_debug']('BUILD_TARGETS: %s' % (str(env['BUILD_TARGETS'])))
-    targets = lib_targets + prog_targets + run_targets
+    targets = abi_targets + lib_targets + prog_targets + run_targets
     env['BUILD_TARGETS'] += targets
     env['fn_info']('Final build targets: %s' % (' '.join(list(map(str, env['BUILD_TARGETS'])))))
 
@@ -506,6 +567,31 @@ def process_run(run_name, env, build_env):
     run_obj = genode_run.GenodeRun(run_name, env, found_run_file, repository)
     run_obj.process_load()
     return run_obj
+
+
+
+def process_abi(abi_name, env, build_env):
+    """Process abi build rules.
+    """
+
+    repositories = env['REPOSITORIES']
+
+    found_abi_file = None
+    for repository in repositories:
+        checked_file = os.path.join(repository, 'lib/symbols', '%s' % abi_name)
+        if os.path.exists(checked_file):
+            env['fn_debug']('found_abi_file: %s' % (str(checked_file)))
+            found_abi_file = checked_file
+            continue
+
+    if found_abi_file is None:
+        env['fn_debug']("Symbols file not found for abi '%s'" % (abi_name))
+        return genode_abi.GenodeDisabledAbi(abi_name, env,
+                                            "symbols file not found")
+
+    abi_obj = genode_abi.GenodeAbi(abi_name, env, found_abi_file, repository, build_env)
+    abi_obj.process_load()
+    return abi_obj
 
 
 
