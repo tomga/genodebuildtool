@@ -25,6 +25,8 @@ class GenodeTarget:
         self.env['ent_current_target_type'] = target_type
         self.env['ent_current_target_type_code'] = target_type_code
 
+    def get_ident(self):
+        return "%s:%s" % (self.target_type_code, self.target_name)
 
     def is_inactive(self):
         return (self.is_disabled() or self.usage_count == 0)
