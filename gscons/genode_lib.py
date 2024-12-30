@@ -485,6 +485,8 @@ class GenodeMkLib(GenodeBaseLib):
 
 
         if (lib_so_tgt is not None
+            and self.has_own_abi    # this disables check_abi for consistency with original build
+                                    # when symbols file with different name (e.g. ld vs ld-hw)
             and self.symbols_file_path is not None):
 
             symbols_file = self.sconsify_path(self.symbols_file_path)
