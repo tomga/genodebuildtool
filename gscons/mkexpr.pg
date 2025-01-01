@@ -1,0 +1,78 @@
+
+OptValueExpr: ValueExpr |
+              EMPTY;
+
+ValueExpr: ValuePart |
+           ValueExpr ValuePart |
+           ValueExpr BRACE_OPEN ValueExpr BRACE_CLOSE |
+           ValueExpr WS ValuePart;
+
+NoCommaValueExpr: NoCommaValuePart |
+                  NoCommaValueExpr NoCommaValuePart |
+                  NoCommaValueExpr BRACE_OPEN ValueExpr BRACE_CLOSE |
+                  NoCommaValueExpr WS NoCommaValuePart;
+
+ValuePart: NoCommaValuePart |
+           COMMA;
+
+NoCommaValuePart: ValuePartText |
+                  ValuePartExpr;
+
+ValuePartExpr: DOLLAR TEXT_CHAR |
+               DOLLAR DOLLAR |
+               DOLLAR BRACE_OPEN Fun1Name WS? NoCommaValueExpr BRACE_CLOSE |
+               DOLLAR BRACE_OPEN Fun2Name WS? NoCommaValueExpr CommaSeparator NoCommaValueExpr BRACE_CLOSE |
+               DOLLAR BRACE_OPEN Fun3Name WS? NoCommaValueExpr CommaSeparator NoCommaValueExpr CommaSeparator NoCommaValueExpr BRACE_CLOSE |
+               DOLLAR BRACE_OPEN FunAnyName WS? ValueExprList BRACE_CLOSE |
+               DOLLAR BRACE_OPEN OptValueExpr BRACE_CLOSE;
+
+ValueExprList: NoCommaValueExpr |
+               ValueExprList CommaSeparator NoCommaValueExpr;
+
+ValuePartText: TEXT_CHAR |
+               ESCAPED |
+               LINE_CONTINUATION;
+
+CommaSeparator: WS? COMMA WS?;
+
+ColonSeparator: COLON WS?;
+
+Fun1Name: "basename " |
+          "dir " |
+          "firstword " |
+          "lastword " |
+          "notdir " |
+          "realpath " |
+          "sort " |
+          "strip " |
+          "wildcard ";
+
+Fun2Name: "addprefix " |
+          "addsuffix " |
+          "call " |
+          "filter " |
+          "filter-out " |
+          "findstring ";
+
+Fun3Name: "foreach " |
+          "if " |
+          "patsubst " |
+          "subst ";
+
+FunAnyName: "error " |
+            "shell ";
+
+
+terminals
+TEXT_CHAR: /[^(){}#,$\n\ ]/;
+ESCAPED: "\\#";
+LINE_CONTINUATION: /\\\n/;
+WS: /[ ]+/;
+TAB: /[\t]/;
+COMMENT: /\#.*/;
+RULE_COMMAND: /\t.*/;
+DOLLAR: /\$/;
+COMMA: ",";
+COLON: ":";
+BRACE_OPEN: /[({]/;
+BRACE_CLOSE: /[)}]/;

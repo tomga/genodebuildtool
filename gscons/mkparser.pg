@@ -1,180 +1,92 @@
 
+CmdList: Command |
+         CmdList LINE_END Command;
+
+Command: SafeValueExpr CmdAssign |
+         EXPORT WS SafeValueExpr CmdAssign? |
+         CondCmd |
+         IncludeCmd |
+         VPathCmd |
+         RuleCmd |
+         WSOPT |
+         COMMENT;
 
 
-CmdList: Command | CmdList LINE_END Command;
-
-Command: VarIdentWithOptWs CmdAssign |
-         ExportWithWs VarIdentWithOptWs CmdAssign? |
-         VarIdent BRACE_OPEN VarIdent BRACE_CLOSE WS? CmdAssign |
-         ExportWithWs VarIdent BRACE_OPEN VarIdent BRACE_CLOSE WS? CmdAssign? |
-				 CondCmd |
-				 IncludeCmd |
-				 VPathCmd |
-				 RValueExpr RuleStructureSuffix? |
-				 RULE_COMMAND |
-				 WSOPT |
-				 COMMENT;
-
-
-RuleStructureSuffix: ColonSeparator RValueExpr?;
-
-CmdAssign: CmdOper WSOPT OptRValueExpr;
-
-ExportWithWs: EXPORT WS;
+CmdAssign: CmdOper OptValueExpr;
 
 CmdOper: CMD_APPEND |
          CMD_RECURSIVE_EXPAND_ASSIGN |
-				 CMD_SIMPLE_EXPAND_ASSIGN |
-				 CMD_OPTASSIGN;
+         CMD_SIMPLE_EXPAND_ASSIGN |
+         CMD_OPTASSIGN;
+
 
 CondCmd: Condition LINE_END CmdList LINE_END "endif" |
          Condition LINE_END CmdList LINE_END "else" LINE_END CmdList LINE_END "endif" |
          Condition LINE_END CmdList LINE_END "else" WS CondCmd;
 
-Condition: IfdefOper WS VarName |
-           IfeqOper WS BRACE_OPEN ParamExpr CommaSeparator ParamExpr BRACE_CLOSE;
+Condition: IfdefOper WS ValueExpr |
+           IfeqOper WS BRACE_OPEN NoCommaOptValueExpr COMMA NoCommaOptValueExpr BRACE_CLOSE;
 
 IfdefOper: "ifdef" | "ifndef";
 
 IfeqOper: "ifeq" | "ifneq";
 
-IncludeCmd: "include" WSOPT OptRValueExpr |
-						"-include" WSOPT OptRValueExpr;
 
-VPathCmd: "vpath" WS VPATH_PATTERN WS RValueExpr;
+IncludeCmd: "include" WS ValueExpr |
+            "-include" WS ValueExpr;
+
+
+VPathCmd: "vpath" WS VPATH_PATTERN WS ValueExpr;
+
+
+RuleCmd: SafeValueExpr COLON OptValueExpr |
+         RuleCmd LINE_END_TAB OptValueExpr;
 
 WSOPT: WS | EMPTY;
 
-OptRValueExpr: RValueExpr |
-							 EMPTY;
+OptValueExpr: ValueExpr |
+              EMPTY;
 
-RValueExpr: RValuePart |
-            RValueExpr RValuePart |
-            RValueExpr WS;
+ValueExpr: NoCommaValueExpr |
+           COMMA |
+           ValueExpr NoCommaValueExpr |
+           ValueExpr COMMA |
+           ValueExpr BRACE_OPEN ValueExpr BRACE_CLOSE;
 
-RValuePart: RValuePartText |
-						RValuePartExpr;
+NoCommaOptValueExpr: NoCommaValueExpr |
+                     EMPTY;
 
+NoCommaValueExpr: SafeValueExpr |
+                  CMD_RECURSIVE_EXPAND_ASSIGN |
+                  COLON |
+                  NoCommaValueExpr SafeValueExpr |
+                  NoCommaValueExpr CMD_RECURSIVE_EXPAND_ASSIGN |
+                  NoCommaValueExpr COLON |
+                  NoCommaValueExpr BRACE_OPEN ValueExpr BRACE_CLOSE;
 
-RValuePartExpr: DOLLAR VarName |
-            		DOLLAR BRACE_OPEN Fun1Name WS? ParamExpr BRACE_CLOSE |
-            		DOLLAR BRACE_OPEN Fun2Name WS? ParamExpr CommaSeparator ParamExpr BRACE_CLOSE |
-            		DOLLAR BRACE_OPEN Fun3Name WS? ParamExpr CommaSeparator ParamExpr CommaSeparator ParamExpr BRACE_CLOSE |
-            		DOLLAR BRACE_OPEN FunAnyName WS? ParamList BRACE_CLOSE |
-            		DOLLAR BRACE_OPEN VarName BRACE_CLOSE |
-            		DOLLAR BRACE_OPEN VAR_INDEX BRACE_CLOSE |
-            		DOLLAR BRACE_OPEN VAR_SPECIAL BRACE_CLOSE |
-            	  DOLLAR BRACE_OPEN VarName CMD_SIMPLE_EXPAND_ASSIGN RValueExpr BRACE_CLOSE |
-            		DOLLAR BRACE_OPEN VarName COLON RValueExpr CMD_RECURSIVE_EXPAND_ASSIGN RValueExpr BRACE_CLOSE;
+SafeValueExpr: SafeValuePart |
+               SafeValueExpr SafeValuePart |
+               SafeValueExpr BRACE_OPEN ValueExpr BRACE_CLOSE;
 
-ParamList: ParamExpr |
-           ParamList CommaSeparator ParamExpr;
+SafeValuePart: SAFE_RVALUE_CHAR |
+               LINE_CONTINUATION;
 
-ParamExpr: ParamPart |
-           ParamExpr ParamPart |
-           ParamExpr WS |
-					 EMPTY;
+LINE_END: LINE_END_ONLY |
+          LINE_END_TAB;
 
-ParamPart: ParamPartText |
-					 ParamPartExpr;
-
-
-ParamPartExpr: DOLLAR VarName |
-           		 DOLLAR BRACE_OPEN Fun1Name WS? ParamExpr BRACE_CLOSE |
-            	 DOLLAR BRACE_OPEN Fun2Name WS? ParamExpr CommaSeparator ParamExpr BRACE_CLOSE |
-            	 DOLLAR BRACE_OPEN Fun3Name WS? ParamExpr CommaSeparator ParamExpr CommaSeparator ParamExpr BRACE_CLOSE |
-            	 DOLLAR BRACE_OPEN FunAnyName WS? ParamList BRACE_CLOSE |
-            	 DOLLAR BRACE_OPEN VarName BRACE_CLOSE |
-            	 DOLLAR BRACE_OPEN VAR_INDEX BRACE_CLOSE |
-            	 DOLLAR BRACE_OPEN VAR_SPECIAL BRACE_CLOSE |
-            	 DOLLAR BRACE_OPEN VarName CMD_SIMPLE_EXPAND_ASSIGN ParamExpr BRACE_CLOSE |
-            	 DOLLAR BRACE_OPEN VarName COLON ParamExpr CMD_RECURSIVE_EXPAND_ASSIGN ParamExpr BRACE_CLOSE;
-
-VarName: VarIdent |
-         VarIdent RValuePartExpr |
-         VarIdent BRACE_OPEN RValuePartExpr BRACE_CLOSE;
-
-RValuePartText: TEXT_CHAR |
-                SPECIAL_NOESCAPE |
-                SPECIAL_ESCAPE |
-                DOUBLE_DOLLAR |
-								VarIdentWithOptWs |
-							  VAR_IDENT_SECOND_ALLOWED |
-                COMMA |
-								CMD_RECURSIVE_EXPAND_ASSIGN |
-            		ESCAPED |
-								LINE_CONTINUATION;
-
-ParamPartText: TEXT_CHAR |
-               SPECIAL_NOESCAPE |
-							 SPECIAL_ESCAPE |
-               DOUBLE_DOLLAR |
-							 VarIdentWithOptWs |
-							 VAR_IDENT_SECOND_ALLOWED |
-							 CMD_RECURSIVE_EXPAND_ASSIGN |
-            	 ESCAPED |
-							 LINE_CONTINUATION;
-
-CommaSeparator: COMMA WS?;
-
-ColonSeparator: COLON WS?;
-
-Fun1Name: "basename " |
-					"dir " |
-					"firstword " |
-					"lastword " |
-					"notdir " |
-					"realpath " |
-					"sort " |
-					"strip " |
-					"wildcard ";
-
-Fun2Name: "addprefix " |
-					"addsuffix " |
-					"call " |
-					"filter " |
-					"filter-out " |
-					"findstring ";
-
-Fun3Name: "foreach " |
-					"if " |
-					"patsubst " |
-					"subst ";
-
-FunAnyName: "error " |
-            "shell ";
-
-VarIdentWithOptWs: VarIdent WSOPT;
-
-VarIdent: VarIdentStd |
-          VAR_SPECIAL;
-
-VarIdentStd: VAR_IDENT_START |
-             VarIdent VAR_IDENT_START |
-             VarIdent VAR_IDENT_SECOND_ALLOWED;
 
 terminals
-SPECIAL_ESCAPE: /~~./;
-SPECIAL_NOESCAPE: /~[^~]/;
-DOUBLE_DOLLAR: /\$\$/;
-LINE_END: /[ ]*(\#.*)?\n[ ]*/;
-TEXT_CHAR: /[^-~#,:$\\\n\t (){}A-Za-z0-9_@*]/;
-VAR_IDENT_START: /[A-Za-z_]/;
-VAR_IDENT_SECOND_ALLOWED: /[-0-9]/;
-VAR_INDEX: /[0-9]/;
-VAR_SPECIAL: /[@*]/;
-ESCAPED: /\\./;
-LINE_CONTINUATION: /\\\n\t*/;
-WS: /[ ]+/;
-TAB: /[\t]/;
-COMMENT: /#.*/;
-RULE_COMMAND: /\t.*/;
-DOLLAR: /\$/;
-COMMA: /,/;
-COLON: /[:]/;
-BRACE_OPEN: /[({]/;
+LINE_END_TAB: /\n\t/;
+LINE_END_ONLY: /\n/;
+SAFE_RVALUE_CHAR: /[^(){}#\n:=,]/;
+BRACE_OPEN:  /[({]/;
 BRACE_CLOSE: /[)}]/;
-CMD_APPEND: "+=";
+LINE_CONTINUATION: /\\\n/;
+WS: /[ ]+/;
+COMMENT: /\#.*/;
+COMMA: ",";
+COLON: ":";
+CMD_APPEND: /\+=/;
 CMD_RECURSIVE_EXPAND_ASSIGN: "=";
 CMD_SIMPLE_EXPAND_ASSIGN: ":=";
 CMD_OPTASSIGN: "?=";

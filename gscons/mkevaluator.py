@@ -6,12 +6,15 @@ import re
 import subprocess
 import traceback
 
+from gscons import mkexpr
 
 class MkEnvVar:
     def __init__(self, mode='recursive', value=None):
         assert mode == 'recursive' or mode == 'simple'
         self.mode = mode
-        self.value = value if value is not None else MkRValueExpr()
+        self.value = (MkRValueExpr() if value is None else
+                      value.parsed_expr() if type(value) == MkRValueExprText else
+                      value)
 
     def soft_clone(self):
         return MkEnvVar(mode=self.mode, value=self.value.soft_clone())
@@ -197,11 +200,15 @@ class MkRValue:
 
 
 class MkRValueSpace(MkRValue):
+
+    def __init__(self, text = None):
+        self.text = text if text is not None else ' '
+
     def type(self):
         return 'SPC'
 
     def value(self):
-        return ' '
+        return self.text
 
     def compactable(self):
         return True
@@ -210,7 +217,7 @@ class MkRValueSpace(MkRValue):
         pass
 
     def debug_struct(self):
-        return ' '
+        return self.text
 
 
 
@@ -234,7 +241,6 @@ class MkRValueText(MkRValue):
         return self.text
 
 
-
 class MkRValueVar(MkRValue):
     def __init__(self, var_ident, var_expr = None,
                  brace_open=None, brace_close=None):
@@ -249,7 +255,7 @@ class MkRValueVar(MkRValue):
         return 'VAR'
 
     def get_var_name(self, mkenv):
-        var_name = self.var_ident
+        var_name = self.var_ident.value(mkenv)
         if self.brace_open is not None:
             var_name += self.brace_open
         if self.var_expr is not None:
@@ -260,6 +266,7 @@ class MkRValueVar(MkRValue):
 
     def calculate(self, mkenv):
         var_name = self.get_var_name(mkenv)
+        # print(f"MkRValueExpr::calculate: {var_name}")
         if not mkenv.check_var(var_name):
             return []
         rval_expr = copy.deepcopy(mkenv.get_var(var_name))
@@ -270,13 +277,17 @@ class MkRValueVar(MkRValue):
 
     def debug_struct(self):
         if self.var_expr is None:
-            return '$' + self.var_ident
+            return ['$'] + self.var_ident.debug_struct()
         else:
-            return ([ '$' + self.var_ident]
+            return ([ ['$'] + self.var_ident.debug_struct()]
                     + ([self.brace_open] if self.brace_open is not None else [])
                     + [self.var_expr.debug_struct() ]
                     + ([self.brace_close] if self.brace_close is not None else []))
 
+
+# possibly needs reimplementation
+class MkRValueDollarVar(MkRValueVar):
+    pass
 
 functionsDict = {}
 
@@ -573,6 +584,61 @@ class MkRValueSubst(MkRValue):
                 self.pattern.debug_struct(), self.substitution.debug_struct()]
 
 
+expr_parser_instance = None
+def expr_parser():
+    global expr_parser_instance
+    if expr_parser_instance is None:
+        expr_parser_instance = mkexpr.initialize()
+    return expr_parser_instance
+
+class MkRValueExprText:
+    def __init__(self, text):
+        self.text = text
+        self.expr = None
+
+    def append_text(self, text):
+        self.text += text
+        self.expr = None
+        return self
+
+    def join_with(self, expr_text):
+        self.text += expr_text.text
+        self.expr = None
+        return self
+
+    def parsed_expr(self):
+        if self.expr is None:
+            stripped_text = self.text.strip(' \t')
+            try:
+                self.expr = expr_parser().parse(stripped_text)
+            except Exception as e:
+                print(f"Exception during parsing expression: {stripped_text}")
+                #traceback.print_exception(None, e, e.__traceback__)
+                raise e
+
+        return self.expr
+
+    #def append_expr(self, expr):
+    #    self.parsed_expr().append_expr(expr)
+
+    def calculated(self, mkenv):
+        return self.parsed_expr().calculated(mkenv)
+
+    def compacted(self, parts):
+        return self.parsed_expr().compacted(parts)
+
+    def calculate_variables(self, mkenv):
+        return self.parsed_expr().calculate_variables(mkenv)
+
+    def value(self, mkenv):
+        return self.parsed_expr().value(mkenv)
+
+    def values_list(self, mkenv):
+        return self.parsed_expr().values_list(mkenv)
+
+    def debug_struct(self):
+        return [self.parsed_expr().debug_struct()]
+
 
 class MkRValueExpr:
     def __init__(self, parts = None):
@@ -588,6 +654,11 @@ class MkRValueExpr:
             self.parts[-1].compact_with(part)
             return self
         self.parts.append(part)
+        return self
+
+    def append_expr_parts(self, expr):
+        for part in expr.parts:
+            self.append_part(part)
         return self
 
     def append_expr(self, expr):
@@ -677,7 +748,7 @@ class MkScript:
         previous_cmd = None
         for cmd in self.commands:
             try:
-                print(str(cmd))
+                # print(str(cmd))
                 cmd_struct = cmd.debug_struct()
                 if cmd_struct is not None:
                     retval.append(cmd_struct)
@@ -695,28 +766,47 @@ class MkScript:
 
 
 class MkCmdOper(MkCommand):
-    def __init__(self, var, rval_expr, export):
-        self.var = var
+
+    def __init__(self):
+        self.rval_var = None
+        self.rval_expr = None
+        self.export = False
+
+    def set_rval_var(self, rval_var):
+        self.rval_var = rval_var
+        return self
+
+    def set_rval_expr(self, rval_expr):
         self.rval_expr = rval_expr
+        return self
+
+    def set_export(self, export):
         self.export = export
+        return self
+
+    def get_lvalue(self, mkenv):
+        rval_var = copy.deepcopy(self.rval_var)
+        rval_var.calculate_variables(mkenv)
+        retval = rval_var.value(mkenv)
+        return retval
 
     def debug_struct(self):
         return ((['export'] if self.export else [])
-                + [ self.var, self.debug_struct_oper(), self.rval_expr.debug_struct() ])
+                + [ self.rval_var.debug_struct(), self.debug_struct_oper(), self.rval_expr.debug_struct() ])
 
 
 
 class MkCmdAppend(MkCmdOper):
 
     def process(self, mkenv):
-        var_value = mkenv.get_create_var(self.var)
+        var_value = mkenv.get_create_var(self.get_lvalue(mkenv))
         rval_value = copy.deepcopy(self.rval_expr)
         if var_value.is_simply_expanded():
             # using get_var does not influence calculation here
             # because if it wasn't defined earlier it wouldn't be
             # 'simply_expanded'
             rval_value.calculate_variables(mkenv)
-        var_value.get_value().append_expr(rval_value)
+        var_value.get_value().append_expr(rval_value.parsed_expr())
 
     def debug_struct_oper(self):
         return '+='
@@ -726,7 +816,7 @@ class MkCmdAppend(MkCmdOper):
 class MkCmdRecursiveExpandAssign(MkCmdOper):
     def process(self, mkenv):
         rval_value = copy.deepcopy(self.rval_expr)
-        mkenv.set_var(self.var, MkEnvVar('recursive', rval_value))
+        mkenv.set_var(self.get_lvalue(mkenv), MkEnvVar('recursive', rval_value))
 
     def debug_struct_oper(self):
         return '='
@@ -737,7 +827,7 @@ class MkCmdSimpleExpandAssign(MkCmdOper):
     def process(self, mkenv):
         rval_value = copy.deepcopy(self.rval_expr)
         rval_value.calculate_variables(mkenv)
-        mkenv.set_var(self.var, MkEnvVar('simple', rval_value))
+        mkenv.set_var(self.get_lvalue(mkenv), MkEnvVar('simple', rval_value))
 
     def debug_struct_oper(self):
         return ':='
@@ -746,10 +836,10 @@ class MkCmdSimpleExpandAssign(MkCmdOper):
 
 class MkCmdOptAssign(MkCmdOper):
     def process(self, mkenv):
-        if mkenv.check_var(self.var):
+        if mkenv.check_var(self.get_lvalue(mkenv)):
             return
         rval_value = copy.deepcopy(self.rval_expr)
-        mkenv.set_var(self.var, MkEnvVar('recursive', rval_value))
+        mkenv.set_var(self.get_lvalue(mkenv), MkEnvVar('recursive', rval_value))
 
     def debug_struct_oper(self):
         return '?='
@@ -840,7 +930,7 @@ class MkCondDef(MkCondition):
 
 class MkCondIfdef(MkCondDef):
     def check_cond(self, mkenv):
-        var_name = self.var.get_var_name(mkenv)
+        var_name = self.var.value(mkenv)
         return mkenv.check_var(var_name)
 
     def debug_struct_oper(self):
@@ -849,7 +939,7 @@ class MkCondIfdef(MkCondDef):
 
 class MkCondIfndef(MkCondDef):
     def check_cond(self, mkenv):
-        var_name = self.var.get_var_name(mkenv)
+        var_name = self.var.value(mkenv)
         return not mkenv.check_var(var_name)
 
     def debug_struct_oper(self):
@@ -903,37 +993,21 @@ class MkCmdComment(MkCommand):
         return None
 
 
-class MkCmdExpr(MkCommand):
-    def __init__(self, expr):
-        self.expr = expr
-
-    def process(self, mkenv):
-        pass
-
-    def debug_struct(self):
-        return [ self.expr.debug_struct() ]
-
-
-class MkCmdRuleHeader(MkCommand):
+class MkCmdRule(MkCommand):
     def __init__(self, targets, sources):
         self.targets = targets
         self.sources = sources
-        #print("MkCmdRuleHeader: %s %s %s" % (str(targets), str(sources)))
+        self.commands = []
+
+    def append_command(self, command):
+        self.commands += [ command ]
+        return self
 
     def process(self, mkenv):
         pass
 
     def debug_struct(self):
         return [ self.targets.debug_struct(),
-                 self.sources.debug_struct() ]
+                 self.sources.debug_struct(),
+                 [ x.debug_struct() for x in self.commands ] ]
 
-class MkCmdRuleCommand(MkCommand):
-    def __init__(self, command_str):
-        self.command_str = command_str
-        #print("MkCmdRuleCommand: %s" % (str(command_str)))
-
-    def process(self, mkenv):
-        pass
-
-    def debug_struct(self):
-        return [ self.command_str ]
