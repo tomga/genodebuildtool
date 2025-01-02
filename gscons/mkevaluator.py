@@ -847,14 +847,15 @@ class MkCmdOptAssign(MkCmdOper):
 
 
 class MkCmdExport(MkCommand):
-    def __init__(self, var):
+    def __init__(self, var, unexport=False):
         self.var = var
+        self.unexport = unexport
 
     def process(self, mkenv):
         pass
 
     def debug_struct(self):
-        return [ 'export', self.var ]
+        return [ 'unexport' if self.unexport else 'export', self.var ]
 
 
 class MkCmdCond(MkCommand):

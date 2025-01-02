@@ -4,6 +4,7 @@ CmdList: Command |
 
 Command: SafeValueExpr CmdAssign |
          EXPORT WS SafeValueExpr CmdAssign? |
+         UNEXPORT WS SafeValueExpr |
          CondCmd |
          IncludeCmd |
          VPathCmd |
@@ -90,5 +91,6 @@ CMD_APPEND: /\+=/;
 CMD_RECURSIVE_EXPAND_ASSIGN: "=";
 CMD_SIMPLE_EXPAND_ASSIGN: ":=";
 CMD_OPTASSIGN: "?=";
+UNEXPORT: "unexport";
 EXPORT: "export";
 VPATH_PATTERN: /[a-zA-Z_0-9.%\/][a-zA-Z_0-9.%\/]*/;
