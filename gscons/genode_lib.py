@@ -411,8 +411,6 @@ class GenodeMkLib(GenodeBaseLib):
             build_artifacts = (self.build_env.var_value('BUILD_ARTIFACTS')
                                if self.build_env.check_var('BUILD_ARTIFACTS')
                                else None)
-            self.env['fn_warning']('BUILD_ARTIFACTS: %s->%s' %
-                                   (self.lib_name, build_artifacts))
             if (len(objects) + len(self.orig_dep_libs) != 0
                 and (build_artifacts is None or build_artifacts != '')):
                 lib_so = "%s.lib.so" % (self.lib_name)
