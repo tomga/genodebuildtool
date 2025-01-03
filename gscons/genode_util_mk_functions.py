@@ -37,6 +37,18 @@ def mkfun_select_from_ports(mkenv, args):
 
 
 
+def mkfun_check_tool(mkenv, args):
+    tool_name = args[0][0]
+    mkenv.log('debug', 'mkfun_check_tool: %s' % (str(tool_name)))
+
+    # NOTE: here mkenv is known to be ScMkEnv instance
+    env = mkenv.scons_env
+
+    return f"check_tool {tool_name} done"
+
+
+
 def register_mk_functions(functions_dict):
     functions_dict['select_from_repositories'] = mkfun_select_from_repositories
     functions_dict['select_from_ports'] = mkfun_select_from_ports
+    functions_dict['check_tool'] = mkfun_check_tool
