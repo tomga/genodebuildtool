@@ -14,7 +14,8 @@ def initialize():
         "CmdList": [lambda _, nodes: mkevaluator.MkScript(nodes[0]),
                     lambda _, nodes: nodes[0].append_command(nodes[2]),
                     ],
-        "Command": [lambda _, nodes: nodes[1].set_rval_var(nodes[0]),
+        "Command": [lambda _, nodes: (nodes[1].set_rval_var(nodes[0]) if nodes[1] is not None else
+                                      mkevaluator.MkCmdExpr(nodes[0])),
                     lambda _, nodes: (mkevaluator.MkCmdExport(nodes[2]) if nodes[3] is None else
                                       nodes[3].set_rval_var(nodes[2]).set_export(True)),
                     lambda _, nodes: mkevaluator.MkCmdExport(nodes[2], unexport=True),

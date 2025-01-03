@@ -845,6 +845,18 @@ class MkCmdOptAssign(MkCmdOper):
         return '?='
 
 
+class MkCmdExpr(MkCommand):
+
+    def __init__(self, expr):
+        self.expr = expr
+
+    def process(self, mkenv):
+        expr_values = self.expr.values_list(mkenv)
+        # ignoring result - only evaluation matters
+
+    def debug_struct(self):
+        return [ self.expr.debug_struct() ]
+
 
 class MkCmdExport(MkCommand):
     def __init__(self, var, unexport=False):

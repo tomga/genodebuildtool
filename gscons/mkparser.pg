@@ -2,7 +2,7 @@
 CmdList: Command |
          CmdList LINE_END Command;
 
-Command: SafeValueExpr CmdAssign |
+Command: SafeValueExpr CmdAssign? |
          EXPORT WS SafeValueExpr CmdAssign? |
          UNEXPORT WS SafeValueExpr |
          CondCmd |
