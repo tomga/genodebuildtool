@@ -303,8 +303,9 @@ class GenodeMkLib(GenodeBaseLib):
         self.shared_lib = (self.symbols_file_path is not None
                            or self.build_env.var_value('SHARED_LIB') == 'yes')
 
-        self.env['fn_debug']("SYMBOLS_FILE: %s" % (str(self.symbols_file_path)))
-        self.env['fn_debug']("SHARED_LIB: %s" % (str(self.shared_lib)))
+        self.env['fn_debug'](f"{self.lib_name} SYMBOLS_FILE: {str(self.symbols_file_path)}")
+        self.env['fn_debug'](f"{self.lib_name} SHARED_LIB:   {str(self.shared_lib)}")
+        self.env['fn_debug'](f"{self.lib_name} HAS_OWN_ABI:  {str(self.has_own_abi)}")
 
 
         # lib_type as abi/so/a information is put into libraries info
@@ -312,7 +313,8 @@ class GenodeMkLib(GenodeBaseLib):
         # on it
         lib_type = None
         if (self.symbols_file_path is not None
-            and self.has_own_abi):
+            or self.has_own_abi):  # for typical shared libraries both are true
+                                   # but ld is an exception - only abi without a library
             lib_type = 'abi'
         if self.shared_lib:
             if self.has_any_sources() or len(self.orig_dep_libs) != 0:
@@ -332,6 +334,9 @@ class GenodeMkLib(GenodeBaseLib):
         dep_shlib_links = self.build_helper.create_dep_lib_links(
             self.env, self.sc_tgt_path(None), self.lib_so_deps)
 
+        self.env['fn_debug'](f"fn_register_lib_info for {self.lib_name}, type {lib_type},"
+                             f" deps {str(lib_deps)}, lib_so_deps {str(self.lib_so_deps)},"
+                             f" orig_dep_libs {str(self.orig_dep_libs)}")
         self.env['fn_register_lib_info'](self.lib_name, { 'type': lib_type,
                                                           'lib_deps': lib_deps,
                                                           'common_targets': dep_shlib_links })
