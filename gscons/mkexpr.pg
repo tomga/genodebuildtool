@@ -64,12 +64,11 @@ FunAnyName: "error " |
 
 
 terminals
-TEXT_CHAR: /[^(){}#,$\n\ ]/;
+TEXT_CHAR: /[^(){},$\n\ ]/;
 ESCAPED: "\\#";
 LINE_CONTINUATION: /\\\n/;
 WS: /[ ]+/;
 TAB: /[\t]/;
-COMMENT: /\#.*/;
 RULE_COMMAND: /\t.*/;
 DOLLAR: /\$/;
 COMMA: ",";

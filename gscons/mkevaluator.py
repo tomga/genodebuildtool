@@ -594,21 +594,48 @@ def expr_parser():
 class MkRValueExprText:
     def __init__(self, text):
         self.text = text
+        self.comment_mark = None
+        self.after_comment_text = ''
         self.expr = None
 
     def append_text(self, text):
-        self.text += text
+        if self.comment_mark is None:
+            self.text += text
+        else:
+            self.after_comment_text += text
+        self.expr = None
+        return self
+
+    def append_comment(self, text):
+        assert text[0] == '#'
+        if self.comment_mark is None:
+            self.comment_mark = text[0]
+            self.after_comment_text = text[1:]
+        else:
+            self.after_comment_text += text
         self.expr = None
         return self
 
     def join_with(self, expr_text):
-        self.text += expr_text.text
+        if self.comment_mark is None:
+            self.text += expr_text.text
+            self.comment_mark = expr_text.comment_mark
+            self.after_comment_text = expr_text.after_comment_text
+        else:
+            self.after_comment_text += expr_text.text
+            if expr_text.comment_mark is not None:
+                self.after_comment_text += expr_text.comment_mark
+                self.after_comment_text += expr_text.after_comment_text
         self.expr = None
         return self
 
     def parsed_expr(self):
+        final_text = self.text
+        if self.is_rule_expression and self.comment_mark is not None:
+            final_text += self.comment_mark
+            final_text += self.after_comment_text
         if self.expr is None:
-            stripped_text = self.text.strip(' \t')
+            stripped_text = final_text.strip(' \t')
             try:
                 self.expr = expr_parser().parse(stripped_text)
             except Exception as e:

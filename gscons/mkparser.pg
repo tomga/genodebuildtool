@@ -9,8 +9,7 @@ Command: SafeValueExpr CmdAssign? |
          IncludeCmd |
          VPathCmd |
          RuleCmd |
-         WSOPT |
-         COMMENT;
+         WSOPT;
 
 
 CmdAssign: CmdOper OptValueExpr;
@@ -66,7 +65,9 @@ NoCommaValueExpr: SafeValueExpr |
                   NoCommaValueExpr BRACE_OPEN ValueExpr BRACE_CLOSE;
 
 SafeValueExpr: SafeValuePart |
+               COMMENT |
                SafeValueExpr SafeValuePart |
+               SafeValueExpr COMMENT |
                SafeValueExpr BRACE_OPEN ValueExpr BRACE_CLOSE;
 
 SafeValuePart: SAFE_RVALUE_CHAR |
@@ -84,7 +85,7 @@ BRACE_OPEN:  /[({]/;
 BRACE_CLOSE: /[)}]/;
 LINE_CONTINUATION: /\\\n/;
 WS: /[ ]+/;
-COMMENT: /\#.*/;
+COMMENT: /\#.*(\\\n.*)*/;
 COMMA: ",";
 COLON: ":";
 CMD_APPEND: /\+=/;
