@@ -2,6 +2,7 @@
 import copy
 import glob
 import os
+import pprint
 import re
 import subprocess
 import traceback
@@ -33,6 +34,21 @@ class MkEnvVar:
 
 
 
+class MkEnvRule:
+    def __init__(self, targets, prerequisites, commands):
+        self.targets = targets
+        self.prerequisites = prerequisites
+        self.commands = [ cmd.parsed_expr() if type(cmd) == MkRValueExprText else cmd
+                          for cmd in commands ]
+
+    def get_commands(self):
+        return self.value
+
+    def debug_struct(self):
+        return [ self.targets, self.prerequisites,
+                 [ x.debug_struct() for x in self.commands ] ]
+
+
 class MkCache:
     def __init__(self, parser):
         self.parsed_makefiles = {}
@@ -58,6 +74,8 @@ class MkEnv:
         self.mk_cache = mk_cache
         self.parent_env = parent_env
         self.registered_targets = {}
+        self.registered_rules = []
+        self.relative_targets_dir = None
 
     def dict(self):
         return self.variables;
@@ -96,7 +114,8 @@ class MkEnv:
 
     def log(self, level, message):
         assert level in ['error', 'warning', 'notice', 'info', 'debug', 'trace']
-        print("[%s] %s" % (level, message))
+        for line in message.split('\n'):
+            print("[%s] %s" % (level, line))
 
 
     def get_cwd(self):
@@ -167,8 +186,9 @@ class MkEnv:
                 retval.append(path)
         return retval
 
-    def register_target_file(self, file_name):
-        self.registered_targets[file_name] = None
+    def register_target_file(self, file_name, rule = None):
+        assert file_name not in self.registered_targets
+        self.registered_targets[file_name] = rule
 
     def is_file_or_target(self, file_name):
         if os.path.isfile(file_name):
@@ -178,6 +198,28 @@ class MkEnv:
             return True
 
         return False
+
+    def set_relative_targets_dir(self, relative_targets_dir):
+        assert self.relative_targets_dir is None
+        self.relative_targets_dir = relative_targets_dir
+
+    def register_rule(self, rule):
+        assert self.relative_targets_dir is not None
+        self.registered_rules += [ rule ]
+        for target in rule.targets:
+            self.register_target_file(os.path.join(self.relative_targets_dir, target), rule)
+
+    def get_registered_rule(self, rule_target):
+        if rule_target not in self.registered_targets:
+            return None
+        return self.registered_targets[rule_target]
+
+    def get_rule_commands(self, rule_target):
+        rule = self.get_registered_rule(rule_target)
+        if rule is None:
+            return None
+        rule_commands = [ cmd.value(self) for cmd in rule.commands ]
+        return rule_commands
 
 
 class MkRValue:
@@ -596,7 +638,12 @@ class MkRValueExprText:
         self.text = text
         self.comment_mark = None
         self.after_comment_text = ''
+        self.is_rule_expression = False
         self.expr = None
+
+    def mark_as_rule_expression(self):
+        self.is_rule_expression = True
+        return self
 
     def append_text(self, text):
         if self.comment_mark is None:
@@ -1044,7 +1091,11 @@ class MkCmdRule(MkCommand):
         return self
 
     def process(self, mkenv):
-        pass
+        # mkenv.log('warning', pprint.pformat(self.debug_struct(), width=200))
+        targets = self.targets.values_list(mkenv)
+        prereqs = self.sources.values_list(mkenv)
+        env_rule = MkEnvRule(targets, prereqs, self.commands)
+        mkenv.register_rule(env_rule)
 
     def debug_struct(self):
         return [ self.targets.debug_struct(),

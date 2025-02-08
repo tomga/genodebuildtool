@@ -49,7 +49,7 @@ def initialize():
         "VPathCmd": [lambda _, nodes: mkevaluator.MkCmdVpath(nodes[2], nodes[4]),
                     ],
         "RuleCmd": [lambda _, nodes: mkevaluator.MkCmdRule(nodes[0], nodes[2]),
-                    lambda _, nodes: nodes[0].append_command(nodes[2])
+                    lambda _, nodes: nodes[0].append_command(nodes[2].mark_as_rule_expression())
                     ],
         "WSOPT": [lambda _, nodes: nodes[0],
                   lambda _, nodes: "",
