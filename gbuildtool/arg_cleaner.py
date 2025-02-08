@@ -629,6 +629,13 @@ def arg_clean_linux_scripts_config(args_tokenized, run_dir, abs_dir, rel_dir):
 
 def arg_clean_sed(args_tokenized, run_dir, abs_dir, rel_dir):
 
+    if args_tokenized[-2] == '>':
+        return arg_clean_sed_separate_output(args_tokenized, run_dir, abs_dir, rel_dir)
+    elif args_tokenized[1] == '-i':
+        return arg_clean_sed_in_place(args_tokenized, run_dir, abs_dir, rel_dir)
+
+def arg_clean_sed_separate_output(args_tokenized, run_dir, abs_dir, rel_dir):
+
     assert args_tokenized[-2] == '>'
 
     res = args_tokenized
@@ -637,6 +644,21 @@ def arg_clean_sed(args_tokenized, run_dir, abs_dir, rel_dir):
     sources = [res[-3]]
 
     res[-1] = path_clean(res[-1], run_dir, abs_dir, rel_dir, True)
+    targets = [res[-1]]
+
+    command = ' '.join(res)
+
+    return (command, sources, targets)
+
+
+def arg_clean_sed_in_place(args_tokenized, run_dir, abs_dir, rel_dir):
+
+    assert args_tokenized[1] == '-i'
+
+    res = args_tokenized
+
+    res[-1] = path_clean(res[-1], run_dir, abs_dir, rel_dir, True)
+    sources = [res[-1]]
     targets = [res[-1]]
 
     command = ' '.join(res)
