@@ -3,6 +3,8 @@ import os
 import re
 import subprocess
 
+import SCons.Action
+
 # debug support
 import pprint
 
@@ -116,6 +118,7 @@ class GenodeMkProg(GenodeBaseProg):
         super().__init__(prog_name, prog_env,
                          genode_build_helper.GenodeMkBuildHelper(self.build_env),
                          prog_mk_path)
+        self.build_env.set_relative_targets_dir(self.relative_prog_dir)
 
         self.forced_overlay_type = None
 
@@ -502,6 +505,29 @@ class GenodeMkProg(GenodeBaseProg):
             prog_targets.append(config_xst_tgt)
 
 
+        # handle CUSTOM_TARGET_DEPS
+        custom_target_deps = self.build_env.var_values('CUSTOM_TARGET_DEPS')
+        for custom_target in custom_target_deps:
+            # print(f"custom_target: {str(custom_target)}")
+            scons_target_path = self.sc_tgt_path(custom_target)
+            sc_tgt_file = self.env['fn_norm_tgt_path'](custom_target)
+            # print(f"{sc_tgt_file=}")
+            target_rule = self.build_env.get_registered_rule(sc_tgt_file)
+            sc_src_files = [self.env['fn_norm_tgt_path'](src) for src in target_rule.prerequisites]
+            # print(f"target_rule: {str(target_rule.debug_struct())}")
+            rule_commands = self.build_env.get_rule_commands(sc_tgt_file)
+            rule_commands = self.polish_rule_commands(rule_commands)
+            # print(f"rule_commands: {pprint.pformat(rule_commands)}")
+
+            build_tgt = self.env.Command(
+                target=[sc_tgt_file],
+                source=sc_src_files,
+                action=SCons.Action.Action(rule_commands,
+                                           self.env['fn_fmt_out'](sc_tgt_file, 'BUILD', rule_commands)),
+            )
+            prog_targets.append(build_tgt)
+
+
         ## execute post_process_actions
         for action in self.post_process_actions:
             action()
@@ -512,6 +538,20 @@ class GenodeMkProg(GenodeBaseProg):
         self.env['fn_debug']('retval: %s' % (str(list(map(str, retval)))))
         return retval
 
+
+    msg_command_pattern = re.compile('^@echo -e " *(CONFIG|BUILD) *".*')
+    def polish_rule_commands(self, rule_commands):
+        # remove MSG_
+        def exclude_command(command):
+            if re.match(self.msg_command_pattern, command):
+                return True
+            return False
+        rule_commands = [cmd for cmd in rule_commands if not exclude_command(cmd)]
+
+        working_path = self.env['fn_norm_tgt_path'](None)
+        rule_commands = [f"cd {working_path} && ({cmd})" for cmd in rule_commands if not exclude_command(cmd)]
+
+        return rule_commands
 
     def get_sources(self, files):
         src_files = []

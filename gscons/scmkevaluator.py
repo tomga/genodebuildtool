@@ -17,6 +17,9 @@ class ScMkEnv(mkevaluator.MkEnv):
         super().__init__(mk_cache, parent_env)
         self.scons_env = scons_env
 
+        self.set_var("MAKE", mkevaluator.MkEnvVar(value=mkevaluator.MkRValueExpr.from_values_list(['make'])))
+        self.set_var("VERBOSE", mkevaluator.MkEnvVar(value=mkevaluator.MkRValueExpr.from_values_list([''])))
+
 
     def log(self, level, message):
         assert level in ['error', 'warning', 'notice', 'info', 'debug', 'trace']
