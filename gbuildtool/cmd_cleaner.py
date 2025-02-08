@@ -1,13 +1,29 @@
 
+import os.path
+import re
+
 from gbuildtool import arg_cleaner
 
 
+wrapped_cmd_pattern = re.compile(r'^cd ([a-zA-Z0-9_/][a-zA-Z0-9_/]*) && \((.*)\)$')
 
 def commands_clean(cmd_lines, run_dir, abs_dir, rel_dir):
     result = []
+
+    orig_run_dir = run_dir
+
     for unstripped in cmd_lines:
 
         orig = unstripped.strip()
+
+        run_dir = orig_run_dir
+
+        wrapped_cmd_match = re.match(wrapped_cmd_pattern, orig)
+        if wrapped_cmd_match:
+            rel_path = wrapped_cmd_match.group(1)
+            orig = wrapped_cmd_match.group(2)
+
+            run_dir = os.path.join(orig_run_dir, rel_path)
 
         # specially accepted
         special_accepted = False
