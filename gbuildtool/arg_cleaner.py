@@ -538,7 +538,9 @@ def arg_clean_make(args_tokenized, run_dir, abs_dir, rel_dir):
 
     mk_params_paths = [ 'O', 'CC' ]
     mk_params_std = [ 'ARCH', 'CROSS_COMPILE',
-                      'KBUILD_BUILD_TIMESTAMP', 'KBUILD_BUILD_HOST', 'KBUILD_BUILD_USER' ]
+                      'KBUILD_BUILD_TIMESTAMP', 'KBUILD_BUILD_HOST', 'KBUILD_BUILD_USER',
+                      'CONFIG_PREFIX',
+                     ]
 
     if (args_tokenized[-4] == '2>&1' and
         args_tokenized[-3] == '|' and
