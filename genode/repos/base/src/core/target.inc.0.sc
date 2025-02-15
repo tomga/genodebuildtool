@@ -8,7 +8,7 @@ def process_mk_overlay(mk_file, build_env):
     env = build_env.scons_env
 
     include_mk = build_env.get_mk_cache().get_parsed_mk(mk_file, forced_overlay_type='no_overlay')
-    include_mk.process(build_env)
+    include_mk.process(build_env, skip_rules=True)
 
     # create targets later to get access to PROG_LINK_TARGETS defined
     # during processing of genode_prog

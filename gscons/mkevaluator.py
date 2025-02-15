@@ -74,6 +74,7 @@ class MkEnv:
         self.mk_cache = mk_cache
         self.parent_env = parent_env
         self.registered_targets = {}
+        self.rule_processing_disabled = False
         self.registered_rules = []
         self.relative_targets_dir = None
 
@@ -203,7 +204,14 @@ class MkEnv:
         assert self.relative_targets_dir is None
         self.relative_targets_dir = relative_targets_dir
 
+    def disable_rule_processing(self):
+        self.rule_processing_disabled = True
+    def enable_rule_processing(self):
+        self.rule_processing_disabled = False
+
     def register_rule(self, rule):
+        if self.rule_processing_disabled:
+            return
         assert self.relative_targets_dir is not None
         self.registered_rules += [ rule ]
         for target in rule.targets:
@@ -807,7 +815,9 @@ class MkScript:
             self.commands.append(cmd)
         return self
 
-    def process(self, mkenv):
+    def process(self, mkenv, skip_rules=False):
+        if skip_rules:
+            mkenv.disable_rule_processing()
         for cmd in self.commands:
             try:
                 cmd.process(mkenv)
@@ -816,6 +826,8 @@ class MkScript:
                 mkenv.log("error", "%s" % (str(cmd.debug_struct())))
                 traceback.print_exception(None, e, e.__traceback__)
                 raise e
+        if skip_rules:
+            mkenv.enable_rule_processing()
 
     def debug_struct(self):
         retval = []

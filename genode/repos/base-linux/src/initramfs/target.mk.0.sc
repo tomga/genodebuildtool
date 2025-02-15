@@ -46,6 +46,6 @@ def process_prog_overlay(prog_name, env, prog_mk_file, prog_mk_repo, build_env):
 
     prog = GenodeInitramfsMkProg(prog_name, env, prog_mk_file, prog_mk_repo, build_env)
     prog.disable_overlay()
-    prog.process_load()
+    prog.process_load(skip_rules=True)
 
     return prog

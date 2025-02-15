@@ -59,6 +59,8 @@ class GenodeBaseProg(GenodeProg):
         self.post_process_actions = []
         self.env['fn_add_post_process_action'] = lambda action: self.post_process_actions.append(action)
 
+        self.rules_handling_skipped = False
+
         target_cwd = self.norm_tgt_path(None)
         if not os.path.isdir(target_cwd):
             os.makedirs(target_cwd)
@@ -131,7 +133,7 @@ class GenodeMkProg(GenodeBaseProg):
         self.forced_overlay_type = forced_overlay_type
 
 
-    def process_load(self):
+    def process_load(self, skip_rules=False):
 
         mkcache = self.build_env.get_mk_cache()
 
@@ -156,7 +158,8 @@ class GenodeMkProg(GenodeBaseProg):
         # overlays for <prog_mk> are already handled on a different level
         prog_mk = mkcache.get_parsed_mk(self.prog_mk_file,
                                         forced_overlay_type=self.forced_overlay_type)
-        prog_mk.process(self.build_env)
+        prog_mk.process(self.build_env, skip_rules)
+        self.rules_handling_skipped = skip_rules
 
 
         specs = self.env['SPECS']
@@ -513,6 +516,14 @@ class GenodeMkProg(GenodeBaseProg):
             sc_tgt_file = self.env['fn_norm_tgt_path'](custom_target)
             # print(f"{sc_tgt_file=}")
             target_rule = self.build_env.get_registered_rule(sc_tgt_file)
+            if target_rule is None:
+                if self.rules_handling_skipped:
+                    self.env['fn_info'](f"Skipping custom target dep {custom_target} for prog with disabled rules")
+                    continue
+                else:
+                    self.env['fn_error'](f"No rule for Custom target dep {custom_target}")
+                    continue
+                    quit()
             sc_src_files = [self.env['fn_norm_tgt_path'](src) for src in target_rule.prerequisites]
             # print(f"target_rule: {str(target_rule.debug_struct())}")
             rule_commands = self.build_env.get_rule_commands(sc_tgt_file)
