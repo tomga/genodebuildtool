@@ -264,7 +264,8 @@ class MkRValueSpace(MkRValue):
         return True
 
     def compact_with(self, other) -> MkRValue:
-        pass
+        self.text += other.text
+        return self
 
     def debug_struct(self):
         return self.text
@@ -693,7 +694,9 @@ class MkRValueExprText:
         if self.expr is None:
             stripped_text = final_text.strip(' \t')
             try:
-                self.expr = expr_parser().parse(stripped_text)
+                parse_result = expr_parser().parse(stripped_text)
+                assert len(parse_result) >= 1
+                self.expr = expr_parser().call_actions(parse_result[0])
             except Exception as e:
                 print(f"Exception during parsing expression: {stripped_text}")
                 #traceback.print_exception(None, e, e.__traceback__)
@@ -737,6 +740,11 @@ class MkRValueExpr:
             self.parts[-1].compact_with(part)
             return self
         self.parts.append(part)
+        return self
+
+    def append_parts(self, parts):
+        for part in parts:
+            self.append_part(part)
         return self
 
     def append_expr_parts(self, expr):

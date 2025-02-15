@@ -1,41 +1,59 @@
 
-OptValueExpr: ValueExpr |
+OptValueExpr: Blank? ValueExpr Blank? |
               EMPTY;
 
-ValueExpr: ValuePart |
-           ValueExpr ValuePart |
-           ValueExpr BRACE_OPEN ValueExpr BRACE_CLOSE |
-           ValueExpr WS ValuePart;
+ValueExpr: ValuePartList |
+           ValueExpr ValuePartList;
 
-NoCommaValueExpr: NoCommaValuePart |
-                  NoCommaValueExpr NoCommaValuePart |
-                  NoCommaValueExpr BRACE_OPEN ValueExpr BRACE_CLOSE |
-                  NoCommaValueExpr WS NoCommaValuePart;
+ValuePartList: ValuePartText |
+               ValuePartExpr |
+               COMMA |
+               BRACE_OPEN |
+               BRACE_CLOSE |
+               ValuePartList Blank ValuePartText |
+               ValuePartList Blank ValuePartExpr |
+               ValuePartList Blank COMMA |
+               ValuePartList Blank BRACE_OPEN |
+               ValuePartList Blank BRACE_CLOSE;
 
-ValuePart: NoCommaValuePart |
-           COMMA;
-
-NoCommaValuePart: ValuePartText |
-                  ValuePartExpr;
+ValuePartText: TEXT_CHAR |
+               ESCAPED;
 
 ValuePartExpr: DOLLAR TEXT_CHAR |
                DOLLAR DOLLAR |
-               DOLLAR BRACE_OPEN Fun1Name WS? NoCommaValueExpr BRACE_CLOSE |
-               DOLLAR BRACE_OPEN Fun2Name WS? NoCommaValueExpr CommaSeparator NoCommaValueExpr BRACE_CLOSE |
-               DOLLAR BRACE_OPEN Fun3Name WS? NoCommaValueExpr CommaSeparator NoCommaValueExpr CommaSeparator NoCommaValueExpr BRACE_CLOSE |
-               DOLLAR BRACE_OPEN FunAnyName WS? ValueExprList BRACE_CLOSE |
-               DOLLAR BRACE_OPEN OptValueExpr BRACE_CLOSE;
+               DOLLAR BRACE_OPEN Fun1Name Blank? LimitedValueExpr BRACE_CLOSE |
+               DOLLAR BRACE_OPEN Fun2Name Blank? LimitedValueExpr CommaSeparator LimitedValueExpr BRACE_CLOSE |
+               DOLLAR BRACE_OPEN Fun3Name Blank? LimitedValueExpr CommaSeparator LimitedValueExpr CommaSeparator LimitedValueExpr BRACE_CLOSE |
+               DOLLAR BRACE_OPEN FunAnyName Blank? LimitedValueExprList BRACE_CLOSE |
+               DOLLAR BRACE_OPEN NoBlankValueExpr BRACE_CLOSE; // Note below
+/*
+NoBlankValueExpr is used instead of LimitedValueExpr because otherwise single
+argument functions were sometimes parsed as a variable reference. I made this
+change although this disables use of references to variables with blanks.
+*/
 
-ValueExprList: NoCommaValueExpr |
-               ValueExprList CommaSeparator NoCommaValueExpr;
+LimitedValueExprList: LimitedValueExpr |
+                      LimitedValueExprList CommaSeparator LimitedValueExpr;
 
-ValuePartText: TEXT_CHAR |
-               ESCAPED |
-               LINE_CONTINUATION;
+LimitedValueExpr: LimitedValuePartList |
+                  LimitedValueExpr LimitedValuePartList |
+                  LimitedValueExpr BRACE_OPEN Blank? LimitedValueExpr Blank? BRACE_CLOSE;
 
-CommaSeparator: WS? COMMA WS?;
+LimitedValuePartList: ValuePartText |
+                      ValuePartExpr |
+                      LimitedValuePartList Blank ValuePartText |
+                      LimitedValuePartList Blank ValuePartExpr;
 
-ColonSeparator: COLON WS?;
+NoBlankValueExpr: NoBlankValuePartList |
+                  NoBlankValueExpr NoBlankValuePartList |
+                  NoBlankValueExpr BRACE_OPEN Blank? LimitedValueExpr Blank? BRACE_CLOSE;
+
+NoBlankValuePartList: ValuePartText |
+                      ValuePartExpr;
+
+CommaSeparator: Blank? COMMA Blank?;
+
+ColonSeparator: COLON Blank?;
 
 Fun1Name: "basename " |
           "dir " |
@@ -62,9 +80,15 @@ Fun3Name: "foreach " |
 FunAnyName: "error " |
             "shell ";
 
+Blank: WS |
+       TAB |
+       LINE_CONTINUATION |
+       Blank WS |
+       Blank TAB |
+       Blank LINE_CONTINUATION;
 
 terminals
-TEXT_CHAR: /[^(){},$\n\ ]/;
+TEXT_CHAR: /[^(){},$\n\ \t]/;
 ESCAPED: "\\#";
 LINE_CONTINUATION: /\\\n/;
 WS: /[ ]+/;
