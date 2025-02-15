@@ -1,0 +1,5 @@
+$(VERBOSE)(echo    "create $@"; \
+	           echo -e "$(addprefix \naddlib ,$(LINK_ITEMS))"; \
+	           echo    "save"; \
+	           echo    "end"; \
+	          ) | $(AR) -M

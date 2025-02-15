@@ -1,0 +1,1 @@
+$(lastword $(CC_CXX_OPT_STD) $(CC_CXX_OPT_STD_$(subst .,_,$*)))
