@@ -13,7 +13,7 @@ class MkEnvVar:
     def __init__(self, mode='recursive', value=None):
         assert mode == 'recursive' or mode == 'simple'
         self.mode = mode
-        self.value = (MkRValueExpr() if value is None else
+        self.value = (MkRValueExpr([]) if value is None else
                       value.parsed_expr() if type(value) == MkRValueExprText else
                       value)
 
@@ -251,19 +251,19 @@ class MkRValue:
 
 class MkRValueSpace(MkRValue):
 
-    def __init__(self, text = None):
-        self.text = text if text is not None else ' '
+    def __init__(self, text : str = ' '):
+        self.text = text
 
-    def type(self):
+    def type(self) -> str:
         return 'SPC'
 
-    def value(self):
+    def value(self) -> str:
         return self.text
 
-    def compactable(self):
+    def compactable(self) -> bool:
         return True
 
-    def compact_with(self, other):
+    def compact_with(self, other) -> MkRValue:
         pass
 
     def debug_struct(self):
@@ -272,7 +272,7 @@ class MkRValueSpace(MkRValue):
 
 
 class MkRValueText(MkRValue):
-    def __init__(self, text):
+    def __init__(self, text : str):
         self.text = text
 
     def type(self):
@@ -286,6 +286,7 @@ class MkRValueText(MkRValue):
 
     def compact_with(self, other):
         self.text += other.text
+        return self
 
     def debug_struct(self):
         return self.text
@@ -464,7 +465,7 @@ functionsDict['lastword'] = mkfun_lastword
 
 
 class MkRValueFun1(MkRValue):
-    def __init__(self, funname, arg):
+    def __init__(self, funname : str, arg):
         self.funname = funname.strip()
         self.arg = arg
 
@@ -723,8 +724,8 @@ class MkRValueExprText:
 
 
 class MkRValueExpr:
-    def __init__(self, parts = None):
-        self.parts = parts if parts is not None else []
+    def __init__(self, parts : list[MkRValue]):
+        self.parts = parts
 
     def soft_clone(self):
         return MkRValueExpr(parts=self.parts[:])
@@ -780,7 +781,7 @@ class MkRValueExpr:
 
     def from_values_list(values_list):
         # Construct r value expression from list of text values
-        retval = MkRValueExpr()
+        retval = MkRValueExpr([])
         first = True
         for t in values_list:
             if not first:
