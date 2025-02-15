@@ -120,7 +120,7 @@ class GenodeMkProg(GenodeBaseProg):
         super().__init__(prog_name, prog_env,
                          genode_build_helper.GenodeMkBuildHelper(self.build_env),
                          prog_mk_path)
-        self.build_env.set_relative_targets_dir(self.relative_prog_dir)
+        self.build_env.set_relative_targets_dir(self.norm_tgt_path(None))
 
         self.forced_overlay_type = None
 
