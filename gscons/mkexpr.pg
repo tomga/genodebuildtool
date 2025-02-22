@@ -16,16 +16,15 @@ ValuePartList: ValuePartText |
                ValuePartList Blank BRACE_OPEN |
                ValuePartList Blank BRACE_CLOSE;
 
-ValuePartText: TEXT_CHAR |
-               ESCAPED;
+ValuePartText: TEXT_STR;
 
-ValuePartExpr: DOLLAR TEXT_CHAR |
-               DOLLAR DOLLAR |
-               DOLLAR BRACE_OPEN Fun1Name Blank? LimitedValueExpr BRACE_CLOSE |
-               DOLLAR BRACE_OPEN Fun2Name Blank? LimitedValueExpr CommaSeparator LimitedValueExpr BRACE_CLOSE |
-               DOLLAR BRACE_OPEN Fun3Name Blank? LimitedValueExpr CommaSeparator LimitedValueExpr CommaSeparator LimitedValueExpr BRACE_CLOSE |
-               DOLLAR BRACE_OPEN FunAnyName Blank? LimitedValueExprList BRACE_CLOSE |
-               DOLLAR BRACE_OPEN NoBlankValueExpr BRACE_CLOSE; // Note below
+ValuePartExpr: DOLLAR_TEXT_CHAR |
+               DOLLAR_DOLLAR |
+               DOLLAR_BRACE_OPEN Fun1Name Blank? LimitedValueExpr BRACE_CLOSE |
+               DOLLAR_BRACE_OPEN Fun2Name Blank? LimitedValueExpr CommaSeparator LimitedValueExpr BRACE_CLOSE |
+               DOLLAR_BRACE_OPEN Fun3Name Blank? LimitedValueExpr CommaSeparator LimitedValueExpr CommaSeparator LimitedValueExpr BRACE_CLOSE |
+               DOLLAR_BRACE_OPEN FunAnyName Blank? LimitedValueExprList BRACE_CLOSE |
+               DOLLAR_BRACE_OPEN NoBlankValueExpr BRACE_CLOSE; // Note below
 /*
 NoBlankValueExpr is used instead of LimitedValueExpr because otherwise single
 argument functions were sometimes parsed as a variable reference. I made this
@@ -80,22 +79,15 @@ Fun3Name: "foreach " |
 FunAnyName: "error " |
             "shell ";
 
-Blank: WS |
-       TAB |
-       LINE_CONTINUATION |
-       Blank WS |
-       Blank TAB |
-       Blank LINE_CONTINUATION;
+Blank: BLANK;
 
 terminals
-TEXT_CHAR: /[^(){},$\n\ \t]/;
-ESCAPED: "\\#";
-LINE_CONTINUATION: /\\\n/;
-WS: /[ ]+/;
-TAB: /[\t]/;
-RULE_COMMAND: /\t.*/;
-DOLLAR: /\$/;
-COMMA: ",";
-COLON: ":";
+TEXT_STR: /([^(){},$\n\\\ \t]+|\\(?!\n))+/;
+DOLLAR_TEXT_CHAR: /\$[^(){},$\n\ \t]/;
+DOLLAR_DOLLAR: "$$";
+DOLLAR_BRACE_OPEN: /\$[({]/;
 BRACE_OPEN: /[({]/;
 BRACE_CLOSE: /[)}]/;
+BLANK: /([ \t]+|\\\n)+/;
+COMMA: ",";
+COLON: ":";

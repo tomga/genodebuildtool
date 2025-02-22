@@ -33,16 +33,15 @@ def initialize():
                          ],
         # MkRValue (MkRValueText)
         "ValuePartText": [lambda _, nodes: mkevaluator.MkRValueText(nodes[0]),
-                          lambda _, nodes: mkevaluator.MkRValueText(nodes[0]),
                          ],
         # MkRValue
-        "ValuePartExpr": [lambda _, nodes: mkevaluator.MkRValueDollarVar(mkevaluator.MkRValueExpr([mkevaluator.MkRValueText(nodes[1])])),
-                          lambda _, nodes: mkevaluator.MkRValueText(nodes[1]),
-                          lambda _, nodes: mkevaluator.MkRValueFun1(nodes[2], nodes[4]),
-                          lambda _, nodes: mkevaluator.MkRValueFun2(nodes[2], nodes[4], nodes[6]),
-                          lambda _, nodes: mkevaluator.MkRValueFun3(nodes[2], nodes[4], nodes[6], nodes[8]),
-                          lambda _, nodes: mkevaluator.MkRValueFunAny(nodes[2], nodes[4]),
-                          lambda _, nodes: mkevaluator.MkRValueVar(nodes[2]),
+        "ValuePartExpr": [lambda _, nodes: mkevaluator.MkRValueDollarVar(mkevaluator.MkRValueExpr([mkevaluator.MkRValueText(nodes[0][1])])),
+                          lambda _, nodes: mkevaluator.MkRValueText(nodes[0][1]),
+                          lambda _, nodes: mkevaluator.MkRValueFun1(nodes[1], nodes[3]),
+                          lambda _, nodes: mkevaluator.MkRValueFun2(nodes[1], nodes[3], nodes[5]),
+                          lambda _, nodes: mkevaluator.MkRValueFun3(nodes[1], nodes[3], nodes[5], nodes[7]),
+                          lambda _, nodes: mkevaluator.MkRValueFunAny(nodes[1], nodes[3]),
+                          lambda _, nodes: mkevaluator.MkRValueVar(nodes[1]),
                          ],
         # list[MkRValueExpr]
         "LimitedValueExprList": [lambda _, nodes: [ nodes[0] ],
@@ -79,12 +78,7 @@ def initialize():
                                  lambda _, nodes: [ nodes[0] ], # ValuePartExpr
                                  ],
         # MkRValue (MkRValueSpace)
-        "Blank": [lambda _, nodes: mkevaluator.MkRValueSpace(nodes[0]),
-                  lambda _, nodes: mkevaluator.MkRValueSpace(nodes[0]),
-                  lambda _, nodes: mkevaluator.MkRValueSpace(' '),
-                  lambda _, nodes: nodes[0].compact_with(mkevaluator.MkRValueSpace(nodes[1])),
-                  lambda _, nodes: nodes[0].compact_with(mkevaluator.MkRValueSpace(nodes[1])),
-                  lambda _, nodes: nodes[0].compact_with(mkevaluator.MkRValueSpace(' ')),
+        "Blank": [lambda _, nodes: mkevaluator.MkRValueSpace(nodes[0].replace('\\', ' ').replace('\n', ' ')),
                   ],
         }
 
